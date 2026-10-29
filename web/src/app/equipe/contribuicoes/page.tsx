@@ -1,5 +1,5 @@
 import { resolveContribution } from "@/app/actions";
-import { billLabel, db, domainOf, isOfficialDomain } from "@/lib/store";
+import { propositionLabel, db, domainOf, isOfficialDomain } from "@/lib/store";
 import { requireTeamUser } from "@/lib/session";
 import { CONTRIBUTION_LABEL, CONTRIBUTION_STATUS_LABEL, PROGRESS_LABEL, fmtDate } from "@/lib/format";
 import { Badge, ErrorBanner, Hidden } from "@/components/ui";
@@ -14,7 +14,7 @@ export default async function ContributionsPage({ searchParams }: { searchParams
       <h1 className="text-2xl font-bold">Contribuições</h1>
       <ErrorBanner message={erro} />
       {list.map((c) => {
-        const bill = c.billId ? db.bills.find((b) => b.id === c.billId) : undefined;
+        const proposition = c.propositionId ? db.propositions.find((b) => b.id === c.propositionId) : undefined;
         const srcDomain = domainOf(c.source);
         return (
           <div key={c.trackingCode} className="card space-y-2">
@@ -28,8 +28,8 @@ export default async function ContributionsPage({ searchParams }: { searchParams
             </div>
             <div className="text-sm">
               {c.kind === "referral" && <>Endereço indicado: <a href={c.url} className="link" target="_blank" rel="noreferrer">{c.url}</a> <span className="text-stone-500">(confira à mão: o Nelisa não baixa o link na v1)</span></>}
-              {c.kind === "progress_update" && bill && (
-                <>{billLabel(bill)}: <strong>{PROGRESS_LABEL[c.progressKind!]}</strong> em {fmtDate(c.date)}{c.note && ` — “${c.note}”`}</>
+              {c.kind === "progress_update" && proposition && (
+                <>{propositionLabel(proposition)}: <strong>{PROGRESS_LABEL[c.progressKind!]}</strong> em {fmtDate(c.date)}{c.note && ` — “${c.note}”`}</>
               )}
               {c.kind === "source_request" && <>Domínio <strong>{c.domain}</strong>{c.note && ` — diz ser: ${c.note}`}</>}
             </div>

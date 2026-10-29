@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { db, toPublic } from "@/lib/store";
+import { chambersOf, db, propositionLabel, toPublic } from "@/lib/store";
 import { PROGRESS_LABEL, PUBLIC_STATE_LABEL, SPHERE_LABEL, daysUntil, fmtDate } from "@/lib/format";
 import { Badge } from "@/components/ui";
 import ShareStory from "./ShareStory";
@@ -10,8 +10,8 @@ import type { RollCallVote } from "@/lib/types";
 type Params = Promise<{ id: string }>;
 
 function load(id: string) {
-  const bill = db.bills.find((b) => b.id === id);
-  return bill ? toPublic(bill) : null;
+  const proposition = db.propositions.find((b) => b.id === id);
+  return proposition ? toPublic(proposition) : null;
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
@@ -20,10 +20,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: `${b.kind} ${b.number}/${b.year} — Nelisa`, description: b.shortSummary ?? b.ementa };
 }
 
-export default async function BillPage({ params }: { params: Params }) {
+export default async function PropositionPage({ params }: { params: Params }) {
   const b = load((await params).id);
   if (!b) notFound();
-  const chamber = db.chambers.find((c) => c.id === b.chamberId)!;
+  const chambers = chambersOf(b);
+  const principal = b.attachedTo ? db.propositions.find((p) => p.id === b.attachedTo) : undefined;
+  const attached = db.propositions.filter((p) => p.attachedTo === b.id && p.state !== "draft");
   const ready = b.state === "ready";
   const nextVote = b.progress.find((p) => p.kind === "vote_scheduled" && daysUntil(p.date) >= 0);
 
@@ -31,8 +33,8 @@ export default async function BillPage({ params }: { params: Params }) {
     <article className="space-y-6">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-sm text-stone-500">
-          <Badge>{SPHERE_LABEL[chamber.sphere]}</Badge>
-          <span>{chamber.name}</span>
+          <Badge>{SPHERE_LABEL[chambers[0].sphere]}</Badge>
+          <span>{chambers.map((c) => c.name).join(" → ")}</span>
           <Badge tone={ready ? "green" : "amber"}>{PUBLIC_STATE_LABEL[b.state]}</Badge>
           {ready && <span>· revisado por {b.reviewers} {b.reviewers === 1 ? "pessoa" : "pessoas"}</span>}
         </div>
@@ -44,7 +46,7 @@ export default async function BillPage({ params }: { params: Params }) {
             <span key={i}>
               {i > 0 && ", "}
               {a.kind === "legislator" ? (
-                <AuthorLink id={a.legislatorId} chamberId={b.chamberId} at={b.progress[0]?.date ?? b.createdAt} />
+                <AuthorLink id={a.legislatorId} chamberId={b.chamberIds[0]} at={b.progress[0]?.date ?? b.createdAt} />
               ) : a.kind === "cosigners" ? (
                 `e mais ${a.count} coautores`
               ) : (
@@ -55,8 +57,22 @@ export default async function BillPage({ params }: { params: Params }) {
         </p>
         <p className="flex flex-wrap gap-3 text-sm">
           <a href={b.officialUrl} className="link" target="_blank" rel="noreferrer">Texto oficial na fonte ↗</a>
-          <Link href={`/contribuir?tipo=progress_update&pl=${b.id}`} className="link">Informar mudança na tramitação</Link>
+          <Link href={`/contribuir?tipo=progress_update&proposicao=${b.id}`} className="link">Informar mudança na tramitação</Link>
         </p>
+        {principal && (
+          <div className="rounded-md bg-stone-100 px-3 py-2 text-sm">
+            {b.superseded ? "Prejudicada: deixou de tramitar sem votação. " : ""}Tramitou apensada à{" "}
+            <Link href={`/proposicao/${principal.id}`} className="link">{propositionLabel(principal)}</Link>.
+          </div>
+        )}
+        {attached.length > 0 && (
+          <div className="rounded-md bg-stone-100 px-3 py-2 text-sm">
+            Apensadas a esta:{" "}
+            {attached.map((p, i) => (
+              <span key={p.id}>{i > 0 && ", "}<Link href={`/proposicao/${p.id}`} className="link">{propositionLabel(p)}</Link></span>
+            ))}
+          </div>
+        )}
         {nextVote && (
           <div className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
             {nextVote.description}: {fmtDate(nextVote.date)} (em {daysUntil(nextVote.date)} dias)
@@ -66,7 +82,7 @@ export default async function BillPage({ params }: { params: Params }) {
 
       {!ready && (
         <div className="card border-amber-300 bg-amber-50 text-amber-900">
-          <strong>Em análise.</strong> A equipe ainda está revisando este projeto. Enquanto isso, você vê só os dados oficiais
+          <strong>Em análise.</strong> A equipe ainda está revisando esta proposição. Enquanto isso, você vê só os dados oficiais
           e o link para o texto na fonte.
         </div>
       )}
@@ -76,7 +92,7 @@ export default async function BillPage({ params }: { params: Params }) {
           <div className="flex flex-wrap gap-1">{b.topics.map((t) => <Badge key={t} tone="blue">{t}</Badge>)}</div>
           <h2 className="text-lg font-semibold">Resumo</h2>
           <p className="leading-relaxed">{b.summary}</p>
-          <ShareStory text={b.shortSummary!} url={`nelisa.org/pl/${b.id}`} />
+          <ShareStory text={b.shortSummary!} url={`nelisa.org/proposicao/${b.id}`} />
         </section>
       )}
 
@@ -144,7 +160,7 @@ function RollCall({ description, votes }: { description: string; votes: RollCall
   );
 }
 
-// Party is the one of the Term in force when the bill was presented.
+// Party is the one of the Term in force when the proposition was presented.
 function AuthorLink({ id, chamberId, at }: { id: string; chamberId: string; at: string }) {
   const l = db.legislators.find((x) => x.id === id)!;
   const day = at.slice(0, 10);

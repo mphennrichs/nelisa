@@ -8,7 +8,7 @@ export default async function LegislatorPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const l = db.legislators.find((x) => x.id === id);
   if (!l) notFound();
-  const bills = db.bills
+  const propositions = db.propositions
     .filter((b) => b.authors.some((a) => a.kind === "legislator" && a.legislatorId === l.id))
     .map(toPublic)
     .filter((b) => b !== null);
@@ -28,11 +28,11 @@ export default async function LegislatorPage({ params }: { params: Promise<{ id:
         {l.officialContact && <p className="mt-2 text-sm">Contato oficial: {l.officialContact}</p>}
       </section>
       <section>
-        <h2 className="mb-2 font-semibold">Projetos de autoria</h2>
+        <h2 className="mb-2 font-semibold">Proposições de autoria</h2>
         <ul className="space-y-2">
-          {bills.map((b) => (
+          {propositions.map((b) => (
             <li key={b.id} className="card">
-              <Link href={`/pl/${b.id}`} className="font-semibold hover:underline">{b.kind} {b.number}/{b.year}</Link>{" "}
+              <Link href={`/proposicao/${b.id}`} className="font-semibold hover:underline">{b.kind} {b.number}/{b.year}</Link>{" "}
               <Badge tone={b.state === "ready" ? "green" : "amber"}>{PUBLIC_STATE_LABEL[b.state]}</Badge>
               <p className="text-sm text-stone-700">{b.ementa}</p>
             </li>

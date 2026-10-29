@@ -7,7 +7,7 @@ Esta tabela é a tradução oficial — não invente outra.
 
 | Pacote | Conceitos |
 |---|---|
-| `bill/` | PL, Versão, Dispositivo, Estruturação, Comentário, Resumo, Resumo curto, Tema, Nota interna |
+| `proposition/` | Proposição, Tipo, Apensação, Versão, Dispositivo, Estruturação, Comentário, Resumo, Resumo curto, Tema, Nota interna |
 | `review/` | Revisão, quatro olhos, Errata, Correção menor, Selo de revisão |
 | `queue/` | Fila de revisão, Posse |
 | `progress/` | Tramitação, Voto nominal |
@@ -23,7 +23,11 @@ Esta tabela é a tradução oficial — não invente outra.
 
 | Domínio (pt) | Código (en) |
 |---|---|
-| Projeto de Lei (PL) | `Bill` |
+| Proposição | `Proposition` |
+| Tipo (PL, PEC...) | `Kind` |
+| Apensação | `AttachedTo` (na apensada) |
+| Prejudicada | `Superseded` |
+| Casa iniciadora | `OriginChamber` |
 | Versão | `Version` |
 | Versão vigente / em análise | `CurrentVersion` / `PendingVersion` |
 | Dispositivo | `Provision` |

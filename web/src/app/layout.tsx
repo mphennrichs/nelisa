@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Nelisa",
-  description: "Projetos de lei explicados — protótipo",
+  description: "Proposições legislativas explicadas — protótipo",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <header className="border-b border-stone-200 bg-white">
           <nav className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 text-sm">
             <Link href="/" className="text-lg font-bold">Nelisa</Link>
-            <Link href="/" className="link">Projetos de lei</Link>
+            <Link href="/" className="link">Proposições</Link>
             <Link href="/contribuir" className="link">Contribuir</Link>
             <Link href="/contribuicao" className="link">Acompanhar contribuição</Link>
             <span className="flex-1" />

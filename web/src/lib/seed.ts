@@ -3,7 +3,7 @@
 // else is invented.
 import type {
   AuditEntry,
-  Bill,
+  Proposition,
   Chamber,
   Contribution,
   Legislator,
@@ -65,11 +65,11 @@ export function seed() {
     { id: "u-edu", name: "Edu (Editor)", email: "edu@nelisa.test", password: "nelisa123", role: "editor", active: true, mustChangePassword: false },
   ];
 
-  const bills: Bill[] = [
+  const propositions: Proposition[] = [
     {
       id: "pec-221-2019",
       kind: "PEC",
-      chamberId: "senado",
+      chamberIds: ["camara", "senado"],
       number: 221,
       year: 2019,
       ementa: "Altera o art. 7º da Constituição Federal para reduzir a duração máxima semanal do trabalho e prever 2 (dois) dias de repouso semanal remunerado, sem qualquer redução salarial; e dá outras providências.",
@@ -132,13 +132,13 @@ export function seed() {
         { id: "p8", date: "2026-12-16T12:00:00.000Z", kind: "in_force", description: "Passa a valer o repouso semanal de 2 dias (Art. 10, I)" },
       ],
       rollCall: { description: "Plenário do Senado, 2º turno, 14/10/2026", votes: PEC221_SENADO_2TURNO },
-      internalNotes: [{ id: "n1", authorId: "u-rui", at: "2026-10-20T12:00:00.000Z", text: "Na Câmara ela é a mesma PEC 221/2019, com outra tramitação. Como juntar as duas Casas?" }],
+      internalNotes: [{ id: "n1", authorId: "u-rui", at: "2026-10-20T12:00:00.000Z", text: "Conferir se a tramitação da Câmara está completa antes de fechar." }],
       aiDraftUsed: false,
     },
     {
       id: "b2",
       kind: "PL",
-      chamberId: "senado",
+      chamberIds: ["senado"],
       number: 2002,
       year: 2026,
       ementa: "Altera regras de licenciamento ambiental para obras de saneamento básico.",
@@ -173,7 +173,9 @@ export function seed() {
     {
       id: "pec-8-2025",
       kind: "PEC",
-      chamberId: "camara",
+      chamberIds: ["camara"],
+      attachedTo: "pec-221-2019",
+      superseded: true,
       number: 8,
       year: 2025,
       ementa: "Dá nova redação ao inciso XIII, do artigo 7° da Constituição Federal para dispor sobre a redução da jornada de trabalho para quatro dias por semana no Brasil.",
@@ -209,7 +211,7 @@ export function seed() {
     {
       id: "b4",
       kind: "PL",
-      chamberId: "alego",
+      chamberIds: ["alego"],
       number: 301,
       year: 2026,
       ementa: "Proíbe a cobrança de taxa de religação de energia em dias de chuva intensa.",
@@ -241,7 +243,7 @@ export function seed() {
     {
       id: "b5",
       kind: "PL",
-      chamberId: "cm-goiania",
+      chamberIds: ["cm-goiania"],
       number: 45,
       year: 2026,
       ementa: "Cria hortas comunitárias em praças públicas do município.",
@@ -275,7 +277,7 @@ export function seed() {
     {
       id: "b6",
       kind: "PL",
-      chamberId: "cm-anapolis",
+      chamberIds: ["cm-anapolis"],
       number: 12,
       year: 2026,
       ementa: "Institui a Semana Municipal da Cultura Popular.",
@@ -311,7 +313,7 @@ export function seed() {
   ];
 
   const contributions: Contribution[] = [
-    { trackingCode: "NL-7K2Q", kind: "progress_update", status: "pending", createdAt: day(-1), billId: "b5", progressKind: "vote_scheduled", date: day(8), source: "https://www.goiania.go.leg.br/exemplo/pauta", note: "A votação foi adiada" },
+    { trackingCode: "NL-7K2Q", kind: "progress_update", status: "pending", createdAt: day(-1), propositionId: "b5", progressKind: "vote_scheduled", date: day(8), source: "https://www.goiania.go.leg.br/exemplo/pauta", note: "A votação foi adiada" },
     { trackingCode: "NL-3MZP", kind: "referral", status: "pending", createdAt: day(-2), url: "https://al.go.leg.br/exemplo/pl-410-2026", source: "https://al.go.leg.br/exemplo/pl-410-2026" },
   ];
 
@@ -320,5 +322,5 @@ export function seed() {
     { at: "2026-10-20T12:00:00.000Z", userId: "u-rui", action: "approve", detail: "PEC 221/2019 aprovada" },
   ];
 
-  return { chambers, officialSources, legislators, users, bills, contributions, audit };
+  return { chambers, officialSources, legislators, users, propositions, contributions, audit };
 }

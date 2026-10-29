@@ -54,24 +54,24 @@ export async function changePassword(fd: FormData) {
   await run("/equipe/senha", () => store.changeOwnPassword(u, String(fd.get("password") ?? "")), "/equipe");
 }
 
-// --- Bill editing ----------------------------------------------------------
+// --- Proposition editing ----------------------------------------------------------
 
-export async function claimBill(fd: FormData) {
+export async function claimProposition(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.claimBill(id, u));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.claimProposition(id, u));
 }
 
 export async function releaseClaim(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.releaseClaim(id, u));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.releaseClaim(id, u));
 }
 
 export async function saveSummary(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () =>
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () =>
     store.saveSummary(id, u, {
       summary: str(fd, "summary"),
       shortSummary: str(fd, "shortSummary"),
@@ -82,32 +82,32 @@ export async function saveSummary(fd: FormData) {
 
 export async function aiDraft(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.aiDraft(id, u));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.aiDraft(id, u));
 }
 
 export async function addComment(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.addComment(id, u, str(fd, "provisionId"), str(fd, "text")));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.addComment(id, u, str(fd, "provisionId"), str(fd, "text")));
 }
 
 export async function addInternalNote(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.addInternalNote(id, u, str(fd, "text")));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.addInternalNote(id, u, str(fd, "text")));
 }
 
 export async function markReady(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.markReady(id, u));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.markReady(id, u));
 }
 
 export async function confirmSecondReview(fd: FormData) {
   const u = await requireTeamUser();
-  const id = str(fd, "billId");
-  await run(`/equipe/pl/${id}`, () => store.confirmSecondReview(id, u));
+  const id = str(fd, "propositionId");
+  await run(`/equipe/proposicao/${id}`, () => store.confirmSecondReview(id, u));
 }
 
 // --- Contributions ---------------------------------------------------------
@@ -120,7 +120,7 @@ export async function submitContribution(fd: FormData) {
       kind,
       source: str(fd, "source"),
       url: str(fd, "url") || undefined,
-      billId: str(fd, "billId") || undefined,
+      propositionId: str(fd, "propositionId") || undefined,
       progressKind: (str(fd, "progressKind") || undefined) as ProgressKind | undefined,
       date: str(fd, "date") ? new Date(`${str(fd, "date")}T12:00:00Z`).toISOString() : undefined,
       domain: str(fd, "domain") || undefined,

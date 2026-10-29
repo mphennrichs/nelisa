@@ -105,11 +105,16 @@ export interface Claim {
   lastActivity: string;
 }
 
-export interface Bill {
+export interface Proposition {
   id: string;
   // Type of proposição as the source names it: PL, PEC, PLP...
   kind: string;
-  chamberId: string;
+  // Chambers it went through, in order; the first is the origin chamber.
+  chamberIds: string[];
+  // Apensação: id of the principal Proposition this one was attached to.
+  attachedTo?: string;
+  // Prejudicada: stopped without a vote because of another Proposition.
+  superseded?: boolean;
   number: number;
   year: number;
   ementa: string;
@@ -142,7 +147,7 @@ export interface Contribution {
   status: ContributionStatus;
   createdAt: string;
   source: string;
-  billId?: string;
+  propositionId?: string;
   url?: string;
   progressKind?: ProgressKind;
   date?: string;

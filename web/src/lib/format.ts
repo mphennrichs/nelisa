@@ -37,7 +37,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const CONTRIBUTION_LABEL: Record<ContributionKind, string> = {
-  referral: "Indicação de PL",
+  referral: "Indicação de proposição",
   progress_update: "Atualização de tramitação",
   source_request: "Pedido de fonte oficial",
 };

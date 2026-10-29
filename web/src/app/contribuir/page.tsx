@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { submitContribution } from "@/app/actions";
-import { db, publicBills } from "@/lib/store";
+import { chambersOf, publicPropositions } from "@/lib/store";
 import { CONTRIBUTION_LABEL, PROGRESS_LABEL } from "@/lib/format";
 import { ErrorBanner, Hidden } from "@/components/ui";
 import type { ContributionKind } from "@/lib/types";
@@ -10,7 +10,7 @@ const KINDS: ContributionKind[] = ["referral", "progress_update", "source_reques
 export default async function ContributePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const kind = (KINDS.includes(sp.tipo as ContributionKind) ? sp.tipo : "referral") as ContributionKind;
-  const bills = publicBills({});
+  const propositions = publicPropositions({});
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -29,7 +29,7 @@ export default async function ContributePage({ searchParams }: { searchParams: P
         <Hidden name="kind" value={kind} />
         {kind === "referral" && (
           <label className="block">
-            <span className="label">Endereço do PL na fonte oficial</span>
+            <span className="label">Endereço da proposição na fonte oficial</span>
             <input name="url" className="input" placeholder="https://www.camara-da-sua-cidade.leg.br/..." required />
             <span className="text-xs text-stone-500">Aceitamos domínios .leg.br, .gov.br e fontes oficiais cadastradas.</span>
           </label>
@@ -37,12 +37,12 @@ export default async function ContributePage({ searchParams }: { searchParams: P
         {kind === "progress_update" && (
           <>
             <label className="block">
-              <span className="label">Projeto</span>
-              <select name="billId" defaultValue={sp.pl} className="input" required>
+              <span className="label">Proposição</span>
+              <select name="propositionId" defaultValue={sp.proposicao} className="input" required>
                 <option value="">Escolha</option>
-                {bills.map((b) => (
+                {propositions.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.kind} {b.number}/{b.year} — {db.chambers.find((c) => c.id === b.chamberId)?.name}
+                    {b.kind} {b.number}/{b.year} — {chambersOf(b).map((c) => c.name).join(" → ")}
                   </option>
                 ))}
               </select>

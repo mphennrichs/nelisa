@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { billLabel, chamberOf, claimOf, reviewQueue, userById } from "@/lib/store";
+import { propositionLabel, chamberOf, claimOf, reviewQueue, userById } from "@/lib/store";
 import { requireTeamUser } from "@/lib/session";
 import { CONTRIBUTION_LABEL, SPHERE_LABEL, TEAM_STATE_LABEL, daysUntil, fmtDate } from "@/lib/format";
 import { Badge } from "@/components/ui";
@@ -31,21 +31,21 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         </thead>
         <tbody>
           {items.map((i, idx) => {
-            const claim = i.bill && claimOf(i.bill);
+            const claim = i.proposition && claimOf(i.proposition);
             return (
               <tr key={idx} className="border-t border-stone-100">
                 <td className="p-2"><Badge>{SPHERE_LABEL[i.sphere]}</Badge></td>
                 <td className="p-2">
                   {i.kind === "contribution" ? (
                     <Link href="/equipe/contribuicoes" className="link">
-                      {CONTRIBUTION_LABEL[i.contribution!.kind]} {i.bill && `· ${billLabel(i.bill)}`} ({i.contribution!.trackingCode})
+                      {CONTRIBUTION_LABEL[i.contribution!.kind]} {i.proposition && `· ${propositionLabel(i.proposition)}`} ({i.contribution!.trackingCode})
                     </Link>
                   ) : (
-                    <Link href={`/equipe/pl/${i.bill!.id}`} className="link">
-                      {billLabel(i.bill!)} · {chamberOf(i.bill!).name}
+                    <Link href={`/equipe/proposicao/${i.proposition!.id}`} className="link">
+                      {propositionLabel(i.proposition!)} · {chamberOf(i.proposition!).name}
                     </Link>
                   )}{" "}
-                  {i.kind === "bill" && <Badge tone="amber">{TEAM_STATE_LABEL[i.bill!.state]}</Badge>}
+                  {i.kind === "proposition" && <Badge tone="amber">{TEAM_STATE_LABEL[i.proposition!.state]}</Badge>}
                   {i.kind === "second_review" && <Badge tone="blue">Segunda revisão pendente</Badge>}
                 </td>
                 <td className="p-2">{i.vote ? `${fmtDate(i.vote)} (${daysUntil(i.vote)}d)` : "—"}</td>
