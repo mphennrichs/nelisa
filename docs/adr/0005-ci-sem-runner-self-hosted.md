@@ -10,9 +10,17 @@ GitHub.
 
 ## Decisão
 - CI (lint, testes, build) só em runners hospedados pelo GitHub.
-- Imagens publicadas no GHCR apenas em push na `main`, nunca a partir de PR.
-- O fogolab **puxa** a imagem para o deploy; o GitHub nunca entra na rede local.
+- O deploy da v1 usa o **local-build do fogolab**, como os outros projetos:
+  o host sincroniza a `main` do GitHub (via Forgejo), builda a imagem lá
+  mesmo, publica em `localhost:5000/nelisa`, faz o bump do compose e o
+  Komodo sobe. Só a `main` é buildada, e só o dono faz merge nela.
+- O fogolab **puxa**; o GitHub nunca entra na rede local.
 
 ## Consequências
 - Nenhum job do Nelisa pode usar `runs-on: self-hosted`.
-- Mesmo pipeline serve para a AWS depois: muda só o destino.
+- O runner `fogoserver` nunca é registrado neste repo.
+- Na AWS, a imagem passa a ser publicada num registry; o resto do pipeline
+  não muda.
+
+_Atualização 2026-10-28:_ deploy via local-build do fogolab (antes: imagens
+no GHCR).
