@@ -85,6 +85,7 @@ export default async function EditPropositionPage({
 
       <section className="space-y-2">
         <h2 className="font-semibold">Dispositivos e comentários (públicos quando pronto)</h2>
+        {!mine && <p className="text-xs text-stone-500">Assuma a proposição para comentar os dispositivos.</p>}
         {proposition.version.provisions.map((p) => (
           <div key={p.id} className="grid gap-3 rounded-lg border border-stone-200 bg-white p-3 md:grid-cols-[1fr_320px]">
             <div>
@@ -97,14 +98,12 @@ export default async function EditPropositionPage({
                   {c.text} <span className="text-xs text-stone-500">— {userById(c.authorId)?.name}</span>
                 </p>
               ))}
-              {mine && (
-                <form action={A.addComment} className="flex gap-1">
-                  {B}
-                  <Hidden name="provisionId" value={p.id} />
-                  <input name="text" className="input" placeholder="Comentar este dispositivo" />
-                  <button className="btn-ghost">+</button>
-                </form>
-              )}
+              <form action={A.addComment} className="space-y-1">
+                {B}
+                <Hidden name="provisionId" value={p.id} />
+                <textarea name="text" rows={2} className="input" placeholder="Comentar este dispositivo" required disabled={!mine} />
+                <button className="btn-ghost" disabled={!mine}>Comentar</button>
+              </form>
             </div>
           </div>
         ))}
