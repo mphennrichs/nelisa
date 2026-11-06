@@ -26,15 +26,7 @@ falha (não existe imagem ainda): é esperado.
   ```
   Não defina `core.sshCommand` no clone.
 
-## 2. Infisical `/nelisa` (projeto `fogolab`, env `prod`)
-
-| Chave | Valor |
-|---|---|
-| `NELISA_BASIC_AUTH` | saída de `htpasswd -nbB equipe '<senha>'`, **crua** (com `$` simples) |
-
-Sem essa variável o router falha fechado (ninguém entra).
-
-## 3. Ligar
+## 2. Ligar
 
 1. [ ] Esperar o `gen-stacks` declarar o Stack `nelisa` (aparece no Komodo).
 2. [ ] Rodar o workflow **`sync-secrets-deploy`** do fogolab para `nelisa`.
@@ -44,7 +36,6 @@ Sem essa variável o router falha fechado (ninguém entra).
    `nelisa.foguinhodogoias.com` (o companion só cria registro de container que
    está rodando).
 
-## 4. Conferir
+## 3. Conferir
 
-- [ ] `curl -u equipe:<senha> https://nelisa.foguinhodogoias.com/version`
-  mostra o commit.
+- [ ] `curl https://nelisa.foguinhodogoias.com/version` mostra o commit.
