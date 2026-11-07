@@ -8,6 +8,7 @@ quatro olhos. Leitores contribuem sem cadastro.
 - Decisões de arquitetura: [`docs/adr/`](docs/adr/)
 - Nomes no código: [`docs/nomes-no-codigo.md`](docs/nomes-no-codigo.md)
 - Plano até o deploy da v1: [`docs/plano.md`](docs/plano.md)
+- Andamento: [quadro Nelisa v1](https://github.com/users/mphennrichs/projects/1) e [issues](https://github.com/mphennrichs/nelisa/issues)
 
 ## Próximos passos
 
