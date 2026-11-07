@@ -1,0 +1,28 @@
+{
+ "dados": [
+  {
+   "id": 2233802,
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2233802",
+   "siglaTipo": "PEC",
+   "codTipo": 136,
+   "numero": 221,
+   "ano": 2019,
+   "ementa": "Altera o Art. 7º inciso XII da constituição Federal, reduzindo a jornada de trabalho a 36 horas semanais em 10 anos.",
+   "dataApresentacao": "2019-12-11T17:37"
+  }
+ ],
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&numero=221&ano=2019"
+  },
+  {
+   "rel": "first",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&numero=221&ano=2019&pagina=1&itens=15"
+  },
+  {
+   "rel": "last",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&numero=221&ano=2019&pagina=1&itens=15"
+  }
+ ]
+}

@@ -1,0 +1,74 @@
+{
+ "dados": [
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220645",
+   "nome": "Erika Hilton",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 1,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220565",
+   "nome": "Delegada Adriana Accorsi",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 2,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/157130",
+   "nome": "Túlio Gadêlha",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 3,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/74858",
+   "nome": "Lindbergh Farias",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 4,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/178987",
+   "nome": "Orlando Silva",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 6,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/204464",
+   "nome": "Talíria Petrone",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 7,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/204427",
+   "nome": "Fernando Rodolfo",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 5,
+   "proponente": 0
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/178857",
+   "nome": "Jorge Solla",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 15,
+   "proponente": 0
+  }
+ ],
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2485341/autores"
+  }
+ ]
+}

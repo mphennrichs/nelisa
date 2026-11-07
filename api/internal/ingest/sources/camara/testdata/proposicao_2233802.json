@@ -1,0 +1,46 @@
+{
+ "dados": {
+  "id": 2233802,
+  "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2233802",
+  "siglaTipo": "PEC",
+  "codTipo": 136,
+  "numero": 221,
+  "ano": 2019,
+  "ementa": "Altera o Art. 7º inciso XII da constituição Federal, reduzindo a jornada de trabalho a 36 horas semanais em 10 anos.",
+  "dataApresentacao": "2019-12-11T17:37",
+  "uriOrgaoNumerador": "https://dadosabertos.camara.leg.br/api/v2/orgaos/2003",
+  "statusProposicao": {
+   "dataHora": "2026-10-16T00:00",
+   "sequencia": 453,
+   "siglaOrgao": "MESA",
+   "uriOrgao": "https://dadosabertos.camara.leg.br/api/v2/orgaos/4",
+   "uriUltimoRelator": "https://dadosabertos.camara.leg.br/api/v2/deputados/80815",
+   "regime": "Especial (Art. 202 c/c 191, I, RICD)",
+   "descricaoTramitacao": "Transformação em Norma Jurídica",
+   "codTipoTramitacao": "251",
+   "descricaoSituacao": "Transformado em Norma Jurídica",
+   "codSituacao": 1140,
+   "despacho": "Transformado na Emenda Constitucional 141/2026. DOU 16/10/2026 PÁG 02 COL 02 - Edição Extra A.",
+   "url": null,
+   "ambito": "Regimental",
+   "apreciacao": "Proposição Sujeita à Apreciação do Plenário"
+  },
+  "uriAutores": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2233802/autores",
+  "descricaoTipo": "Proposta de Emenda à Constituição",
+  "ementaDetalhada": "",
+  "keywords": "Alteração, Constituição Federal (1988), Direitos sociais, redução, jornada de trabalho.",
+  "uriPropPrincipal": null,
+  "uriPropAnterior": null,
+  "uriPropPosterior": null,
+  "urlInteiroTeor": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=1845483",
+  "urnFinal": null,
+  "texto": null,
+  "justificativa": null
+ },
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2233802"
+  }
+ ]
+}

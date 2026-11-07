@@ -1,0 +1,46 @@
+{
+ "dados": {
+  "id": 2487262,
+  "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2487262",
+  "siglaTipo": "PL",
+  "codTipo": 139,
+  "numero": 2338,
+  "ano": 2023,
+  "ementa": "Dispõe sobre o desenvolvimento, o fomento e o uso ético e responsável da inteligência artificial com base na centralidade da pessoa humana.",
+  "dataApresentacao": "2025-03-17T17:21",
+  "uriOrgaoNumerador": "https://dadosabertos.camara.leg.br/api/v2/orgaos/180",
+  "statusProposicao": {
+   "dataHora": "2026-10-27T18:14",
+   "sequencia": 417,
+   "siglaOrgao": "MESA",
+   "uriOrgao": "https://dadosabertos.camara.leg.br/api/v2/orgaos/4",
+   "uriUltimoRelator": "https://dadosabertos.camara.leg.br/api/v2/deputados/160527",
+   "regime": "Prioridade (Art. 151, II, RICD)",
+   "descricaoTramitacao": "Notificação de Apensação",
+   "codTipoTramitacao": "504",
+   "descricaoSituacao": "Aguardando Parecer",
+   "codSituacao": 915,
+   "despacho": "Apensação da proposição PL 3560/2026 à proposição PL 728/2026.",
+   "url": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=3173183",
+   "ambito": "Regimental",
+   "apreciacao": "Proposição Sujeita à Apreciação do Plenário"
+  },
+  "uriAutores": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2487262/autores",
+  "descricaoTipo": "Projeto de Lei",
+  "ementaDetalhada": "Alteração: Lei nº 11.540, de 12 de novembro de 2007; Lei nº 14.533, de 11 de janeiro de 2023.",
+  "keywords": "Diretrizes, desenvolvimento, incentivo, utilização, ética, inteligência artificial, direitos, pessoa, autorregulação, penalidade, competência, autoridade, Poder Público, critério, proteção, trabalho, trabalhador. _Alteração, Política Nacional de Educação Digital (PNED), inclusão, educação digital, instituição de ensino, letramento algorítmico, letramento crítico, inteligência artificial. _Alteração, lei federal, aplicação, recursos públicos, Fundo Nacional de Desenvolvimento Científico e Tecnológico (FNDCT), pesquisa, projeto (administração), inteligência artificial.",
+  "uriPropPrincipal": null,
+  "uriPropAnterior": null,
+  "uriPropPosterior": null,
+  "urlInteiroTeor": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=2868197",
+  "urnFinal": null,
+  "texto": null,
+  "justificativa": null
+ },
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2487262"
+  }
+ ]
+}

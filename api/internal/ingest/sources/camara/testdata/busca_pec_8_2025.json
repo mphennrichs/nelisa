@@ -1,0 +1,28 @@
+{
+ "dados": [
+  {
+   "id": 2485341,
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2485341",
+   "siglaTipo": "PEC",
+   "codTipo": 136,
+   "numero": 8,
+   "ano": 2025,
+   "ementa": "Dá nova redação ao inciso XIII, do artigo 7° da Constituição Federal para dispor sobre a redução da jornada de trabalho para quatro dias por semana no Brasil.",
+   "dataApresentacao": "2025-02-25T15:47"
+  }
+ ],
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&numero=8&ano=2025"
+  },
+  {
+   "rel": "first",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&numero=8&ano=2025&pagina=1&itens=15"
+  },
+  {
+   "rel": "last",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes?siglaTipo=PEC&numero=8&ano=2025&pagina=1&itens=15"
+  }
+ ]
+}

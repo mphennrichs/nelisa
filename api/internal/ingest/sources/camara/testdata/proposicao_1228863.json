@@ -1,0 +1,46 @@
+{
+ "dados": {
+  "id": 1228863,
+  "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/1228863",
+  "siglaTipo": "PEC",
+  "codTipo": 136,
+  "numero": 32,
+  "ano": 2015,
+  "ementa": "Altera a redação dos artigos 14 e 228 da Constituição Federal, para estabelecer a plena maioridade civil e penal aos dezesseis anos de idade.",
+  "dataApresentacao": "2015-05-05T18:26",
+  "uriOrgaoNumerador": "https://dadosabertos.camara.leg.br/api/v2/orgaos/2003",
+  "statusProposicao": {
+   "dataHora": "2026-11-04T14:30",
+   "sequencia": 190,
+   "siglaOrgao": "PEC03215",
+   "uriOrgao": "https://dadosabertos.camara.leg.br/api/v2/orgaos/539858",
+   "uriUltimoRelator": "https://dadosabertos.camara.leg.br/api/v2/deputados/74428",
+   "regime": "Especial (Art. 202 c/c 191, I, RICD)",
+   "descricaoTramitacao": "Aprovação de Requerimento",
+   "codTipoTramitacao": "195",
+   "descricaoSituacao": "Aguardando Parecer",
+   "codSituacao": 915,
+   "despacho": "Aprovado o requerimento nº 38/2026, Da Sra. Julia Zanatta que requer a realização de Audiência Pública para ouvir vítimas e familiares de vítimas de crimes violentos praticados por adolescentes, com os seguintes participantes:  1. Representante de associação de vítimas de crimes violentos; 2. Familiar de vítima de crime praticado por adolescente (a indicar);  3. Representante do Ministério Público com atuação na área da Infância e Juventude.",
+   "url": null,
+   "ambito": "Regimental",
+   "apreciacao": "Proposição Sujeita à Apreciação do Plenário"
+  },
+  "uriAutores": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/1228863/autores",
+  "descricaoTipo": "Proposta de Emenda à Constituição",
+  "ementaDetalhada": "",
+  "keywords": "Constituição Federal (1988), maioridade penal, maioridade civil, direitos políticos,  voto obrigatório, redução, idade mínima, elegibilidade, Presidente da República, Vice-Presidente da República, Senador, Governador, Vice-Governador, Deputado, Prefeito, Vice-Prefeito, Juiz de Paz, vereador.",
+  "uriPropPrincipal": null,
+  "uriPropAnterior": null,
+  "uriPropPosterior": null,
+  "urlInteiroTeor": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=1328804",
+  "urnFinal": null,
+  "texto": null,
+  "justificativa": null
+ },
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/1228863"
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "dados": {
+  "id": 2623604,
+  "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2623604",
+  "siglaTipo": "PEC",
+  "codTipo": 136,
+  "numero": 9,
+  "ano": 2026,
+  "ementa": "Altera o art. 228 da Constituição Federal, para reduzir a idade mínima de imputabilidade penal, nas condições que estabelece.",
+  "dataApresentacao": "2026-05-12T11:28",
+  "uriOrgaoNumerador": null,
+  "statusProposicao": {
+   "dataHora": "2026-08-12T17:17",
+   "sequencia": 18,
+   "siglaOrgao": "PEC03215",
+   "uriOrgao": "https://dadosabertos.camara.leg.br/api/v2/orgaos/539858",
+   "uriUltimoRelator": null,
+   "regime": "Especial (Art. 202 c/c 191, I, RICD)",
+   "descricaoTramitacao": "Notificacao para Publicação Intermediária",
+   "codTipoTramitacao": "1050",
+   "descricaoSituacao": "Tramitando em Conjunto",
+   "codSituacao": 925,
+   "despacho": "Designado Relator, Dep. Mendonça Filho (PL-PE), para a PEC 32/2015, ao qual esta proposição está apensada.",
+   "url": null,
+   "ambito": "Regimental",
+   "apreciacao": "Proposição Sujeita à Apreciação do Plenário"
+  },
+  "uriAutores": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2623604/autores",
+  "descricaoTipo": "Proposta de Emenda à Constituição",
+  "ementaDetalhada": "",
+  "keywords": "Constituição Federal (1988), redução, idade mínima, Imputabilidade penal, Crime violento, grave ameaça, Crime hediondo, Crime contra a vida, autor (processo penal), menor de idade",
+  "uriPropPrincipal": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/1228863",
+  "uriPropAnterior": null,
+  "uriPropPosterior": null,
+  "urlInteiroTeor": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=3127176",
+  "urnFinal": null,
+  "texto": null,
+  "justificativa": null
+ },
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2623604"
+  }
+ ]
+}

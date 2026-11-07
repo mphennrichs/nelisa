@@ -1,0 +1,46 @@
+{
+ "dados": {
+  "id": 2485341,
+  "uri": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2485341",
+  "siglaTipo": "PEC",
+  "codTipo": 136,
+  "numero": 8,
+  "ano": 2025,
+  "ementa": "Dá nova redação ao inciso XIII, do artigo 7° da Constituição Federal para dispor sobre a redução da jornada de trabalho para quatro dias por semana no Brasil.",
+  "dataApresentacao": "2025-02-25T15:47",
+  "uriOrgaoNumerador": "https://dadosabertos.camara.leg.br/api/v2/orgaos/2015",
+  "statusProposicao": {
+   "dataHora": "2026-05-27T00:00",
+   "sequencia": 29,
+   "siglaOrgao": "MESA",
+   "uriOrgao": "https://dadosabertos.camara.leg.br/api/v2/orgaos/4",
+   "uriUltimoRelator": null,
+   "regime": "Especial (Art. 202 c/c 191, I, RICD)",
+   "descricaoTramitacao": "Desapensação",
+   "codTipoTramitacao": "104",
+   "descricaoSituacao": "Arquivada",
+   "codSituacao": 923,
+   "despacho": "Desapensação desta da PEC nº 221, de 2019, principal, em face da aprovação, em Plenário, da Proposta de Emenda à Constituição n° 221, de 2019. (Sessão Deliberativa Extraordinária Presencial de 27/05/2026 - 15:00 - 106ª Sessão)",
+   "url": null,
+   "ambito": "Regimental",
+   "apreciacao": "Proposição Sujeita à Apreciação do Plenário"
+  },
+  "uriAutores": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2485341/autores",
+  "descricaoTipo": "Proposta de Emenda à Constituição",
+  "ementaDetalhada": "",
+  "keywords": "Alteração, Constituição Federal (1988), direitos sociais, redução, jornada de trabalho, qualidade de vida, trabalhador, impacto econômico, relações trabalhistas.",
+  "uriPropPrincipal": null,
+  "uriPropAnterior": null,
+  "uriPropPosterior": null,
+  "urlInteiroTeor": "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=2860664",
+  "urnFinal": null,
+  "texto": null,
+  "justificativa": null
+ },
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2485341"
+  }
+ ]
+}

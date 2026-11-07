@@ -1,0 +1,58 @@
+{
+ "dados": [
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220559",
+   "nome": "Julia Zanatta",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 1,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220654",
+   "nome": "Delegado Paulo Bilynskyj",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 7,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/73579",
+   "nome": "Alberto Fraga",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 9,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220528",
+   "nome": "Dr. Victor Linhalis",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 35,
+   "proponente": 1
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220655",
+   "nome": "Mario Frias",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 2,
+   "proponente": 0
+  },
+  {
+   "uri": "https://dadosabertos.camara.leg.br/api/v2/deputados/220534",
+   "nome": "Fred Linhares",
+   "codTipo": 10000,
+   "tipo": "Deputado(a)",
+   "ordemAssinatura": 3,
+   "proponente": 0
+  }
+ ],
+ "links": [
+  {
+   "rel": "self",
+   "href": "https://dadosabertos.camara.leg.br/api/v2/proposicoes/2623604/autores"
+  }
+ ]
+}
