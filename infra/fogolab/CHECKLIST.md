@@ -24,11 +24,15 @@ CI verde = no ar em uns 3 a 6 minutos depois do CI terminar.
 | `postgres` | `postgres:17-alpine`           | interna           | banco, volume nomeado `postgres_data`, sem porta publicada |
 | `migrate`  | `nelisa-api`, `migrate`        | interna           | aplica as migrations e sai (`restart: "no"`) |
 | `api`      | `nelisa-api`, `api`            | interna           | HTTP em `http://api:8080`; fora do Traefik |
-| `worker`   | `nelisa-api`, `worker`         | interna           | jobs (River, a partir da fase 1) |
+| `worker`   | `nelisa-api`, `worker`         | interna           | jobs do River: Sincronização com a Câmara e o Senado (fase 1) |
 | `app`      | `nelisa` (web)                 | traefik + interna | Next.js público; `API_INTERNAL_URL=http://api:8080` |
 
 Ordem de subida: `postgres` saudável → `migrate` termina com sucesso →
-`api` e `worker`.
+`api` e `worker`. O `migrate` aplica também as migrations do River (schema
+`river`); não há container separado para isso.
+
+`SYNC_INTERVAL` (opcional, padrão `6h`, mínimo `1m`) é de quanto em quanto
+tempo o worker sincroniza todos os Vínculos de fonte confirmados.
 
 ## Primeiro deploy da api (fase 0)
 
@@ -101,9 +105,11 @@ Em `secrets.foguinhodogoias.com`, projeto `fogolab`, ambiente `prod`, pasta
 - **Backup:** o volume `postgres_data` fica fora de `/home/fogo/docker_volumes`,
   então o Duplicati não o vê. Antes de ter dado real, falta um `pg_dump`
   diário para dentro de `docker_volumes`.
-- **Egress do worker:** a rede interna não tem saída para a internet. Quando a
-  Importação (fase 1) precisar das APIs da Câmara e do Senado, o worker ganha
-  uma rede com saída.
+- **Egress da api e do worker (fase 1):** a rede interna não tem saída para a
+  internet, e os dois precisam das APIs da Câmara
+  (`dadosabertos.camara.leg.br`) e do Senado (`legis.senado.leg.br`): a
+  Importação roda **na api**, dentro da requisição do Editor, e a
+  Sincronização roda no worker. Os dois ganham uma rede com saída.
 - **Rate limit da API do GitHub:** o gate faz 1 chamada sem token por commit
   por ciclo (até ~20/hora enquanto espera o CI), dentro do limite de 60/hora
   por IP. Se o host passar a fazer outras chamadas sem token, considerar um

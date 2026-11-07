@@ -108,13 +108,58 @@ importam o `team`.
 
 ### Jobs
 
-- **River** (fila no próprio Postgres) para Importação, Sincronização e
-  rascunhos de IA. Nada de goroutine solta para trabalho que precisa
-  sobreviver a um restart.
-- Jobs idempotentes: rodar duas vezes não duplica dados.
+- **River** (fila no próprio Postgres) para Sincronização e rascunhos de IA.
+  Nada de goroutine solta para trabalho que precisa sobreviver a um restart.
+  A Importação é síncrona na requisição do Editor (ele espera o resultado);
+  o que vem depois dela, não.
+- As tabelas do River ficam no schema `river` (criado pela migration
+  inicial). O modo `migrate` aplica o goose e, em seguida, as migrations do
+  próprio River (`rivermigrate`), no mesmo container de execução única.
+- `platform/jobs` monta o cliente: no modo `worker`, com filas, workers e
+  jobs periódicos (concorrência baixa, `jobs.DefaultConcurrency` = 2, porque
+  quem limita de verdade é o adaptador de cada fonte); no modo `api`,
+  **insert-only** (só enfileira). Os jobs, workers e o agendador de cada
+  módulo ficam em `<módulo>/jobs/` (adaptador); os casos de uso não
+  conhecem o River.
+- Enfileirar é uma porta do caso de uso (ex.: `SyncScheduler`). A
+  implementação (`jobs.Inserter`) usa `InsertTx` quando há transação no
+  contexto (`db.TxFrom`): o job só existe se a mudança que o motivou for
+  gravada, e some junto se ela desfizer.
+- Jobs idempotentes: rodar duas vezes não duplica dados. Além disso, cada
+  job declara `UniqueOpts` (`ByArgs` nos estados pendentes) para não haver
+  dois iguais na fila.
+- Falha de fonte (`ErrUnavailable`) devolve erro e o River tenta de novo com
+  o recuo padrão (até `MaxAttempts`); erro definitivo (`ErrNotFound`) vira
+  `river.JobCancel`. A falha fica anotada para a equipe (ex.:
+  `last_sync_error` do Vínculo de fonte), nunca para o Leitor.
+- Sincronização periódica: um job `ingest.sync_all` a cada `SYNC_INTERVAL`
+  (padrão 6h, também ao subir o worker) enfileira um `ingest.sync_link` por
+  Vínculo de fonte confirmado.
 - Chamadas às APIs oficiais com limite de concorrência por domínio, timeout e
   `User-Agent` identificando o Nelisa.
 - Na v1 não há busca de URL arbitrária (Indicação só checa o domínio).
+
+### Módulos de conteúdo (fase 1)
+
+- `proposition` (Proposição, Vínculo de fonte, Revisão, camada pública),
+  `progress` (Tramitação) e `ingest` (Importação, Sincronização e as fontes)
+  não se importam. O `ingest` declara as portas `Catalog` e
+  `ProgressWriter`; o `proposition` declara `TimelineReader` e
+  `SyncScheduler`; `cmd/nelisa/wire_content.go` liga tudo e traduz tipos e
+  erros entre eles.
+- Operações de sistema que um módulo expõe a outro (ex.:
+  `proposition/app.Catalog`, usado pelo ingest) não autorizam, não auditam e
+  não abrem transação: o caso de uso que orquestra faz as três coisas.
+- **Camada pública:** `proposition/app.ListPublicPropositions` e
+  `GetPublicProposition` são as únicas portas de `/api/public`. A regra mora
+  em `proposition/domain` (`PublicStates`, `PublicView`): rascunho é 404;
+  "em revisão" sai com `under_review: true` e só dados oficiais. O handler
+  serializa só `domain.PublicProposition`, que não tem campo interno; o
+  filtro por estado no SQL é só eficiência.
+- **Identificador público:** a Proposição tem `slug` único e estável
+  (`pec-221-2019`; se Tipo/número/ano já existir com outra Casa iniciadora,
+  `pec-10-2015-senado`). As rotas públicas usam o slug; as da equipe, o
+  UUID.
 
 ### HTTP
 
