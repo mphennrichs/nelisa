@@ -1,6 +1,9 @@
 # Plano até o deploy da v1
 
 Documento vivo, preenchido durante o grill. Termos conforme `CONTEXT.md`.
+O andamento fica nas [issues](https://github.com/mphennrichs/nelisa/issues) e
+[milestones](https://github.com/mphennrichs/nelisa/milestones); este arquivo
+guarda o porquê.
 
 ## Marco final
 
@@ -18,6 +21,8 @@ migração para a AWS é a fase seguinte e fica fora deste plano.
 Cada fase termina com deploy no fogolab.
 
 ### Fase 0 — Fundação
+[Issues da fase](https://github.com/mphennrichs/nelisa/milestone/1)
+
 - `api/` em Go: chi, pgx, sqlc, goose; binário único com modos `api` e `worker`
 - Postgres no stack do fogolab; `/version` na API
 - Migrations: modo `migrate` do binário, rodado como container de execução
@@ -41,12 +46,16 @@ Cada fase termina com deploy no fogolab.
 - **Pronto quando:** o Admin entra pelo bootstrap e não há mais contas de teste
 
 ### Fase 1 — Proposições reais
+[Issues da fase](https://github.com/mphennrichs/nelisa/milestone/2)
+
 - Importação e Sincronização das APIs da Câmara e do Senado via River
 - Proposição em várias Casas e apensação (ADR 0006)
 - Páginas públicas lendo do banco
 - **Pronto quando:** PEC 221/2019 e PEC 8/2025 vêm das APIs, não de fixture
 
 ### Fase 2 — Edição e quatro olhos
+[Issues da fase](https://github.com/mphennrichs/nelisa/milestone/3)
+
 - Resumo, documento integral versionado, Comentários por dispositivo (ADR 0002)
 - Fila de revisão, posse, Segunda revisão pendente
 - Regra de visibilidade aplicada na camada pública do Go
@@ -56,6 +65,8 @@ Cada fase termina com deploy no fogolab.
 - **Pronto quando:** um Editor publica e um Revisor aprova
 
 ### Fase 3 — Contribuições
+[Issues da fase](https://github.com/mphennrichs/nelisa/milestone/4)
+
 - Indicação (só checagem de domínio oficial), Atualização de tramitação,
   Pedido de fonte oficial
 - Código de acompanhamento; moderação pela Fila de revisão
@@ -65,9 +76,11 @@ Cada fase termina com deploy no fogolab.
 - **Pronto quando:** um Leitor anônimo contribui e acompanha pelo código
 
 ### Beta
-Abre ao fim da fase 3: `noindex` mantido, dados reais revisados.
+Abre ao fim da fase 3: `noindex` mantido, dados reais revisados (#28).
 
 ### Fase 4 — IA (ADR 0003, depois do beta)
+[Issues da fase](https://github.com/mphennrichs/nelisa/milestone/5)
+
 - Rascunho de Resumo e Estruturação via API do Claude; nunca Comentários
 
 ## Login (identity)
@@ -82,16 +95,16 @@ Admin pelo bootstrap; sem auto-cadastro.
 
 Itens decididos mas ainda não desenvolvidos (o nebula não tem):
 
-- [ ] 2FA TOTP obrigatório para Revisor e Admin; reset de 2FA só pelo Admin
-- [ ] Troca obrigatória de senha no primeiro login e após todo reset
-- [ ] Senha mínima de 8 caracteres checada contra lista de senhas vazadas
-- [ ] Eventos de login, reset de senha e reset de 2FA registrados na Auditoria
+- [ ] 2FA TOTP obrigatório para Revisor e Admin; reset de 2FA só pelo Admin (#10)
+- [ ] Troca obrigatória de senha no primeiro login e após todo reset (#11)
+- [ ] Senha mínima de 8 caracteres checada contra lista de senhas vazadas (#12)
+- [ ] Eventos de login, reset de senha e reset de 2FA registrados na Auditoria (#13)
 - [ ] Tirar do ar a tela de login do protótipo (contas de teste com senha
       exposta) — mantida de propósito até a fase 0: o site é usado para
-      apresentar o projeto
+      apresentar o projeto (#9)
 
 - [ ] Domínio oficial (o usuário decide depois); ao trocar, 301 permanente de
-      `nelisa.foguinhodogoias.com` para o novo
+      `nelisa.foguinhodogoias.com` para o novo (#30)
 
 - [ ] fogolab: gate de CI verde no local-build para **todos** os projetos
       (repos privados precisam de token de leitura na consulta)
@@ -100,9 +113,9 @@ Depois da v1 (ainda sem desenho):
 
 - [ ] Login para leitor, com vínculo de contas de redes sociais. Pelo
       `CONTEXT.md`, Leitor é "qualquer pessoa sem login": precisa de termo
-      novo e de decidir se fica separado da base da equipe (ADR 0001)
+      novo e de decidir se fica separado da base da equipe (ADR 0001) (#31)
 - [ ] Facilitar o compartilhamento (botões de compartilhar, imagem de
-      story/preview via `next/og`)
+      story/preview via `next/og`) (#32)
 
 ## Decisões do grill
 
