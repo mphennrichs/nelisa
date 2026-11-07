@@ -1,0 +1,431 @@
+{
+ "id": 9056435,
+ "codigoMateria": 174386,
+ "identificacao": "PEC 221/2019",
+ "sigla": "PEC",
+ "descricaoSigla": "Proposta de Emenda à Constituição",
+ "numero": "221",
+ "ano": 2019,
+ "apelido": "Fim da escala 6x1",
+ "objetivo": "Revisora",
+ "casaIdentificadora": "SF",
+ "siglaEnteIdentificador": "SF",
+ "identificacaoExterna": {},
+ "conteudo": {
+  "id": 7659591,
+  "idTipo": 11,
+  "siglaTipo": "NORMA_GERAL",
+  "tipo": "Norma Geral",
+  "ementa": "Altera o art. 7º da Constituição Federal para reduzir a duração máxima semanal do trabalho e prever 2 (dois) dias de repouso semanal remunerado, sem qualquer redução salarial; e dá outras providências.",
+  "tipoNormaIndicada": "EMC"
+ },
+ "documento": {
+  "id": 10234629,
+  "siglaTipo": "PROPOSTA_EMENDA_CONSTITUICAO",
+  "tipo": "Proposta de Emenda à Constituição",
+  "dataApresentacao": "2026-05-28",
+  "indexacao": " ALTERAÇÃO ,  CONSTITUIÇÃO FEDERAL ,  REDUÇÃO ,  JORNADA DE TRABALHO ,  AUMENTO ",
+  "url": "https://legis.senado.gov.br/sdleg-getter/dadosabertos/documento/d11bdbc4-b414-4842-bf97-882601e75cbe",
+  "autoria": [
+   {
+    "autor": "Câmara dos Deputados",
+    "siglaTipo": "CAMARA",
+    "descricaoTipo": "CAMARA",
+    "ordem": 1,
+    "outrosAutoresNaoInformados": "Não",
+    "idEnte": 2,
+    "siglaEnte": "CD",
+    "casaEnte": "CD",
+    "ente": "Câmara dos Deputados"
+   }
+  ],
+  "resumoAutoria": "Câmara dos Deputados"
+ },
+ "tramitando": "Não",
+ "dataInicioEfetivo": "2026-05-28",
+ "situacaoAtual": "TRANSFORMADA EM NORMA JURÍDICA",
+ "siglaSituacaoAtual": "TNJR",
+ "dataSituacaoAtual": "2026-10-16",
+ "classificacoes": [
+  {
+   "codigo": 33809062,
+   "descricao": "Jornada de Trabalho",
+   "descricaoHierarquia": "Política Social / Trabalho e Emprego / Jornada de Trabalho"
+  }
+ ],
+ "autoriaIniciativa": [
+  {
+   "autor": "Reginaldo Lopes",
+   "sexo": "M",
+   "siglaTipo": "DEPUTADO",
+   "descricaoTipo": "DEPUTADO",
+   "ordem": 1,
+   "outrosAutoresNaoInformados": "Não",
+   "codigoParlamentar": 3786,
+   "siglaPartido": "PT",
+   "partido": "Partido dos Trabalhadores",
+   "siglaCargo": "DEPUTADO",
+   "cargo": "Deputado Federal",
+   "idEnte": 2,
+   "siglaEnte": "CD",
+   "casaEnte": "CD",
+   "ente": "Câmara dos Deputados"
+  }
+ ],
+ "idProcessoCasaInicial": 9056434,
+ "identificacaoProcessoInicial": "PEC 221/2019",
+ "siglaCasaIniciadora": "CD",
+ "comissaoMpv": "{}",
+ "outrosNumeros": [
+  {
+   "idOutroProcesso": 9056434,
+   "sigla": "PEC",
+   "numero": "00221",
+   "ano": 2019,
+   "tramitando": "Sim",
+   "externaAoCongresso": "Não",
+   "casaIdentificadora": "CD",
+   "siglaEnteIdentificador": "CD",
+   "enteIdentificador": "Câmara dos Deputados"
+  }
+ ],
+ "processosRelacionados": [
+  {
+   "idOutroProcesso": 9100470,
+   "tipoRelacao": "REFERENCIA",
+   "sigla": "RQS",
+   "numero": "633",
+   "ano": 2026,
+   "tramitando": "Não",
+   "casaIdentificadora": "SF",
+   "siglaEnteIdentificador": "PLEN",
+   "enteIdentificador": "Plenário do Senado Federal"
+  }
+ ],
+ "despachos": [
+  {
+   "id": 10304195,
+   "data": "2026-08-21",
+   "siglaTipoMotivacao": "DECISAO_PRESID",
+   "tipoMotivacao": "Decisão da Presidência",
+   "cancelado": "Não",
+   "encontroLegislativo": {
+    "id": 9099362,
+    "numero": 1,
+    "data": "2026-08-21",
+    "casa": "SF",
+    "tipo": "SES",
+    "descricao": "Eventos Independentes de Sessão",
+    "colegiado": {
+     "codigo": 1998,
+     "casa": "SF",
+     "sigla": "PLEN",
+     "nome": "Plenário do Senado Federal"
+    }
+   },
+   "providencias": [
+    {
+     "id": 9099365,
+     "tipo": "ANALISE",
+     "descricao": "Análise",
+     "ordem": 1,
+     "analiseTempo": "SUCESSIVA",
+     "analiseConteudo": "MATERIA",
+     "reexame": "Não",
+     "unidadesDestinatarias": [
+      {
+       "ordem": 1,
+       "tipoAnaliseDeliberacao": "NAO_TERMINATIVA",
+       "colegiado": {
+        "codigo": 34,
+        "sigla": "CCJ",
+        "casa": "SF",
+        "nome": "Comissão de Constituição, Justiça e Cidadania"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "autuacoes": [
+  {
+   "numero": 1,
+   "descricao": "Autuação Principal",
+   "idEnteControleAtual": 55296,
+   "siglaEnteControleAtual": "SLCN",
+   "nomeEnteControleAtual": "Secretaria Legislativa do Congresso Nacional",
+   "situacoes": [
+    {
+     "idTipo": 175,
+     "sigla": "AGDESP",
+     "descricao": "AGUARDANDO DESPACHO",
+     "inicio": "2026-05-28",
+     "fim": "2026-08-21",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     }
+    },
+    {
+     "idTipo": 177,
+     "sigla": "MATDESP",
+     "descricao": "MATÉRIA DESPACHADA",
+     "inicio": "2026-08-21",
+     "fim": "2026-08-21",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 13594,
+      "casa": "SF",
+      "sigla": "SEADI",
+      "nome": "Secretaria de Atas e Diários"
+     }
+    },
+    {
+     "idTipo": 87,
+     "sigla": "AGDREL",
+     "descricao": "AGUARDANDO DESIGNAÇÃO DO RELATOR",
+     "inicio": "2026-08-21",
+     "fim": "2026-08-21",
+     "colegiado": {
+      "codigo": 34,
+      "casa": "SF",
+      "sigla": "CCJ",
+      "nome": "Comissão de Constituição, Justiça e Cidadania"
+     },
+     "enteAdministrativo": {
+      "id": 13565,
+      "casa": "SF",
+      "sigla": "SACCJ",
+      "nome": "Secretaria de Apoio à Comissão de Constituição, Justiça e Cidadania"
+     }
+    },
+    {
+     "idTipo": 91,
+     "sigla": "RELATOR",
+     "descricao": "MATÉRIA COM A RELATORIA",
+     "inicio": "2026-08-21",
+     "fim": "2026-08-27",
+     "colegiado": {
+      "codigo": 34,
+      "casa": "SF",
+      "sigla": "CCJ",
+      "nome": "Comissão de Constituição, Justiça e Cidadania"
+     },
+     "enteAdministrativo": {
+      "id": 13565,
+      "casa": "SF",
+      "sigla": "SACCJ",
+      "nome": "Secretaria de Apoio à Comissão de Constituição, Justiça e Cidadania"
+     }
+    },
+    {
+     "idTipo": 64,
+     "sigla": "TNJR",
+     "descricao": "TRANSFORMADA EM NORMA JURÍDICA",
+     "inicio": "2026-10-16",
+     "colegiado": {},
+     "enteAdministrativo": {
+      "id": 55304,
+      "casa": "SF",
+      "sigla": "SEXPE",
+      "nome": "Secretaria de Expediente"
+     }
+    }
+   ],
+   "informesLegislativos": [
+    {
+     "id": 2288582,
+     "data": "2026-05-28 18:42:02",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     },
+     "descricao": "Autuada a Proposta de Emenda à Constituição nº 221/2019 proveniente da Câmara dos Deputados. A proposta vai à publicação.",
+     "idSituacaoIniciada": 175,
+     "siglaSituacaoIniciada": "AGDESP",
+     "documentosAssociados": [
+      {
+       "id": 10234792,
+       "tipo": "Avulso inicial da matéria",
+       "siglaTipo": "AVULSO_INICIAL",
+       "identificacao": "Avulso inicial da matéria - SF262933353250",
+       "descricao": "-",
+       "data": "2026-05-28T00:00:00",
+       "autoria": "Senado Federal",
+       "url": "https://legis.senado.leg.br/sdleg-getter/dadosabertos/documento/e60e31fb-5022-450e-bdfa-09e77845059f"
+      }
+     ]
+    },
+    {
+     "id": 2309343,
+     "data": "2026-08-21 16:17:01",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 13594,
+      "casa": "SF",
+      "sigla": "SEADI",
+      "nome": "Secretaria de Atas e Diários"
+     },
+     "descricao": "A matéria vai à Comissão de Constituição, Justiça e Cidadania. ",
+     "idSituacaoIniciada": 177,
+     "siglaSituacaoIniciada": "MATDESP",
+     "documentosAssociados": []
+    },
+    {
+     "id": 2309345,
+     "data": "2026-08-21 16:23:38",
+     "colegiado": {
+      "codigo": 34,
+      "casa": "SF",
+      "sigla": "CCJ",
+      "nome": "Comissão de Constituição, Justiça e Cidadania"
+     },
+     "enteAdministrativo": {
+      "id": 13565,
+      "casa": "SF",
+      "sigla": "SACCJ",
+      "nome": "Secretaria de Apoio à Comissão de Constituição, Justiça e Cidadania"
+     },
+     "descricao": "Recebido nesta Comissão, às 16h21.\nMatéria aguardando distribuição.",
+     "idSituacaoIniciada": 87,
+     "siglaSituacaoIniciada": "AGDREL",
+     "documentosAssociados": []
+    },
+    {
+     "id": 2309364,
+     "data": "2026-08-21 16:36:00",
+     "colegiado": {
+      "codigo": 34,
+      "casa": "SF",
+      "sigla": "CCJ",
+      "nome": "Comissão de Constituição, Justiça e Cidadania"
+     },
+     "enteAdministrativo": {
+      "id": 13565,
+      "casa": "SF",
+      "sigla": "SACCJ",
+      "nome": "Secretaria de Apoio à Comissão de Constituição, Justiça e Cidadania"
+     },
+     "descricao": "Distribuído ao Senador Omar Aziz, para emitir relatório.",
+     "idSituacaoIniciada": 91,
+     "siglaSituacaoIniciada": "RELATOR",
+     "documentosAssociados": []
+    },
+    {
+     "id": 2319976,
+     "data": "2026-10-16 13:07:12",
+     "colegiado": {},
+     "enteAdministrativo": {
+      "id": 55304,
+      "casa": "SF",
+      "sigla": "SEXPE",
+      "nome": "Secretaria de Expediente"
+     },
+     "descricao": "(CN) MESAS SENADO E CÂMARA DOS DEPUTADOS.\nPROMULGADA. EMENDA CONSTITUCIONAL N° 141 DE 2026.\nDOUE (Diário Oficial da União - Edição Extra) - 16/10/2026 - Seção I, PÁG. 2.\nPromulgada em 16/10/2026.",
+     "idSituacaoIniciada": 64,
+     "siglaSituacaoIniciada": "TNJR",
+     "documentosAssociados": []
+    },
+    {
+     "id": 2320016,
+     "data": "2026-10-16 16:18:15",
+     "colegiado": {
+      "codigo": 1999,
+      "casa": "CN",
+      "sigla": "PLEN",
+      "nome": "Plenário do Congresso Nacional"
+     },
+     "enteAdministrativo": {
+      "id": 55296,
+      "casa": "SF",
+      "sigla": "SLCN",
+      "nome": "Secretaria Legislativa do Congresso Nacional"
+     },
+     "descricao": "Realizada sessão solene para promulgação da Emenda Constitucional nº 141/2026.",
+     "documentosAssociados": []
+    }
+   ],
+   "movimentacoes": [
+    {
+     "id": 10304193,
+     "dataEnvio": "2026-08-21 16:11:39",
+     "enteOrigem": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     },
+     "dataRecebimento": "2026-08-21 16:16:06",
+     "enteDestino": {
+      "id": 13594,
+      "casa": "SF",
+      "sigla": "SEADI",
+      "nome": "Secretaria de Atas e Diários"
+     },
+     "colegiadoDestino": {}
+    }
+   ]
+  }
+ ],
+ "ordensDoDia": [
+  {
+   "codigoSessao": 590398,
+   "dataSessao": "2026-10-06T14:00:00",
+   "casaSessao": "SF",
+   "codigoSessaoLegislativa": 874,
+   "siglaTipoSessao": "DOR",
+   "numeroSessao": "128",
+   "tipoApreciacao": "Primeira sessão de discussão, em primeiro turno"
+  }
+ ],
+ "deliberacao": {
+  "data": "2026-10-14",
+  "siglaTipo": "APROVADA_NO_PLENARIO",
+  "tipoDeliberacao": "Aprovada pelo Plenário",
+  "idDestino": 2,
+  "siglaDestino": "PROMULGACAO",
+  "destino": "À promulgação"
+ },
+ "normaGerada": {
+  "codigo": 44184944,
+  "siglaTipo": "EMC-n",
+  "tipo": "Emenda Constitucional Numerada",
+  "numero": 141,
+  "anoAssinatura": "2026",
+  "dataAssinatura": "2026-10-16",
+  "observacao": "Quanto à vigência desta Emenda Constitucional, vide o art. 10.",
+  "descricao": "Emenda Constitucional nº 141 de 16/10/2026",
+  "dataPublicacao": "2026-10-16",
+  "siglaVeiculoPublicacao": "DOUE",
+  "veiculoPublicacao": "[Diário Oficial da União - Edição Extra  de 16/10/2026] (p. 2, col. 2)"
+ },
+ "ultimaInformacaoAtualizada": "PUBLICACAO_OFICIAL",
+ "dthUltimaAtualizacao": "2026-11-03T13:54:25.456000"
+}

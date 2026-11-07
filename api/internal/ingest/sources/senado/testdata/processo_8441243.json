@@ -1,0 +1,430 @@
+{
+ "id": 8441243,
+ "codigoMateria": 157233,
+ "identificacao": "PL 2338/2023",
+ "sigla": "PL",
+ "descricaoSigla": "Projeto de Lei",
+ "numero": "2338",
+ "ano": 2023,
+ "apelido": "Marco Legal da Inteligência Artificial",
+ "objetivo": "Iniciadora",
+ "casaIdentificadora": "SF",
+ "siglaEnteIdentificador": "SF",
+ "identificacaoExterna": {},
+ "conteudo": {
+  "id": 7524862,
+  "idTipo": 11,
+  "siglaTipo": "NORMA_GERAL",
+  "tipo": "Norma Geral",
+  "ementa": "Dispõe sobre o uso da Inteligência Artificial.",
+  "tipoNormaIndicada": "LEI"
+ },
+ "documento": {
+  "id": 9347593,
+  "siglaTipo": "PROJETO_LEI_ORDINARIA",
+  "tipo": "Projeto de Lei Ordinária",
+  "dataApresentacao": "2023-05-03",
+  "indexacao": " CRIAÇÃO ,  LEI FEDERAL ,  NORMAS GERAIS ,  INTELIGENCIA ARTIFICIAL ,  RESPONSAB",
+  "url": "https://legis.senado.gov.br/sdleg-getter/dadosabertos/documento/93266fb1-dcee-4ba9-9318-41101088a2a3",
+  "autoria": [
+   {
+    "autor": "Rodrigo Pacheco",
+    "sexo": "M",
+    "siglaTipo": "SENADOR",
+    "descricaoTipo": "SENADOR",
+    "ordem": 1,
+    "outrosAutoresNaoInformados": "Não",
+    "codigoParlamentar": 5732,
+    "uf": "MG",
+    "siglaPartido": "PSD",
+    "partido": "Partido Social Democrático",
+    "siglaCargo": "SENADOR",
+    "cargo": "Senador",
+    "idEnte": 1,
+    "siglaEnte": "SF",
+    "casaEnte": "SF",
+    "ente": "Senado Federal"
+   }
+  ],
+  "resumoAutoria": "Senador Rodrigo Pacheco (PSD/MG)"
+ },
+ "tramitando": "Não",
+ "dataInicioEfetivo": "2023-05-03",
+ "situacaoAtual": "REMETIDA À CÂMARA DOS DEPUTADOS",
+ "siglaSituacaoAtual": "RMCD",
+ "dataSituacaoAtual": "2025-03-17",
+ "classificacoes": [
+  {
+   "codigo": 33805662,
+   "descricao": "Direitos Individuais e Coletivos",
+   "descricaoHierarquia": "Jurídico / Direitos e Garantias / Direitos Individuais e Coletivos"
+  }
+ ],
+ "autoriaIniciativa": [
+  {
+   "autor": "Rodrigo Pacheco",
+   "sexo": "M",
+   "siglaTipo": "SENADOR",
+   "descricaoTipo": "SENADOR",
+   "ordem": 1,
+   "outrosAutoresNaoInformados": "Não",
+   "codigoParlamentar": 5732,
+   "uf": "MG",
+   "siglaPartido": "PSD",
+   "partido": "Partido Social Democrático",
+   "siglaCargo": "SENADOR",
+   "cargo": "Senador",
+   "idEnte": 1,
+   "siglaEnte": "SF",
+   "casaEnte": "SF",
+   "ente": "Senado Federal"
+  }
+ ],
+ "idProcessoCasaInicial": 8441243,
+ "identificacaoProcessoInicial": "PL 2338/2023",
+ "siglaCasaIniciadora": "SF",
+ "comissaoMpv": "{}",
+ "apensadoA": [
+  {
+   "id": 8147067,
+   "identificacao": "PL 21/2020",
+   "tramitando": "Não",
+   "tipoApensamento": "Tramitação conjunta",
+   "dataApensamento": "2024-06-26",
+   "dataDesapensamento": "2024-12-10"
+  },
+  {
+   "id": 8147067,
+   "identificacao": "PL 21/2020",
+   "tramitando": "Não",
+   "tipoApensamento": "Tramitação conjunta",
+   "dataApensamento": "2024-02-21",
+   "dataDesapensamento": "2024-06-26"
+  },
+  {
+   "id": 8147067,
+   "identificacao": "PL 21/2020",
+   "tramitando": "Não",
+   "tipoApensamento": "Tramitação conjunta",
+   "dataApensamento": "2024-02-21",
+   "dataDesapensamento": "2024-06-26"
+  },
+  {
+   "id": 8147067,
+   "identificacao": "PL 21/2020",
+   "tramitando": "Não",
+   "tipoApensamento": "Tramitação conjunta",
+   "dataApensamento": "2024-02-21",
+   "dataDesapensamento": "2024-06-26"
+  },
+  {
+   "id": 8147067,
+   "identificacao": "PL 21/2020",
+   "tramitando": "Não",
+   "tipoApensamento": "Tramitação conjunta",
+   "dataApensamento": "2024-02-21",
+   "dataDesapensamento": "2024-06-26"
+  },
+  {
+   "id": 8147067,
+   "identificacao": "PL 21/2020",
+   "tramitando": "Não",
+   "tipoApensamento": "Tramitação conjunta",
+   "dataApensamento": "2023-08-16",
+   "dataDesapensamento": "2024-02-21"
+  }
+ ],
+ "outrosNumeros": [
+  {
+   "idOutroProcesso": 8802692,
+   "sigla": "PL",
+   "numero": "02338",
+   "ano": 2023,
+   "tramitando": "Sim",
+   "externaAoCongresso": "Não",
+   "casaIdentificadora": "CD",
+   "siglaEnteIdentificador": "CD",
+   "enteIdentificador": "Câmara dos Deputados"
+  }
+ ],
+ "processosRelacionados": [
+  {
+   "idOutroProcesso": 8495562,
+   "tipoRelacao": "REFERENCIA",
+   "sigla": "RQS",
+   "numero": "671",
+   "ano": 2023,
+   "tramitando": "Não",
+   "casaIdentificadora": "SF",
+   "siglaEnteIdentificador": "PLEN",
+   "enteIdentificador": "Plenário do Senado Federal"
+  }
+ ],
+ "despachos": [
+  {
+   "id": 9433265,
+   "data": "2023-08-16",
+   "siglaTipoMotivacao": "DECISAO_PRESID",
+   "tipoMotivacao": "Decisão da Presidência",
+   "cancelado": "Não",
+   "encontroLegislativo": {
+    "id": 8516968,
+    "numero": 1,
+    "data": "2023-08-16",
+    "casa": "SF",
+    "tipo": "SES",
+    "descricao": "Eventos Independentes de Sessão",
+    "colegiado": {
+     "codigo": 1998,
+     "casa": "SF",
+     "sigla": "PLEN",
+     "nome": "Plenário do Senado Federal"
+    }
+   },
+   "providencias": [
+    {
+     "id": 8517125,
+     "tipo": "TRAMITACAO_CONJUNTA",
+     "descricao": "Tramitação Conjunta",
+     "ordem": 1,
+     "analiseTempo": "SUCESSIVA",
+     "analiseConteudo": "MATERIA",
+     "reexame": "Não",
+     "unidadesDestinatarias": null
+    },
+    {
+     "id": 8517126,
+     "tipo": "ANALISE",
+     "descricao": "Análise",
+     "ordem": 2,
+     "analiseTempo": "SUCESSIVA",
+     "analiseConteudo": null,
+     "reexame": "Não",
+     "unidadesDestinatarias": null
+    },
+    {
+     "id": 8517127,
+     "tipo": "ANALISE",
+     "descricao": "Análise",
+     "ordem": 3,
+     "analiseTempo": "SUCESSIVA",
+     "analiseConteudo": "MATERIA",
+     "reexame": "Não",
+     "unidadesDestinatarias": [
+      {
+       "ordem": 1,
+       "tipoAnaliseDeliberacao": "NAO_TERMINATIVA",
+       "colegiado": {
+        "codigo": 2629,
+        "sigla": "CTIA",
+        "casa": "SF",
+        "nome": "Comissão Temporária Interna sobre Inteligência Artificial no Brasil"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "autuacoes": [
+  {
+   "numero": 1,
+   "descricao": "Autuação Principal",
+   "idEnteControleAtual": 55304,
+   "siglaEnteControleAtual": "SEXPE",
+   "nomeEnteControleAtual": "Secretaria de Expediente",
+   "situacoes": [
+    {
+     "idTipo": 175,
+     "sigla": "AGDESP",
+     "descricao": "AGUARDANDO DESPACHO",
+     "inicio": "2023-05-03",
+     "fim": "2023-08-16",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     }
+    },
+    {
+     "idTipo": 52,
+     "sigla": "RMCD",
+     "descricao": "REMETIDA À CÂMARA DOS DEPUTADOS",
+     "inicio": "2025-03-17",
+     "colegiado": {},
+     "enteAdministrativo": {
+      "id": 55304,
+      "casa": "SF",
+      "sigla": "SEXPE",
+      "nome": "Secretaria de Expediente"
+     }
+    }
+   ],
+   "informesLegislativos": [
+    {
+     "id": 2134832,
+     "data": "2023-05-03 19:16:49",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     },
+     "descricao": "Autuado o Projeto de Lei nº 2338/2023. O projeto vai à publicação.",
+     "idSituacaoIniciada": 175,
+     "siglaSituacaoIniciada": "AGDESP",
+     "documentosAssociados": [
+      {
+       "id": 9347593,
+       "tipo": "Projeto de Lei Ordinária",
+       "siglaTipo": "PROJETO_LEI_ORDINARIA",
+       "identificacao": "PL 2338/2023",
+       "descricao": "Dispõe sobre o uso da Inteligência Artificial.",
+       "data": "2023-05-03T19:16:39",
+       "autoria": "Senador Rodrigo Pacheco (PSD/MG)",
+       "url": "https://legis.senado.leg.br/sdleg-getter/dadosabertos/documento/93266fb1-dcee-4ba9-9318-41101088a2a3"
+      }
+     ]
+    },
+    {
+     "id": 2149260,
+     "data": "2023-07-13 11:38:18",
+     "colegiado": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     },
+     "enteAdministrativo": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     },
+     "descricao": "Recebido o Requerimento nº 671, de 2023, do Senador Jorge Kajuru, de  tramitação conjunta do PL 5691/2019 com o PL 2338/2023 e com o PL 21/2020 (e demais matérias que tramitam em conjunto).",
+     "documentosAssociados": [
+      {
+       "id": 9410593,
+       "tipo": "Requerimento",
+       "siglaTipo": "REQUERIMENTO",
+       "identificacao": "RQS 671/2023",
+       "descricao": "Requer a tramitação conjunta do PL 5691/2019 com o PL 2338/2023 e com o PL 21/2020 (e demais matérias que tramitam em conjunto).",
+       "data": "2023-07-13T11:27:47",
+       "autoria": "Senador Jorge Kajuru (PSB/GO)",
+       "url": "https://legis.senado.leg.br/sdleg-getter/dadosabertos/documento/02f40b8c-a16e-4c7c-9ab6-25f241f9d88e"
+      }
+     ]
+    },
+    {
+     "id": 2224954,
+     "data": "2024-12-19 18:49:43",
+     "colegiado": {},
+     "enteAdministrativo": {
+      "id": 55304,
+      "casa": "SF",
+      "sigla": "SEXPE",
+      "nome": "Secretaria de Expediente"
+     },
+     "descricao": "Anexado o texto revisado.",
+     "documentosAssociados": [
+      {
+       "id": 9881643,
+       "tipo": "Minuta",
+       "siglaTipo": "MINUTA",
+       "identificacao": "Minuta - SF247487258667",
+       "data": "2024-12-19T18:49:39",
+       "autoria": "Senado Federal",
+       "url": "https://legis.senado.leg.br/sdleg-getter/dadosabertos/documento/5ef65cf0-b173-4cf4-9ad5-0514856a0017"
+      }
+     ]
+    },
+    {
+     "id": 2231566,
+     "data": "2025-03-17 15:53:41",
+     "colegiado": {},
+     "enteAdministrativo": {
+      "id": 55304,
+      "casa": "SF",
+      "sigla": "SEXPE",
+      "nome": "Secretaria de Expediente"
+     },
+     "descricao": "Remetido Ofício SF nº 235, de 17/03/25, ao Senhor Primeiro-Secretário da Câmara dos Deputados, encaminhando autógrafo do projeto para revisão, nos termos do art. 65 da Constituição Federal.",
+     "idSituacaoIniciada": 52,
+     "siglaSituacaoIniciada": "RMCD",
+     "documentosAssociados": [
+      {
+       "id": 9878852,
+       "tipo": "Ofício",
+       "siglaTipo": "OFICIO",
+       "identificacao": "OFSF 235/2025",
+       "descricao": "Encaminha à revisão da Câmara dos Deputados o Projeto de Lei n° 2338, de 2023.",
+       "data": "2025-03-17T00:00:00",
+       "autoria": "Primeiro-Secretário do Senado Federal",
+       "url": "https://legis.senado.leg.br/sdleg-getter/dadosabertos/documento/280720c2-7a59-4127-85b6-99b2b1c262f9"
+      }
+     ]
+    }
+   ],
+   "movimentacoes": [
+    {
+     "id": 9347637,
+     "dataEnvio": "2023-05-03 19:22:05",
+     "enteOrigem": {
+      "id": 55312,
+      "casa": "SF",
+      "sigla": "SLSF",
+      "nome": "Secretaria Legislativa do Senado Federal"
+     },
+     "dataRecebimento": "2023-05-08 16:18:03",
+     "enteDestino": {
+      "id": 13594,
+      "casa": "SF",
+      "sigla": "SEADI",
+      "nome": "Secretaria de Atas e Diários"
+     },
+     "colegiadoDestino": {
+      "codigo": 1998,
+      "casa": "SF",
+      "sigla": "PLEN",
+      "nome": "Plenário do Senado Federal"
+     }
+    }
+   ]
+  }
+ ],
+ "ordensDoDia": [
+  {
+   "codigoSessao": 430893,
+   "dataSessao": "2024-12-05T11:00:00",
+   "casaSessao": "SF",
+   "codigoSessaoLegislativa": 871,
+   "siglaTipoSessao": "DEX",
+   "numeroSessao": "174",
+   "tipoApreciacao": "-"
+  }
+ ],
+ "deliberacao": {
+  "data": "2024-12-10",
+  "siglaTipo": "APROVADA_NO_PLENARIO",
+  "tipoDeliberacao": "Aprovada pelo Plenário",
+  "idDestino": 1,
+  "siglaDestino": "CAMARA",
+  "destino": "À Câmara dos Deputados"
+ },
+ "normaGerada": {},
+ "ultimaInformacaoAtualizada": "ASSUNTO",
+ "dthUltimaAtualizacao": "2026-09-09T17:43:42.548000"
+}
