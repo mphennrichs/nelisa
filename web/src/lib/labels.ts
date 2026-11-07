@@ -34,3 +34,24 @@ export function fmtDate(iso?: string | null) {
 export function fmtDateTime(iso?: string | null) {
   return iso ? dateTimeFmt.format(new Date(iso)) : "—";
 }
+
+// O Senado manda situações em CAIXA ALTA ("TRANSFORMADA EM NORMA JURÍDICA");
+// para ler, viram frase normal. Texto misto fica como veio.
+export function officialText(s: string) {
+  if (!s || s !== s.toUpperCase() || s === s.toLowerCase()) return s;
+  const lower = s.toLocaleLowerCase("pt-BR");
+  return lower.charAt(0).toLocaleUpperCase("pt-BR") + lower.slice(1);
+}
+
+const CHAMBER_IN: Record<string, string> = { camara: "na Câmara dos Deputados", senado: "no Senado Federal" };
+const CHAMBER_THE: Record<string, string> = { camara: "A Câmara dos Deputados", senado: "O Senado Federal" };
+
+/** "na Câmara dos Deputados" / "no Senado Federal". */
+export function chamberIn(c: string) {
+  return CHAMBER_IN[c] ?? `em ${chamberLabel(c)}`;
+}
+
+/** "A Câmara dos Deputados" / "O Senado Federal". */
+export function chamberThe(c: string) {
+  return CHAMBER_THE[c] ?? chamberLabel(c);
+}

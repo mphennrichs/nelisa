@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PublicShell, { UnderReviewBadge } from "@/components/PublicShell";
 import { listPublicPropositions } from "@/lib/public/api";
-import { chamberLabel, fmtDate } from "@/lib/labels";
+import { chamberLabel, fmtDate, officialText } from "@/lib/labels";
 
 export const metadata: Metadata = {
   title: "Proposições · Nelisa",
@@ -34,7 +34,7 @@ export default async function PropositionsPage() {
                 <Link href={`/proposicao/${p.slug}`} className="hover:underline">{p.name}</Link>
               </h2>
               <p className="leading-relaxed text-stone-800">{p.summary}</p>
-              {p.status && <p className="text-sm text-stone-600">Situação: {p.status}</p>}
+              {p.status && <p className="text-sm text-stone-600">Situação: {officialText(p.status)}</p>}
             </li>
           ))}
         </ul>

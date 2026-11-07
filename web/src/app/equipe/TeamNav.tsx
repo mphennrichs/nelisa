@@ -10,6 +10,7 @@ export default function TeamNav() {
   const router = useRouter();
   const links = [
     { href: "/equipe", label: "Início" },
+    { href: "/equipe/proposicoes", label: "Proposições" },
     ...(state.status === "authenticated" && state.user.role === "admin" ? [{ href: "/equipe/usuarios", label: "Usuários" }] : []),
     { href: "/equipe/senha", label: "Trocar senha" },
   ];

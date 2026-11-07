@@ -2,12 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PublicShell, { UnderReviewBadge } from "@/components/PublicShell";
-import { getPublicProposition } from "@/lib/public/api";
-import { chamberLabel, fmtDate } from "@/lib/labels";
+import { getPublicProposition, type PublicPropositionDetail } from "@/lib/public/api";
+import { chamberLabel, fmtDate, officialText, chamberIn } from "@/lib/labels";
 
 // Renderiza sob demanda (a API não existe no build da imagem); os dados
 // ficam 60s no cache do fetch (lib/public/api.ts).
 export const dynamic = "force-dynamic";
+
+const RECENT = 20;
+
+type Entry = PublicPropositionDetail["timeline"][number];
+
+function Timeline({ entries }: { entries: Entry[] }) {
+  return (
+    <ol className="space-y-3">
+      {entries.map((e, i) => (
+        <li key={`${e.chamber}-${e.at}-${i}`} className="border-l-2 border-stone-300 pl-4">
+          <p className="text-sm text-stone-600">
+            <time dateTime={e.at}>{fmtDate(e.at)}</time> · {chamberLabel(e.chamber)}
+            {e.body && <> · {e.body}</>}
+          </p>
+          <p className="font-medium">{e.description}</p>
+          {e.dispatch && e.dispatch !== e.description && <p className="text-stone-700 [overflow-wrap:anywhere]">{e.dispatch}</p>}
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -32,7 +53,7 @@ export default async function PropositionPage({ params }: Props) {
       <article className="space-y-8">
         <header className="space-y-3">
           <div className="flex flex-wrap items-center gap-2 text-sm text-stone-600">
-            <span>Iniciada na {chamberLabel(p.origin_chamber)}</span>
+            <span>Iniciada {chamberIn(p.origin_chamber)}</span>
             <span aria-hidden="true">·</span>
             <span>apresentada em {fmtDate(p.presented_at)}</span>
             {p.under_review && <UnderReviewBadge />}
@@ -52,7 +73,7 @@ export default async function PropositionPage({ params }: Props) {
           <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[max-content_1fr]">
             <dt className="font-medium text-stone-600">Situação</dt>
             <dd>
-              {p.status || "—"}
+              {officialText(p.status) || "—"}
               {p.superseded && <span className="ml-2 text-sm text-stone-600">(prejudicada)</span>}
             </dd>
             {p.authors.length > 0 && (
@@ -92,7 +113,7 @@ export default async function PropositionPage({ params }: Props) {
                 <dd className="space-y-1">
                   {p.sources.map((s) => (
                     <a key={`${s.chamber}-${s.url}`} href={s.url} className="link block" rel="noopener noreferrer">
-                      {s.name} na {chamberLabel(s.chamber)}
+                      {s.name} {chamberIn(s.chamber)}
                     </a>
                   ))}
                 </dd>
@@ -106,18 +127,19 @@ export default async function PropositionPage({ params }: Props) {
           {timeline.length === 0 ? (
             <p className="text-stone-700">Sem eventos de tramitação ainda.</p>
           ) : (
-            <ol className="space-y-3">
-              {timeline.map((e, i) => (
-                <li key={`${e.chamber}-${e.at}-${i}`} className="border-l-2 border-stone-300 pl-4">
-                  <p className="text-sm text-stone-600">
-                    <time dateTime={e.at}>{fmtDate(e.at)}</time> · {chamberLabel(e.chamber)}
-                    {e.body && <> · {e.body}</>}
-                  </p>
-                  <p className="font-medium">{e.description}</p>
-                  {e.dispatch && e.dispatch !== e.description && <p className="text-stone-700 [overflow-wrap:anywhere]">{e.dispatch}</p>}
-                </li>
-              ))}
-            </ol>
+            <>
+              <Timeline entries={timeline.slice(0, RECENT)} />
+              {timeline.length > RECENT && (
+                <details className="group">
+                  <summary className="btn-ghost min-h-11 cursor-pointer px-4">
+                    Ver os {timeline.length - RECENT} eventos anteriores
+                  </summary>
+                  <div className="mt-3">
+                    <Timeline entries={timeline.slice(RECENT)} />
+                  </div>
+                </details>
+              )}
+            </>
           )}
         </section>
       </article>

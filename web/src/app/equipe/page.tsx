@@ -14,7 +14,8 @@ export default function TeamHome() {
           <section className="card space-y-2" aria-labelledby="em-construcao">
             <h2 id="em-construcao" className="text-lg font-semibold">Em construção</h2>
             <p className="text-stone-700">
-              A Importação de Proposições chega na fase 1 e a Fila de revisão na fase 2. O andamento está no{" "}
+              Já dá para <Link href="/equipe/proposicoes/importar" className="link">importar Proposições</Link> da
+              Câmara e do Senado. A Fila de revisão chega na fase 2. O andamento está no{" "}
               <a href="https://github.com/users/mphennrichs/projects/1" className="link">quadro do projeto</a>.
             </p>
           </section>
