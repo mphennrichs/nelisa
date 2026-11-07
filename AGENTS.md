@@ -40,7 +40,9 @@ própria.
 ## Comandos
 
 ```sh
-# api/
+# api/ (testes de integração precisam do Postgres de dev)
+docker compose -f api/compose.dev.yaml up -d
+export NELISA_TEST_DATABASE_URL='postgres://nelisa:nelisa@localhost:5433/postgres?sslmode=disable'
 cd api
 go test ./...
 go vet ./...
@@ -54,8 +56,8 @@ npm run lint
 npm run build
 ```
 
-Até a fase 0 terminar, só existe o `web/` (protótipo em memória). Os comandos
-de `api/` valem a partir do esqueleto da API (#1).
+Sem `NELISA_TEST_DATABASE_URL` os testes de integração são pulados
+localmente; no CI eles são obrigatórios.
 
 ## Pronto significa
 

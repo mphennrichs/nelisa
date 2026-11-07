@@ -1,0 +1,14 @@
+# Postgres para desenvolvimento e testes de integração locais.
+#   docker compose -f api/compose.dev.yaml up -d
+#   export NELISA_TEST_DATABASE_URL=postgres://nelisa:nelisa@localhost:5433/postgres?sslmode=disable
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nelisa
+      POSTGRES_PASSWORD: nelisa
+      POSTGRES_DB: nelisa
+    ports:
+      - "127.0.0.1:5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data

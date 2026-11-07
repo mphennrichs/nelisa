@@ -1,0 +1,49 @@
+openapi: 3.1.0
+info:
+  title: Nelisa API
+  version: 0.1.0
+  description: |
+    Contrato da API do Nelisa. Quem muda um endpoint muda este arquivo no
+    mesmo PR; o cliente TypeScript do web/ é gerado a partir dele.
+    Rotas públicas em /api/public (filtradas pela regra de visibilidade);
+    rotas da equipe em /api/team (sempre autenticadas).
+paths:
+  /version:
+    get:
+      summary: Versão do binário em execução
+      responses:
+        "200":
+          description: Versão
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Version" }
+  /healthz:
+    get:
+      summary: Saúde da API e do banco
+      responses:
+        "200": { description: Saudável }
+        "503":
+          description: Banco indisponível
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+components:
+  schemas:
+    Version:
+      type: object
+      required: [version, commit, changelog, build_time]
+      properties:
+        version: { type: string }
+        commit: { type: string }
+        changelog: { type: string }
+        build_time: { type: string }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, description: "snake_case estável, para o código tratar" }
+            message: { type: string, description: "Texto para a tela, em português" }
