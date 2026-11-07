@@ -23,7 +23,7 @@ type Pinger interface {
 // newRouter monta as rotas. Rotas públicas ficam em /api/public (sempre
 // filtradas pela regra de visibilidade); rotas da equipe em /api/team
 // (sempre autenticadas). Os módulos se registram aqui conforme chegam.
-func newRouter(_ config.Config, db Pinger, logger *slog.Logger) http.Handler {
+func newRouter(_ config.Config, db Pinger, team teamModule, logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 	r.NotFound(httpx.NotFound)
 	r.MethodNotAllowed(httpx.MethodNotAllowed)
@@ -44,6 +44,14 @@ func newRouter(_ config.Config, db Pinger, logger *slog.Logger) http.Handler {
 	})
 
 	r.Route("/api/public", func(r chi.Router) {})
-	r.Route("/api/team", func(r chi.Router) {})
+	r.Route("/api/team", func(r chi.Router) {
+		// /auth é a única parte de /api/team sem login (bootstrap, login,
+		// refresh, logout); todo o resto passa pela autenticação.
+		team.handlers.RegisterAuth(r)
+		r.Group(func(r chi.Router) {
+			r.Use(team.authenticate)
+			team.handlers.RegisterAuthenticated(r)
+		})
+	})
 	return r
 }
