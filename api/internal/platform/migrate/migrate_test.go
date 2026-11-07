@@ -14,7 +14,7 @@ func TestUpIsIdempotentAndCreatesSchemas(t *testing.T) {
 	if err := migrate.Up(context.Background(), url, migrations.FS); err != nil {
 		t.Fatalf("second run should be a no-op: %v", err)
 	}
-	for _, schema := range []string{"team", "audit"} {
+	for _, schema := range []string{"team", "audit", "proposition", "progress", "river"} {
 		var ok bool
 		err := pool.QueryRow(context.Background(),
 			"SELECT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)", schema).Scan(&ok)

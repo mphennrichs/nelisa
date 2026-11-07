@@ -25,8 +25,13 @@ func TestLoadValid(t *testing.T) {
 	if got := c.URL("proposicao/1"); got != "https://nelisa.example.org/proposicao/1" {
 		t.Errorf("URL = %q", got)
 	}
-	if c.ListenAddr != ":8080" || !c.SecureCookies || len(c.TrustedProxies) == 0 {
+	if c.ListenAddr != ":8080" || !c.SecureCookies || len(c.TrustedProxies) == 0 || c.SyncInterval != DefaultSyncInterval {
 		t.Errorf("defaults not applied: %+v", c)
+	}
+	m := base()
+	m["SYNC_INTERVAL"] = "30m"
+	if c, err := Load(env(m), true); err != nil || c.SyncInterval.Minutes() != 30 {
+		t.Errorf("SYNC_INTERVAL=30m: %v %v", c.SyncInterval, err)
 	}
 }
 
@@ -43,6 +48,8 @@ func TestLoadRejects(t *testing.T) {
 		"bad trusted proxy cidr": func(m map[string]string) { m["TRUSTED_PROXY_CIDRS"] = "nope" },
 		"short bootstrap token":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "abc" },
 		"placeholder bootstrap":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "change-me-" + strings.Repeat("x", 20) },
+		"bad sync interval":      func(m map[string]string) { m["SYNC_INTERVAL"] = "toda hora" },
+		"sync interval too low":  func(m map[string]string) { m["SYNC_INTERVAL"] = "10s" },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {

@@ -76,6 +76,14 @@ type DBTX interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
+// TxFrom devolve a transação aberta por WithinTx, se houver. Serve a quem
+// precisa da transação em si (ex.: o River, que enfileira um job dentro
+// dela com InsertTx), não só de algo que execute SQL.
+func TxFrom(ctx context.Context) (pgx.Tx, bool) {
+	tx, ok := ctx.Value(txKey{}).(pgx.Tx)
+	return tx, ok
+}
+
 // Conn devolve a transação aberta por WithinTx, se houver; senão o pool.
 func Conn(ctx context.Context, pool *pgxpool.Pool) DBTX {
 	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {

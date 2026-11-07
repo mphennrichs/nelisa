@@ -18,6 +18,57 @@ type AuditEvent struct {
 	Metadata   []byte
 }
 
+type ProgressEntry struct {
+	ID            int64
+	PropositionID string
+	Chamber       string
+	ExternalKey   string
+	At            time.Time
+	Body          string
+	Description   string
+	Situation     string
+	Dispatch      string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type PropositionProposition struct {
+	ID              string
+	Slug            string
+	Kind            string
+	Number          int32
+	Year            int32
+	Sphere          string
+	OriginChamber   string
+	Summary         string
+	PresentedAt     *time.Time
+	OfficialTextUrl string
+	Authors         []string
+	Status          string
+	StatusAt        *time.Time
+	AttachedTo      *string
+	AttachedToName  string
+	Superseded      bool
+	ReviewState     string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type PropositionSourceLink struct {
+	ID            string
+	PropositionID string
+	Chamber       string
+	ExternalID    string
+	State         string
+	SourceName    string
+	SourceUrl     string
+	ConfirmedBy   *string
+	ConfirmedAt   *time.Time
+	LastSyncedAt  *time.Time
+	LastSyncError string
+	CreatedAt     time.Time
+}
+
 type TeamRefreshToken struct {
 	ID        string
 	UserID    string

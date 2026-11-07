@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // MinSecretBytes é o tamanho mínimo do segredo de assinatura dos tokens.
@@ -36,7 +37,16 @@ type Config struct {
 	TrustedProxies []netip.Prefix
 	// SecureCookies desliga só com COOKIE_INSECURE=true (dev em http).
 	SecureCookies bool
+	// SyncInterval é de quanto em quanto tempo o worker sincroniza todos os
+	// Vínculos de fonte confirmados (SYNC_INTERVAL, duração do Go; padrão
+	// 6h, mínimo 1 min).
+	SyncInterval time.Duration
 }
+
+// DefaultSyncInterval é o intervalo da Sincronização periódica.
+const DefaultSyncInterval = 6 * time.Hour
+
+const minSyncInterval = time.Minute
 
 // Getenv é a assinatura de os.Getenv, injetada para os testes.
 type Getenv func(string) string
@@ -93,6 +103,16 @@ func Load(getenv Getenv, requireSecret bool) (Config, error) {
 		errs = append(errs, err)
 	}
 	c.TrustedProxies = proxies
+
+	c.SyncInterval = DefaultSyncInterval
+	if raw := strings.TrimSpace(getenv("SYNC_INTERVAL")); raw != "" {
+		d, err := time.ParseDuration(raw)
+		if err != nil || d < minSyncInterval {
+			errs = append(errs, fmt.Errorf("SYNC_INTERVAL inválido (duração de no mínimo 1m, ex.: 6h): %q", raw))
+		} else {
+			c.SyncInterval = d
+		}
+	}
 
 	if base != nil && base.Scheme == "https" && !c.SecureCookies {
 		errs = append(errs, errors.New("COOKIE_INSECURE=true não é permitido com PUBLIC_BASE_URL https"))
