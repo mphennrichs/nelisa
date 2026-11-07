@@ -1,0 +1,139 @@
+# CI do Nelisa. Repo PÚBLICO: só runners hospedados pelo GitHub, nunca
+# self-hosted, nunca pull_request_target (ADR 0005, docs/arquitetura.md).
+# O fogolab só faz deploy de commit da main com todos os jobs daqui verdes.
+#
+# Actions de terceiros fixadas por SHA completo (comentário = versão). Para
+# atualizar: gh api repos/<dono>/<repo>/git/ref/tags/<tag> (e, se for tag
+# anotada, gh api repos/<dono>/<repo>/git/tags/<sha> para chegar ao commit).
+name: CI
+
+on:
+  push:
+    branches: [main, "fase-0/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SQLC_VERSION: "1.31.1"
+  SQLC_SHA256: "497ae4fcdfa64c5b0c311ffe4c2bd991e43991e82e5367792ed78bc2dca27354"
+  STATICCHECK_VERSION: "2026.2.2"
+
+jobs:
+  api:
+    name: api (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nelisa
+          POSTGRES_PASSWORD: nelisa
+          POSTGRES_DB: nelisa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nelisa -d nelisa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: api
+    env:
+      # CI=true torna os testes de integração obrigatórios (testdb.New).
+      CI: "true"
+      NELISA_TEST_DATABASE_URL: postgres://nelisa:nelisa@localhost:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+
+      - name: gofmt
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then
+            echo "::error::arquivos fora do gofmt:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: staticcheck
+        run: |
+          go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
+          "$(go env GOPATH)/bin/staticcheck" ./...
+
+      - name: go test
+        run: go test -race -count=1 ./...
+
+      - name: sqlc generate sem diff
+        run: |
+          if ! compgen -G "queries/*.sql" > /dev/null; then
+            echo "api/queries sem arquivos .sql: nada para o sqlc gerar, pulando."
+            exit 0
+          fi
+          tmp="$(mktemp -d)"
+          curl -fsSL -o "$tmp/sqlc.tar.gz" \
+            "https://github.com/sqlc-dev/sqlc/releases/download/v${SQLC_VERSION}/sqlc_${SQLC_VERSION}_linux_amd64.tar.gz"
+          echo "${SQLC_SHA256}  $tmp/sqlc.tar.gz" | sha256sum -c -
+          tar -xzf "$tmp/sqlc.tar.gz" -C "$tmp" sqlc
+          "$tmp/sqlc" generate
+          if [ -n "$(git status --porcelain -- .)" ]; then
+            echo "::error::sqlc generate mudou arquivos; rode 'sqlc generate' em api/ e commite."
+            git status --porcelain -- .
+            git diff -- .
+            exit 1
+          fi
+
+  web:
+    name: web (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  docker:
+    name: docker (build das imagens)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Só builda, sem push: pega Dockerfile quebrado antes do fogolab.
+      - name: build api/Dockerfile
+        run: docker build --pull -t nelisa-api:ci api
+      - name: build web/Dockerfile
+        run: docker build --pull -t nelisa-web:ci web
