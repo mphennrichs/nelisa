@@ -7,6 +7,8 @@ quatro olhos. Leitores contribuem sem cadastro.
 - Glossário do domínio: [`CONTEXT.md`](CONTEXT.md)
 - Decisões de arquitetura: [`docs/adr/`](docs/adr/)
 - Nomes no código: [`docs/nomes-no-codigo.md`](docs/nomes-no-codigo.md)
+- Arquitetura e padrões: [`docs/arquitetura.md`](docs/arquitetura.md)
+- Como contribuir: [`CONTRIBUTING.md`](CONTRIBUTING.md) · agentes de IA: [`AGENTS.md`](AGENTS.md)
 - Plano até o deploy da v1: [`docs/plano.md`](docs/plano.md)
 - Andamento: [quadro Nelisa v1](https://github.com/users/mphennrichs/projects/1) e [issues](https://github.com/mphennrichs/nelisa/issues)
 
