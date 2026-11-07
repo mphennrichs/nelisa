@@ -74,12 +74,12 @@ func New(uc UseCases, opts Options, logger *slog.Logger) *Handlers {
 // /api/team): são as únicas de /api/team sem autenticação.
 func (h *Handlers) RegisterAuth(r chi.Router) {
 	r.Route("/auth", func(r chi.Router) {
-		loginLimit := httprate.Limit(loginPerMinute, time.Minute,
-			httprate.WithKeyFuncs(h.opts.LimitKey), httprate.WithLimitHandler(tooManyRequests))
+		loginLimit := httprate.LimitBy(loginPerMinute, time.Minute, h.opts.LimitKey,
+			httprate.WithLimitHandler(tooManyRequests))
 		r.With(loginLimit).Post("/bootstrap", h.bootstrap)
 		r.With(loginLimit).Post("/login", h.login)
-		r.With(httprate.Limit(refreshPerMinute, time.Minute,
-			httprate.WithKeyFuncs(h.opts.LimitKey), httprate.WithLimitHandler(tooManyRequests))).
+		r.With(httprate.LimitBy(refreshPerMinute, time.Minute, h.opts.LimitKey,
+			httprate.WithLimitHandler(tooManyRequests))).
 			Post("/refresh", h.refresh)
 		r.Post("/logout", h.logout)
 	})
