@@ -13,6 +13,9 @@ import (
 // MinSecretBytes é o tamanho mínimo do segredo de assinatura dos tokens.
 const MinSecretBytes = 32
 
+// MinBootstrapTokenBytes é o tamanho mínimo do BOOTSTRAP_TOKEN em https.
+const MinBootstrapTokenBytes = 16
+
 // Config é a configuração validada do processo.
 type Config struct {
 	// DatabaseURL é a URL do Postgres (postgres://user:pass@host:5432/db).
@@ -24,6 +27,10 @@ type Config struct {
 	ListenAddr string
 	// JWTSecret assina os tokens de acesso. Obrigatório só no modo api.
 	JWTSecret string
+	// BootstrapToken libera a criação do primeiro Admin (POST
+	// /api/team/auth/bootstrap) enquanto não há nenhum usuário. Opcional:
+	// vazio desliga o bootstrap. Depois do primeiro Admin, pode ser removido.
+	BootstrapToken string
 	// TrustedProxies são as redes cujo CF-Connecting-IP é aceito como IP do
 	// cliente. Padrão: redes privadas e loopback (Traefik/cloudflared).
 	TrustedProxies []netip.Prefix
@@ -43,10 +50,11 @@ var placeholderSecrets = []string{"change-me", "changeme", "dev-secret", "secret
 func Load(getenv Getenv, requireSecret bool) (Config, error) {
 	var errs []error
 	c := Config{
-		DatabaseURL:   getenv("DATABASE_URL"),
-		ListenAddr:    getenv("LISTEN_ADDR"),
-		JWTSecret:     getenv("JWT_SECRET"),
-		SecureCookies: getenv("COOKIE_INSECURE") != "true",
+		DatabaseURL:    getenv("DATABASE_URL"),
+		ListenAddr:     getenv("LISTEN_ADDR"),
+		JWTSecret:      getenv("JWT_SECRET"),
+		BootstrapToken: getenv("BOOTSTRAP_TOKEN"),
+		SecureCookies:  getenv("COOKIE_INSECURE") != "true",
 	}
 	if c.ListenAddr == "" {
 		c.ListenAddr = ":8080"
@@ -72,6 +80,14 @@ func Load(getenv Getenv, requireSecret bool) (Config, error) {
 		}
 	}
 
+	if base != nil && base.Scheme == "https" && c.BootstrapToken != "" {
+		switch {
+		case isPlaceholder(c.BootstrapToken):
+			errs = append(errs, errors.New("BOOTSTRAP_TOKEN é um valor de exemplo; gere um segredo real"))
+		case len(c.BootstrapToken) < MinBootstrapTokenBytes:
+			errs = append(errs, fmt.Errorf("BOOTSTRAP_TOKEN precisa de pelo menos %d bytes", MinBootstrapTokenBytes))
+		}
+	}
 	proxies, err := parseCIDRs(getenv("TRUSTED_PROXY_CIDRS"))
 	if err != nil {
 		errs = append(errs, err)
