@@ -1,12 +1,42 @@
 version: "2"
+# Um pacote gerado por módulo, dentro do store/ dele: um módulo nunca
+# enxerga as tabelas de outro (docs/arquitetura.md, "Banco").
+overrides:
+  go:
+    overrides:
+      - db_type: uuid
+        go_type: string
+      - db_type: uuid
+        nullable: true
+        go_type:
+          type: string
+          pointer: true
+      - db_type: timestamptz
+        go_type: time.Time
+      - db_type: timestamptz
+        nullable: true
+        go_type:
+          import: time
+          type: Time
+          pointer: true
 sql:
   - engine: postgresql
     schema: migrations
-    queries: queries
+    queries: queries/team.sql
     gen:
       go:
         package: dbgen
-        out: internal/platform/dbgen
+        out: internal/team/store/dbgen
+        sql_package: pgx/v5
+        emit_interface: false
+        emit_json_tags: false
+  - engine: postgresql
+    schema: migrations
+    queries: queries/audit.sql
+    gen:
+      go:
+        package: dbgen
+        out: internal/audit/store/dbgen
         sql_package: pgx/v5
         emit_interface: false
         emit_json_tags: false
