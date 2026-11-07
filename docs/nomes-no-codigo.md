@@ -51,6 +51,7 @@ Esta tabela é a tradução oficial — não invente outra.
 | Fonte oficial | `OfficialSource` |
 | Parlamentar / Mandato / Autor | `Legislator` / `Term` / `Author` |
 | Importação / Sincronização | `Import` / `Sync` |
+| Vínculo de fonte | `SourceLink` |
 | Contribuição | `Contribution`: `pending` / `accepted` / `rejected` |
 | Indicação | `Referral` |
 | Atualização de tramitação | `ProgressUpdate` |

@@ -18,5 +18,15 @@ declarada prejudicada.
 ## Consequências
 - No código, `Bill` vira `Proposition` (ver `docs/nomes-no-codigo.md`).
 - Importação precisa casar o registro da Câmara com o do Senado (os IDs são
-  diferentes em cada API) — pendente de desenho.
+  diferentes em cada API) — decidido em 2026-11-07, ver abaixo.
 - ADRs 0001–0005 ainda falam "PL"; leia como "Proposição".
+
+_Atualização 2026-11-07 — casamento entre Casas:_ cada Proposição tem um
+**Vínculo de fonte** por Casa (Casa + ID externo). A Importação parte de uma
+Casa; quando a outra tem um registro candidato (mesmo Tipo/número/ano ou a
+referência à Casa de origem que a API traz), o sistema **sugere** e o Editor
+**confirma** o vínculo. Nada é casado automaticamente: um vínculo errado
+misturaria duas Proposições num site público. A Sincronização junta a
+Tramitação de todos os Vínculos de fonte numa linha do tempo única.
+Descartados: casar automático por Tipo/número/ano (erra calado quando a
+numeração muda) e acompanhar só a Casa atual (perde o histórico).

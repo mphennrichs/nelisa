@@ -180,6 +180,11 @@ Tramitação preenchidos. Nunca é em massa. Indicações de links dessas fontes
 viram Importação.
 _Evitar_: Crawler, raspagem
 
+**Vínculo de fonte**:
+A ligação entre uma Proposição e o registro dela numa Casa com API (Casa + ID
+externo). Uma Proposição tem um Vínculo de fonte por Casa por onde passou. O
+sistema pode sugerir um vínculo, mas só o Editor o confirma.
+
 **Sincronização**:
 Atualização periódica das Proposições importadas a partir da fonte: Tramitação nova é
 aplicada direto; texto novo gera uma Mudança detectada.
