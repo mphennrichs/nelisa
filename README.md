@@ -7,6 +7,13 @@ quatro olhos. Leitores contribuem sem cadastro.
 - Glossário do domínio: [`CONTEXT.md`](CONTEXT.md)
 - Decisões de arquitetura: [`docs/adr/`](docs/adr/)
 - Nomes no código: [`docs/nomes-no-codigo.md`](docs/nomes-no-codigo.md)
+- Plano até o deploy da v1: [`docs/plano.md`](docs/plano.md)
+
+## Próximos passos
+
+Fase 0 do [plano](docs/plano.md): API em Go com Postgres e login real no lugar
+do protótipo. O beta público (sem divulgação) abre no fogolab ao fim da fase 3;
+a migração para a AWS vem depois.
 
 ## Estado atual: protótipo
 
