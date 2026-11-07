@@ -6,11 +6,30 @@ info:
     Contrato da API do Nelisa. Quem muda um endpoint muda este arquivo no
     mesmo PR; o cliente TypeScript do web/ é gerado a partir dele.
     Rotas públicas em /api/public (filtradas pela regra de visibilidade);
-    rotas da equipe em /api/team (sempre autenticadas).
+    rotas da equipe em /api/team (sempre autenticadas, exceto
+    /api/team/auth).
+
+    Sessão: o login devolve um token de acesso (JWT, 15 min) no corpo, para
+    o header `Authorization: Bearer`, e o refresh token no cookie
+    `nelisa_refresh` (HttpOnly; Secure; SameSite=Strict;
+    Path=/api/team/auth). O front guarda o token de acesso só em memória e
+    chama /api/team/auth/refresh quando ele expira. Sem CORS: o Next faz
+    proxy de /api na mesma origem.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+tags:
+  - name: sistema
+  - name: sessão
+  - name: conta
+  - name: equipe
 paths:
   /version:
     get:
+      tags: [sistema]
       summary: Versão do binário em execução
+      security: []
       responses:
         "200":
           description: Versão
@@ -19,7 +38,9 @@ paths:
               schema: { $ref: "#/components/schemas/Version" }
   /healthz:
     get:
+      tags: [sistema]
       summary: Saúde da API e do banco
+      security: []
       responses:
         "200": { description: Saudável }
         "503":
@@ -27,7 +48,301 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+
+  /api/team/auth/bootstrap:
+    post:
+      tags: [sessão]
+      summary: Cria a primeira pessoa da equipe, como Admin
+      description: |
+        Só funciona com `BOOTSTRAP_TOKEN` configurado no servidor e enquanto
+        não houver nenhum usuário. Limite de 10 requisições por minuto por
+        IP (compartilhado com o login).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BootstrapRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403":
+          description: "`bootstrap_disabled` (sem BOOTSTRAP_TOKEN) ou `bootstrap_token_invalid`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`already_bootstrapped`: já existe usuário"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/team/auth/login:
+    post:
+      tags: [sessão]
+      summary: Entra com e-mail e senha
+      description: Limite de 10 requisições por minuto por IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: "`invalid_credentials`: e-mail ou senha incorretos (não diz qual)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/team/auth/refresh:
+    post:
+      tags: [sessão]
+      summary: Troca o refresh token do cookie por uma sessão nova
+      description: |
+        O refresh token gira a cada uso (o cookie é substituído). Um token já
+        usado que volta depois de 30 s encerra todas as sessões da pessoa.
+        Limite de 30 requisições por minuto por IP.
+      security:
+        - refreshCookie: []
+      responses:
+        "200": { $ref: "#/components/responses/Session" }
+        "401":
+          description: "`invalid_refresh_token`: cookie ausente, desconhecido, expirado ou reusado; o cookie é apagado"
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/team/auth/logout:
+    post:
+      tags: [sessão]
+      summary: Encerra a sessão do cookie
+      description: Idempotente; sem cookie também responde 204.
+      security:
+        - refreshCookie: []
+      responses:
+        "204":
+          description: Sessão apagada e cookie limpo
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+
+  /api/team/me:
+    get:
+      tags: [conta]
+      summary: Dados da pessoa logada
+      responses:
+        "200":
+          description: Usuário
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/team/me/password:
+    post:
+      tags: [conta]
+      summary: Troca a própria senha
+      description: |
+        Exige a senha atual. Encerra todas as sessões da pessoa, inclusive a
+        atual, e devolve uma sessão nova (token de acesso e cookie).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`wrong_password`: a senha atual não confere"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`credentials_changed`: a senha mudou nesse meio-tempo"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/team/users:
+    get:
+      tags: [equipe]
+      summary: Lista a equipe (só Admin)
+      responses:
+        "200":
+          description: Usuários, do cadastro mais antigo ao mais novo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [equipe]
+      summary: Cadastra uma pessoa (só Admin)
+      description: |
+        Sem convite nem e-mail (ADR 0001): o Admin define a senha inicial,
+        que é temporária (`must_change_password: true`). Registrado na
+        Auditoria (`user.create`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateUserRequest" }
+      responses:
+        "201":
+          description: Usuário criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: "`email_taken`: e-mail já cadastrado (sem diferenciar maiúsculas)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/UserID"
+    patch:
+      tags: [equipe]
+      summary: Troca a role de alguém (só Admin)
+      description: |
+        Nunca deixa o Nelisa sem Admin. Vale na próxima requisição da
+        pessoa. Registrado na Auditoria (`user.role_change`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateRoleRequest" }
+      responses:
+        "200":
+          description: Usuário atualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: "`last_admin`: rebaixaria o último Admin"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [equipe]
+      summary: Exclui alguém (só Admin)
+      description: |
+        A conta e as sessões são apagadas; a Auditoria guarda o histórico
+        (`user.delete`). Ninguém exclui a si mesmo nem o último Admin.
+      responses:
+        "204": { description: Excluído }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: "`cannot_delete_self` ou `last_admin`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/users/{id}/password:
+    parameters:
+      - $ref: "#/components/parameters/UserID"
+    post:
+      tags: [equipe]
+      summary: Reseta a senha de alguém (só Admin)
+      description: |
+        A nova senha é temporária e todas as sessões da pessoa acabam.
+        Registrado na Auditoria (`user.password_reset`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResetPasswordRequest" }
+      responses:
+        "204": { description: Senha trocada }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: "`credentials_changed`: a senha mudou nesse meio-tempo"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de acesso devolvido por login, bootstrap, refresh ou troca de senha.
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: nelisa_refresh
+      description: Refresh token opaco, HttpOnly; o navegador o envia sozinho para /api/team/auth.
+  parameters:
+    UserID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Session:
+      description: |
+        Sessão aberta. O refresh token vai só no cookie `nelisa_refresh`;
+        nunca no corpo.
+      headers:
+        Set-Cookie:
+          description: "nelisa_refresh=...; Path=/api/team/auth; HttpOnly; Secure; SameSite=Strict"
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Session" }
+    BadRequest:
+      description: |
+        Entrada inválida: `invalid_json`, `invalid_email`, `invalid_name`,
+        `invalid_role`, `password_too_short` (mínimo 8 caracteres) ou
+        `password_too_long` (máximo 72 bytes).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: "`unauthenticated` (sem token ou token inválido) ou `session_expired` (token de antes de troca/reset de senha)"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: "`forbidden`: a role não permite a ação"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UserNotFound:
+      description: "`user_not_found`"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooManyRequests:
+      description: "`too_many_requests`: limite por IP excedido"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   schemas:
     Version:
       type: object
@@ -47,3 +362,71 @@ components:
           properties:
             code: { type: string, description: "snake_case estável, para o código tratar" }
             message: { type: string, description: "Texto para a tela, em português" }
+    Role:
+      type: string
+      enum: [editor, reviewer, admin]
+      description: Editor ⊂ Revisor (reviewer) ⊂ Admin.
+    User:
+      type: object
+      required: [id, name, email, role, must_change_password, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+        must_change_password:
+          type: boolean
+          description: Senha definida pelo Admin (temporária). A troca obrigatória ainda não é aplicada.
+        created_at: { type: string, format: date-time }
+    Session:
+      type: object
+      required: [access_token, token_type, expires_at, user]
+      properties:
+        access_token: { type: string, description: JWT para o header Authorization }
+        token_type: { type: string, enum: [Bearer] }
+        expires_at: { type: string, format: date-time, description: Quando o token de acesso expira }
+        user: { $ref: "#/components/schemas/User" }
+    BootstrapRequest:
+      type: object
+      additionalProperties: false
+      required: [token, name, email, password]
+      properties:
+        token: { type: string, description: Valor de BOOTSTRAP_TOKEN }
+        name: { type: string, maxLength: 120 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, new_password]
+      properties:
+        current_password: { type: string }
+        new_password: { type: string, minLength: 8 }
+    CreateUserRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, password, role]
+      properties:
+        name: { type: string, maxLength: 120 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, description: Senha inicial, temporária }
+        role: { $ref: "#/components/schemas/Role" }
+    UpdateRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+    ResetPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: { type: string, minLength: 8, description: Nova senha, temporária }

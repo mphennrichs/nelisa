@@ -39,11 +39,12 @@ api/
 │   │   ├── domain/        # entidades, value objects, regras puras
 │   │   ├── app/           # casos de uso + portas (interfaces)
 │   │   ├── store/         # adaptador Postgres (sqlc) das portas
+│   │   │   └── dbgen/     # código gerado pelo sqlc, só deste módulo
 │   │   └── httpapi/       # handlers HTTP do módulo
 │   ├── review/ queue/ progress/ legislator/ ingest/
 │   ├── contribution/ chamber/ team/ audit/ ai/
 │   └── platform/          # infra compartilhada, sem regra de negócio:
-│                          # config, db, httpx, clientip, ratelimit,
+│                          # config, db, httpx, clientip, auth, password,
 │                          # clock, buildinfo, observability
 ├── migrations/            # goose (SQL)
 ├── queries/               # SQL do sqlc, um arquivo por módulo
@@ -53,6 +54,16 @@ api/
 Os módulos são os da tabela de [`nomes-no-codigo.md`](nomes-no-codigo.md).
 `team/` é o login e os usuários da equipe, portado do `identity` do open-nebula
 (ADR 0001).
+
+**Autenticação.** `platform/auth` guarda o vocabulário comum a todos
+os módulos: o ator (`auth.Actor`: id e role da pessoa da equipe autenticada) levado no contexto
+(`auth.ActorFrom(ctx)`), as roles (`Editor ⊂ Revisor ⊂ Admin`, mesmos valores
+de `team/domain.Role`, que é a fonte da verdade), `auth.RequireRole` para
+recusar cedo e o token de acesso JWT. Quem valida a sessão e põe o ator no
+contexto é o middleware de `team/httpapi` (caso de uso `Authenticate`), que o
+`main.go` monta na frente de toda rota de `/api/team` fora de
+`/api/team/auth`. Os outros módulos só leem o ator de `platform/auth`; nunca
+importam o `team`.
 
 ### Regras de dependência
 
@@ -83,7 +94,16 @@ Os módulos são os da tabela de [`nomes-no-codigo.md`](nomes-no-codigo.md).
   banco pode ser dropado e recriado. Depois disso, só migrations novas e
   compatíveis com a versão anterior (ver `plano.md`).
 - Um schema Postgres por módulo, como no open-nebula.
-- Transações abertas no caso de uso (porta `TxRunner`), nunca no handler.
+- Transações abertas no caso de uso (porta `TxRunner`), nunca no handler. A
+  transação viaja no contexto: `db.TxRunner.WithinTx(ctx, fn)` a abre e todo
+  store obtém a conexão por `db.Conn(ctx, pool)`, que devolve a transação se
+  houver uma. É assim que o caso de uso de um módulo grava a mudança e o
+  evento de **Auditoria** (módulo `audit`, ligado por porta no `main.go`)
+  juntos, sem um importar o store do outro.
+- sqlc gera **um pacote por módulo** (`internal/<módulo>/store/dbgen`), a
+  partir de `queries/<módulo>.sql` (ver `sqlc.yaml`). Cada pacote só tem as
+  consultas do próprio módulo; tipos de coluna `uuid` viram `string` e
+  `timestamptz` vira `time.Time`.
 - Sem ORM e sem SQL montado por concatenação.
 
 ### Jobs
@@ -108,8 +128,13 @@ Os módulos são os da tabela de [`nomes-no-codigo.md`](nomes-no-codigo.md).
 - Limites globais de tamanho do corpo; rate limit por IP e por usuário.
 - IP do cliente: `CF-Connecting-IP` só quando a requisição vem de proxy
   confiável (`TRUSTED_PROXY_CIDRS`); senão, o IP da conexão.
-- Login: JWT de acesso curto + refresh em cookie `HttpOnly; Secure;
-  SameSite=Strict`. Como o Next faz proxy na mesma origem, não há CORS.
+- Login: JWT de acesso curto (15 min, no corpo da resposta, header
+  `Authorization: Bearer`) + refresh opaco em cookie `HttpOnly; Secure;
+  SameSite=Strict; Path=/api/team/auth`, girado a cada uso (reuso depois de
+  30 s encerra todas as sessões). A role vem do cadastro a cada requisição,
+  não do token. Como o Next faz proxy na mesma origem, não há CORS.
+- O primeiro Admin nasce por `POST /api/team/auth/bootstrap`, que só funciona
+  com `BOOTSTRAP_TOKEN` configurado e sem nenhum usuário cadastrado.
 
 ### Configuração e operação
 
@@ -125,7 +150,10 @@ Os módulos são os da tabela de [`nomes-no-codigo.md`](nomes-no-codigo.md).
 ### Testes
 
 - **Domínio e casos de uso:** testes de unidade com fakes das portas (escritos
-  à mão em `app/`, sem framework de mock) e `clock` falso.
+  à mão, sem framework de mock) e `clock` falso. Os fakes ficam em
+  `app/fakes/` (pacote comum), para os testes de `app/` e de `httpapi/`
+  usarem os mesmos; a transação falsa desfaz o estado em caso de erro, para
+  provar que mudança e Auditoria andam juntas.
 - **`store/`:** testes de integração contra Postgres real (testcontainers ou o
   Postgres do CI), com a migration aplicada.
 - **`httpapi/`:** `httptest` cobrindo status, formato de erro e autorização.
