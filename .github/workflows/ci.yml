@@ -9,7 +9,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "fase-0/**"]
+    branches: [main, "fase-*/**"]
   pull_request:
 
 permissions:
