@@ -41,6 +41,8 @@ func TestLoadRejects(t *testing.T) {
 		"short secret on https":  func(m map[string]string) { m["JWT_SECRET"] = "short" },
 		"insecure cookie https":  func(m map[string]string) { m["COOKIE_INSECURE"] = "true" },
 		"bad trusted proxy cidr": func(m map[string]string) { m["TRUSTED_PROXY_CIDRS"] = "nope" },
+		"short bootstrap token":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "abc" },
+		"placeholder bootstrap":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "change-me-" + strings.Repeat("x", 20) },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -68,5 +70,25 @@ func TestLoadWorkerNeedsNoSecret(t *testing.T) {
 	delete(m, "JWT_SECRET")
 	if _, err := Load(env(m), false); err != nil {
 		t.Fatalf("worker config should load without secret: %v", err)
+	}
+}
+
+func TestLoadBootstrapToken(t *testing.T) {
+	c, err := Load(env(base()), true)
+	if err != nil || c.BootstrapToken != "" {
+		t.Fatalf("bootstrap should default to disabled: %q, %v", c.BootstrapToken, err)
+	}
+	m := base()
+	m["BOOTSTRAP_TOKEN"] = strings.Repeat("b", 24)
+	c, err = Load(env(m), true)
+	if err != nil || c.BootstrapToken != m["BOOTSTRAP_TOKEN"] {
+		t.Fatalf("bootstrap token not loaded: %q, %v", c.BootstrapToken, err)
+	}
+	m = base()
+	m["PUBLIC_BASE_URL"] = "http://localhost:3000"
+	m["COOKIE_INSECURE"] = "true"
+	m["BOOTSTRAP_TOKEN"] = "dev"
+	if _, err := Load(env(m), true); err != nil {
+		t.Fatalf("dev may use a short bootstrap token: %v", err)
 	}
 }

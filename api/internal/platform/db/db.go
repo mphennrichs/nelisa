@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -49,4 +50,36 @@ func (t TxRunner) InTx(ctx context.Context, fn func(tx pgx.Tx) error) (err error
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// txKey guarda no contexto a transação aberta por WithinTx.
+type txKey struct{}
+
+// WithinTx roda fn numa transação levada no contexto: todo store que
+// obtém a conexão por Conn(ctx, pool) entra nela sem saber disso. É assim
+// que o caso de uso de um módulo grava a mudança e o evento de Auditoria
+// (outro módulo) juntos, sem que um importe o store do outro. Se o
+// contexto já tem transação, fn roda nela (sem aninhar).
+func (t TxRunner) WithinTx(ctx context.Context, fn func(ctx context.Context) error) error {
+	if _, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+		return fn(ctx)
+	}
+	return t.InTx(ctx, func(tx pgx.Tx) error {
+		return fn(context.WithValue(ctx, txKey{}, tx))
+	})
+}
+
+// DBTX é o que os pacotes gerados pelo sqlc pedem; pool e transação servem.
+type DBTX interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+// Conn devolve a transação aberta por WithinTx, se houver; senão o pool.
+func Conn(ctx context.Context, pool *pgxpool.Pool) DBTX {
+	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+		return tx
+	}
+	return pool
 }
