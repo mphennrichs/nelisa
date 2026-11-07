@@ -14,13 +14,13 @@ export async function currentUser() {
 
 export async function requireUser() {
   const u = await currentUser();
-  if (!u) redirect("/entrar");
+  if (!u) redirect("/demo/entrar");
   return u;
 }
 
 // Team pages: also force the password change after admin-set passwords.
 export async function requireTeamUser() {
   const u = await requireUser();
-  if (u.mustChangePassword) redirect("/equipe/senha");
+  if (u.mustChangePassword) redirect("/demo/equipe/senha");
   return u;
 }

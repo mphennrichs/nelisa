@@ -32,7 +32,7 @@ export default async function LegislatorPage({ params }: { params: Promise<{ id:
         <ul className="space-y-2">
           {propositions.map((b) => (
             <li key={b.id} className="card">
-              <Link href={`/proposicao/${b.id}`} className="font-semibold hover:underline">{b.kind} {b.number}/{b.year}</Link>{" "}
+              <Link href={`/demo/proposicao/${b.id}`} className="font-semibold hover:underline">{b.kind} {b.number}/{b.year}</Link>{" "}
               <Badge tone={b.state === "ready" ? "green" : "amber"}>{PUBLIC_STATE_LABEL[b.state]}</Badge>
               <p className="text-sm text-stone-700">{b.ementa}</p>
             </li>

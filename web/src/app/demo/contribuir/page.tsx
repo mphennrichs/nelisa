@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { submitContribution } from "@/app/actions";
+import { submitContribution } from "@/app/demo/actions";
 import { chambersOf, publicPropositions } from "@/lib/store";
 import { CONTRIBUTION_LABEL, PROGRESS_LABEL } from "@/lib/format";
 import { ErrorBanner, Hidden } from "@/components/ui";
@@ -21,7 +21,7 @@ export default async function ContributePage({ searchParams }: { searchParams: P
       </p>
       <nav className="flex gap-2">
         {KINDS.map((k) => (
-          <Link key={k} href={`/contribuir?tipo=${k}`} className={k === kind ? "btn" : "btn-ghost"}>{CONTRIBUTION_LABEL[k]}</Link>
+          <Link key={k} href={`/demo/contribuir?tipo=${k}`} className={k === kind ? "btn" : "btn-ghost"}>{CONTRIBUTION_LABEL[k]}</Link>
         ))}
       </nav>
       <ErrorBanner message={sp.erro} />

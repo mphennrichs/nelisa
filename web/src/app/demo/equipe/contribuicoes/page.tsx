@@ -1,4 +1,4 @@
-import { resolveContribution } from "@/app/actions";
+import { resolveContribution } from "@/app/demo/actions";
 import { propositionLabel, db, domainOf, isOfficialDomain } from "@/lib/store";
 import { requireTeamUser } from "@/lib/session";
 import { CONTRIBUTION_LABEL, CONTRIBUTION_STATUS_LABEL, PROGRESS_LABEL, fmtDate } from "@/lib/format";

@@ -57,19 +57,19 @@ export default async function PropositionPage({ params }: { params: Params }) {
         </p>
         <p className="flex flex-wrap gap-3 text-sm">
           <a href={b.officialUrl} className="link" target="_blank" rel="noreferrer">Texto oficial na fonte ↗</a>
-          <Link href={`/contribuir?tipo=progress_update&proposicao=${b.id}`} className="link">Informar mudança na tramitação</Link>
+          <Link href={`/demo/contribuir?tipo=progress_update&proposicao=${b.id}`} className="link">Informar mudança na tramitação</Link>
         </p>
         {principal && (
           <div className="rounded-md bg-stone-100 px-3 py-2 text-sm">
             {b.superseded ? "Prejudicada: deixou de tramitar sem votação. " : ""}Tramitou apensada à{" "}
-            <Link href={`/proposicao/${principal.id}`} className="link">{propositionLabel(principal)}</Link>.
+            <Link href={`/demo/proposicao/${principal.id}`} className="link">{propositionLabel(principal)}</Link>.
           </div>
         )}
         {attached.length > 0 && (
           <div className="rounded-md bg-stone-100 px-3 py-2 text-sm">
             Apensadas a esta:{" "}
             {attached.map((p, i) => (
-              <span key={p.id}>{i > 0 && ", "}<Link href={`/proposicao/${p.id}`} className="link">{propositionLabel(p)}</Link></span>
+              <span key={p.id}>{i > 0 && ", "}<Link href={`/demo/proposicao/${p.id}`} className="link">{propositionLabel(p)}</Link></span>
             ))}
           </div>
         )}
@@ -166,7 +166,7 @@ function AuthorLink({ id, chamberId, at }: { id: string; chamberId: string; at: 
   const day = at.slice(0, 10);
   const term = l.terms.find((t) => t.start <= day && (!t.end || t.end >= day)) ?? l.terms.find((t) => t.chamberId === chamberId);
   return (
-    <Link href={`/parlamentar/${l.id}`} className="link">
+    <Link href={`/demo/parlamentar/${l.id}`} className="link">
       {l.name}{term && ` (${term.party}/${term.uf})`}
     </Link>
   );

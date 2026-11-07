@@ -30,15 +30,9 @@ não envie nada que você não entenda.
 
 ## Rodando localmente
 
-Hoje só existe o protótipo do `web/`, com dados em memória:
-
-```sh
-cd web
-npm install
-npm run dev
-```
-
-A API em Go (`api/`) chega na fase 0; as instruções entram aqui junto com ela.
+Veja a seção "Estado atual" do [README](README.md): Postgres de
+desenvolvimento, API em Go e o `web/` apontando para ela. A demonstração
+fica em `/demo` e a área real da equipe em `/equipe`.
 
 ## Pull requests
 

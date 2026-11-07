@@ -1,4 +1,4 @@
-import { signIn } from "@/app/actions";
+import { signIn } from "@/app/demo/actions";
 import { db } from "@/lib/store";
 import { ROLE_LABEL } from "@/lib/format";
 import { ErrorBanner } from "@/components/ui";

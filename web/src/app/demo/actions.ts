@@ -25,33 +25,33 @@ async function run(back: string, fn: () => void | Promise<void>, next = back) {
     if (e instanceof DomainError) redirect(withParam(back, "erro", e.message));
     throw e;
   }
-  revalidatePath("/", "layout");
+  revalidatePath("/demo", "layout");
   redirect(next);
 }
 
 // --- Session ---------------------------------------------------------------
 
 export async function signIn(fd: FormData) {
-  let target = "/equipe";
+  let target = "/demo/equipe";
   try {
     const u = store.login(str(fd, "email"), String(fd.get("password") ?? ""));
-    (await cookies()).set(SESSION_COOKIE, u.id, { httpOnly: true, sameSite: "strict", path: "/" });
-    if (u.mustChangePassword) target = "/equipe/senha";
+    (await cookies()).set(SESSION_COOKIE, u.id, { httpOnly: true, sameSite: "strict", path: "/demo" });
+    if (u.mustChangePassword) target = "/demo/equipe/senha";
   } catch (e) {
-    if (e instanceof DomainError) redirect(withParam("/entrar", "erro", e.message));
+    if (e instanceof DomainError) redirect(withParam("/demo/entrar", "erro", e.message));
     throw e;
   }
   redirect(target);
 }
 
 export async function signOut() {
-  (await cookies()).delete(SESSION_COOKIE);
-  redirect("/");
+  (await cookies()).delete({ name: SESSION_COOKIE, path: "/demo" });
+  redirect("/demo");
 }
 
 export async function changePassword(fd: FormData) {
   const u = await requireUser();
-  await run("/equipe/senha", () => store.changeOwnPassword(u, String(fd.get("password") ?? "")), "/equipe");
+  await run("/demo/equipe/senha", () => store.changeOwnPassword(u, String(fd.get("password") ?? "")), "/demo/equipe");
 }
 
 // --- Proposition editing ----------------------------------------------------------
@@ -59,19 +59,19 @@ export async function changePassword(fd: FormData) {
 export async function claimProposition(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.claimProposition(id, u));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.claimProposition(id, u));
 }
 
 export async function releaseClaim(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.releaseClaim(id, u));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.releaseClaim(id, u));
 }
 
 export async function saveSummary(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () =>
+  await run(`/demo/equipe/proposicao/${id}`, () =>
     store.saveSummary(id, u, {
       summary: str(fd, "summary"),
       shortSummary: str(fd, "shortSummary"),
@@ -83,31 +83,31 @@ export async function saveSummary(fd: FormData) {
 export async function aiDraft(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.aiDraft(id, u));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.aiDraft(id, u));
 }
 
 export async function addComment(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.addComment(id, u, str(fd, "provisionId"), str(fd, "text")));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.addComment(id, u, str(fd, "provisionId"), str(fd, "text")));
 }
 
 export async function addInternalNote(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.addInternalNote(id, u, str(fd, "text")));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.addInternalNote(id, u, str(fd, "text")));
 }
 
 export async function markReady(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.markReady(id, u));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.markReady(id, u));
 }
 
 export async function confirmSecondReview(fd: FormData) {
   const u = await requireTeamUser();
   const id = str(fd, "propositionId");
-  await run(`/equipe/proposicao/${id}`, () => store.confirmSecondReview(id, u));
+  await run(`/demo/equipe/proposicao/${id}`, () => store.confirmSecondReview(id, u));
 }
 
 // --- Contributions ---------------------------------------------------------
@@ -127,15 +127,15 @@ export async function submitContribution(fd: FormData) {
       note: str(fd, "note") || undefined,
     }).trackingCode;
   } catch (e) {
-    if (e instanceof DomainError) redirect(withParam(`/contribuir?tipo=${kind}`, "erro", e.message));
+    if (e instanceof DomainError) redirect(withParam(`/demo/contribuir?tipo=${kind}`, "erro", e.message));
     throw e;
   }
-  redirect(`/contribuicao?codigo=${code}&novo=1`);
+  redirect(`/demo/contribuicao?codigo=${code}&novo=1`);
 }
 
 export async function resolveContribution(fd: FormData) {
   const u = await requireTeamUser();
-  await run("/equipe/contribuicoes", () =>
+  await run("/demo/equipe/contribuicoes", () =>
     store.resolveContribution(str(fd, "code"), u, str(fd, "decision") === "accept", str(fd, "chamberId") || undefined),
   );
 }
@@ -144,7 +144,7 @@ export async function resolveContribution(fd: FormData) {
 
 export async function createUser(fd: FormData) {
   const u = await requireTeamUser();
-  await run("/equipe/usuarios", () =>
+  await run("/demo/equipe/usuarios", () =>
     store.createUser(u, {
       name: str(fd, "name"),
       email: str(fd, "email").toLowerCase(),
@@ -156,10 +156,10 @@ export async function createUser(fd: FormData) {
 
 export async function resetPassword(fd: FormData) {
   const u = await requireTeamUser();
-  await run("/equipe/usuarios", () => store.resetPassword(u, str(fd, "userId"), String(fd.get("password") ?? "")));
+  await run("/demo/equipe/usuarios", () => store.resetPassword(u, str(fd, "userId"), String(fd.get("password") ?? "")));
 }
 
 export async function setActive(fd: FormData) {
   const u = await requireTeamUser();
-  await run("/equipe/usuarios", () => store.setActive(u, str(fd, "userId"), str(fd, "active") === "1"));
+  await run("/demo/equipe/usuarios", () => store.setActive(u, str(fd, "userId"), str(fd, "active") === "1"));
 }

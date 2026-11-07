@@ -1,22 +1,14 @@
-import Link from "next/link";
-import { signOut } from "@/app/actions";
-import { requireUser } from "@/lib/session";
-import { ROLE_LABEL } from "@/lib/format";
+import type { Metadata } from "next";
+import { TeamSessionProvider } from "@/lib/team/session";
+import TeamNav from "./TeamNav";
 
-export default async function TeamLayout({ children }: { children: React.ReactNode }) {
-  const u = await requireUser();
+export const metadata: Metadata = { title: { default: "Equipe", template: "%s · Equipe Nelisa" } };
+
+export default function TeamLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4 rounded-lg bg-stone-900 px-4 py-2 text-sm text-stone-100">
-        <Link href="/equipe" className="hover:underline">Fila de revisão</Link>
-        <Link href="/equipe/contribuicoes" className="hover:underline">Contribuições</Link>
-        {u.role === "admin" && <Link href="/equipe/usuarios" className="hover:underline">Usuários</Link>}
-        {u.role === "admin" && <Link href="/equipe/auditoria" className="hover:underline">Auditoria</Link>}
-        <span className="flex-1" />
-        <span className="text-stone-400">{u.name} · {ROLE_LABEL[u.role]}</span>
-        <form action={signOut}><button className="hover:underline">Sair</button></form>
-      </div>
-      {children}
-    </div>
+    <TeamSessionProvider>
+      <TeamNav />
+      <main id="conteudo" className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+    </TeamSessionProvider>
   );
 }

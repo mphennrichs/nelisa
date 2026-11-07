@@ -18,18 +18,22 @@ Fase 0 do [plano](docs/plano.md): API em Go com Postgres e login real no lugar
 do protótipo. O beta público (sem divulgação) abre no fogolab ao fim da fase 3;
 a migração para a AWS vem depois.
 
-## Estado atual: protótipo
+## Estado atual
 
-`web/` é uma prova de conceito em Next.js com **tudo em memória**: dados
-fictícios, sem banco, sem chamadas externas, sem API em Go ainda. Serve para
-validar telas e regras (visibilidade pública, fila, posse, quatro olhos,
-contribuições).
+- `/` — página "em construção" com link para a demonstração.
+- `/demo` — protótipo em memória (Next.js, sem banco), público, com contas de
+  teste (senha `nelisa123`). Serve para apresentar o projeto.
+- `/equipe` — área real da equipe, com login da API em Go (`api/`).
 
 ```sh
-cd web
-npm install
-npm run dev
+# API + Postgres de desenvolvimento
+docker compose -f api/compose.dev.yaml up -d
+cp api/.env.example api/.env   # e exporte as variáveis
+(cd api && go run ./cmd/nelisa migrate && go run ./cmd/nelisa api)
+
+# Web
+cd web && npm install && API_INTERNAL_URL=http://localhost:8080 npm run dev
 ```
 
-Abra http://localhost:3000. A área da equipe fica em `/equipe`; as contas de
-teste aparecem na tela de login (senha `nelisa123`).
+Na primeira vez, crie o Admin em http://localhost:3000/equipe/primeiro-acesso
+com o valor de `BOOTSTRAP_TOKEN`.

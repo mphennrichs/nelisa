@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import * as A from "@/app/actions";
+import * as A from "@/app/demo/actions";
 import { TOPICS, propositionLabel, chamberOf, claimOf, db, userById } from "@/lib/store";
 import { requireTeamUser } from "@/lib/session";
 import { TEAM_STATE_LABEL, fmtDate } from "@/lib/format";
@@ -36,7 +36,7 @@ export default async function EditPropositionPage({
         <h1 className="text-2xl font-bold">{propositionLabel(proposition)}</h1>
         <p className="text-stone-600">{proposition.ementa}</p>
         <p className="text-sm">
-          <Link href={`/proposicao/${proposition.id}`} className="link">Ver como o leitor vê</Link> ·{" "}
+          <Link href={`/demo/proposicao/${proposition.id}`} className="link">Ver como o leitor vê</Link> ·{" "}
           <a href={proposition.version.officialUrl} className="link" target="_blank" rel="noreferrer">Texto oficial ↗</a>
         </p>
       </header>

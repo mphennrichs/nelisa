@@ -4,7 +4,7 @@ import { requireTeamUser } from "@/lib/session";
 
 export default async function AuditPage() {
   const u = await requireTeamUser();
-  if (u.role !== "admin") redirect("/equipe");
+  if (u.role !== "admin") redirect("/demo/equipe");
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Auditoria</h1>
