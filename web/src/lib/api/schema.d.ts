@@ -83,6 +83,521 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/auth/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cria a primeira pessoa da equipe, como Admin
+         * @description Só funciona com `BOOTSTRAP_TOKEN` configurado no servidor e enquanto
+         *     não houver nenhum usuário. Limite de 10 requisições por minuto por
+         *     IP (compartilhado com o login).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BootstrapRequest"];
+                };
+            };
+            responses: {
+                201: components["responses"]["Session"];
+                400: components["responses"]["BadRequest"];
+                /** @description `bootstrap_disabled` (sem BOOTSTRAP_TOKEN) ou `bootstrap_token_invalid` */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `already_bootstrapped`: já existe usuário */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Entra com e-mail e senha
+         * @description Limite de 10 requisições por minuto por IP.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoginRequest"];
+                };
+            };
+            responses: {
+                200: components["responses"]["Session"];
+                400: components["responses"]["BadRequest"];
+                /** @description `invalid_credentials`: e-mail ou senha incorretos (não diz qual) */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Troca o refresh token do cookie por uma sessão nova
+         * @description O refresh token gira a cada uso (o cookie é substituído). Um token já
+         *     usado que volta depois de 30 s encerra todas as sessões da pessoa.
+         *     Limite de 30 requisições por minuto por IP.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["Session"];
+                /** @description `invalid_refresh_token`: cookie ausente, desconhecido, expirado ou reusado; o cookie é apagado */
+                401: {
+                    headers: {
+                        "Set-Cookie"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Encerra a sessão do cookie
+         * @description Idempotente; sem cookie também responde 204.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Sessão apagada e cookie limpo */
+                204: {
+                    headers: {
+                        "Set-Cookie"?: string;
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dados da pessoa logada */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Usuário */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Troca a própria senha
+         * @description Exige a senha atual. Encerra todas as sessões da pessoa, inclusive a
+         *     atual, e devolve uma sessão nova (token de acesso e cookie).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordRequest"];
+                };
+            };
+            responses: {
+                200: components["responses"]["Session"];
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                /** @description `wrong_password`: a senha atual não confere */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `credentials_changed`: a senha mudou nesse meio-tempo */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista a equipe (só Admin) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Usuários, do cadastro mais antigo ao mais novo */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            users: components["schemas"]["User"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /**
+         * Cadastra uma pessoa (só Admin)
+         * @description Sem convite nem e-mail (ADR 0001): o Admin define a senha inicial,
+         *     que é temporária (`must_change_password: true`). Registrado na
+         *     Auditoria (`user.create`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateUserRequest"];
+                };
+            };
+            responses: {
+                /** @description Usuário criado */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `email_taken`: e-mail já cadastrado (sem diferenciar maiúsculas) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["UserID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Exclui alguém (só Admin)
+         * @description A conta e as sessões são apagadas; a Auditoria guarda o histórico
+         *     (`user.delete`). Ninguém exclui a si mesmo nem o último Admin.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["UserID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Excluído */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["UserNotFound"];
+                /** @description `cannot_delete_self` ou `last_admin` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Troca a role de alguém (só Admin)
+         * @description Nunca deixa o Nelisa sem Admin. Vale na próxima requisição da
+         *     pessoa. Registrado na Auditoria (`user.role_change`).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["UserID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description Usuário atualizado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["UserNotFound"];
+                /** @description `last_admin`: rebaixaria o último Admin */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/team/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["UserID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reseta a senha de alguém (só Admin)
+         * @description A nova senha é temporária e todas as sessões da pessoa acabam.
+         *     Registrado na Auditoria (`user.password_reset`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["UserID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResetPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description Senha trocada */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["UserNotFound"];
+                /** @description `credentials_changed`: a senha mudou nesse meio-tempo */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -101,9 +616,136 @@ export interface components {
                 message: string;
             };
         };
+        /**
+         * @description Editor ⊂ Revisor (reviewer) ⊂ Admin.
+         * @enum {string}
+         */
+        Role: "editor" | "reviewer" | "admin";
+        User: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: email */
+            email: string;
+            role: components["schemas"]["Role"];
+            /** @description Senha definida pelo Admin (temporária). A troca obrigatória ainda não é aplicada. */
+            must_change_password: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        Session: {
+            /** @description JWT para o header Authorization */
+            access_token: string;
+            /** @enum {string} */
+            token_type: "Bearer";
+            /**
+             * Format: date-time
+             * @description Quando o token de acesso expira
+             */
+            expires_at: string;
+            user: components["schemas"]["User"];
+        };
+        BootstrapRequest: {
+            /** @description Valor de BOOTSTRAP_TOKEN */
+            token: string;
+            name: string;
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        LoginRequest: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        ChangePasswordRequest: {
+            current_password: string;
+            new_password: string;
+        };
+        CreateUserRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            /** @description Senha inicial */
+            password: string;
+            role: components["schemas"]["Role"];
+        };
+        UpdateRoleRequest: {
+            role: components["schemas"]["Role"];
+        };
+        ResetPasswordRequest: {
+            /** @description Nova senha */
+            password: string;
+        };
     };
-    responses: never;
-    parameters: never;
+    responses: {
+        /**
+         * @description Sessão aberta. O refresh token vai só no cookie `nelisa_refresh`;
+         *     nunca no corpo.
+         */
+        Session: {
+            headers: {
+                /** @description nelisa_refresh=...; Path=/api/team/auth; HttpOnly; Secure; SameSite=Strict */
+                "Set-Cookie"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Session"];
+            };
+        };
+        /**
+         * @description Entrada inválida: `invalid_json`, `invalid_email`, `invalid_name`,
+         *     `invalid_role`, `password_too_short` (mínimo 8 caracteres) ou
+         *     `password_too_long` (máximo 72 bytes).
+         */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `unauthenticated` (sem token ou token inválido) ou `session_expired` (token de antes de troca/reset de senha) */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `forbidden`: a role não permite a ação */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `user_not_found` */
+        UserNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `too_many_requests`: limite por IP excedido */
+        TooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+    };
+    parameters: {
+        UserID: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
