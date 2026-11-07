@@ -24,6 +24,9 @@ tags:
   - name: sessão
   - name: conta
   - name: equipe
+  - name: fontes
+  - name: proposições
+  - name: público
 paths:
   /version:
     get:
@@ -285,6 +288,249 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/team/sources/search:
+    get:
+      tags: [fontes]
+      summary: Busca uma Proposição pelo nome oficial nas Casas com API (Editor ou acima)
+      description: |
+        Consulta todas as fontes configuradas (Câmara e Senado) por Tipo,
+        número e ano. Uma Casa fora do ar vem com `unavailable: true` e as
+        outras seguem. Cada registro diz se já está ligado a uma Proposição
+        (`link_state`: `confirmed` ou `suggested`).
+      parameters:
+        - { name: kind, in: query, required: true, schema: { type: string, example: PEC } }
+        - { name: number, in: query, required: true, schema: { type: integer, minimum: 1 } }
+        - { name: year, in: query, required: true, schema: { type: integer, minimum: 1800 } }
+      responses:
+        "200":
+          description: Resultado por Casa
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/SourceSearchResult" }
+        "400":
+          description: "`invalid_query`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/propositions/import:
+    post:
+      tags: [fontes]
+      summary: Importa uma Proposição de uma Casa (Editor ou acima)
+      description: |
+        Busca o registro e a Tramitação na Casa escolhida e cria a
+        Proposição em `draft`, com o Vínculo de fonte dessa Casa confirmado
+        (escolher o registro é confirmar). Procura a mesma Proposição nas
+        outras Casas e grava o que achar como Vínculo **sugerido**: nada é
+        confirmado sozinho. Falha na Casa escolhida não grava nada (503);
+        falha só na procura de candidatos não impede a Importação e aparece
+        em `suggestions_unavailable`. Importar de novo um registro já
+        vinculado devolve 200 com a Proposição existente. Registrado na
+        Auditoria (`proposition.import`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportRequest" }
+      responses:
+        "200":
+          description: O registro já estava vinculado; nada foi criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportResult" }
+        "201":
+          description: Proposição criada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportResult" }
+        "400":
+          description: "`invalid_json`, `unknown_chamber` ou `invalid_external_id`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`source_record_not_found`: a Casa não tem esse registro"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: |
+            `already_suggested` (o registro é sugestão de Vínculo de uma
+            Proposição: confirme lá), `proposition_exists` (mesma Casa
+            iniciadora, Tipo, número e ano, ligada a outro registro) ou
+            `link_taken`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: "`source_unavailable`: a fonte oficial falhou; nada foi gravado"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions:
+    get:
+      tags: [proposições]
+      summary: Lista as Proposições para a equipe (Editor ou acima)
+      description: Todas, em qualquer estado de Revisão, com Vínculos de fonte e a última Sincronização de cada um.
+      responses:
+        "200":
+          description: Proposições, da atualizada mais recentemente para a mais antiga
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [propositions]
+                properties:
+                  propositions:
+                    type: array
+                    items: { $ref: "#/components/schemas/TeamProposition" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/propositions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+    get:
+      tags: [proposições]
+      summary: Uma Proposição como a equipe a vê (Editor ou acima)
+      responses:
+        "200":
+          description: Proposição com Vínculos, Apensação e Tramitação
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamPropositionDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/PropositionNotFound" }
+  /api/team/propositions/{id}/submit-for-review:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+    post:
+      tags: [proposições]
+      summary: Envia para revisão (criado → em revisão) (Editor ou acima)
+      description: |
+        A partir daqui a parte pública mostra a Proposição "em análise", só
+        com dados oficiais. Registrado na Auditoria
+        (`proposition.submit_for_review`). Marcar como pronto é da fase 2.
+      responses:
+        "200":
+          description: Novo estado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, review_state]
+                properties:
+                  id: { type: string, format: uuid }
+                  review_state: { $ref: "#/components/schemas/ReviewState" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/PropositionNotFound" }
+        "409":
+          description: "`invalid_review_transition`: a Proposição não está em `draft`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/links/{linkId}/confirm:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/LinkID"
+    post:
+      tags: [proposições]
+      summary: Confirma um Vínculo de fonte sugerido (Editor ou acima)
+      description: |
+        Só o Editor confirma (ADR 0006). A Sincronização do Vínculo é
+        enfileirada na mesma transação. Registrado na Auditoria
+        (`source_link.confirm`).
+      responses:
+        "200":
+          description: Vínculo confirmado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceLink" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/LinkNotFound" }
+        "409":
+          description: |
+            `link_not_suggested` (já confirmado), `link_taken` (o registro
+            já está confirmado em outra Proposição) ou
+            `chamber_already_linked` (a Proposição já tem Vínculo confirmado
+            nessa Casa).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/links/{linkId}/reject:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/LinkID"
+    post:
+      tags: [proposições]
+      summary: Descarta um Vínculo de fonte sugerido (Editor ou acima)
+      description: Registrado na Auditoria (`source_link.reject`).
+      responses:
+        "204": { description: Descartado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/LinkNotFound" }
+        "409":
+          description: "`link_not_suggested`: vínculo confirmado não se descarta"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/public/propositions:
+    get:
+      tags: [público]
+      summary: Proposições visíveis ao Leitor
+      description: |
+        Só `in_review` (aparece como "em análise", `under_review: true`) e
+        `ready`. Rascunhos nunca aparecem. Em análise, só dados oficiais.
+      security: []
+      responses:
+        "200":
+          description: Proposições públicas
+          headers:
+            Cache-Control: { schema: { type: string, example: "public, max-age=60" } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [propositions]
+                properties:
+                  propositions:
+                    type: array
+                    items: { $ref: "#/components/schemas/PublicProposition" }
+  /api/public/propositions/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        description: Identificador público estável ("pec-221-2019")
+        schema: { type: string, example: pec-221-2019 }
+    get:
+      tags: [público]
+      summary: Página pública de uma Proposição
+      description: Rascunho ou inexistente respondem 404 igual, sem revelar que existe.
+      security: []
+      responses:
+        "200":
+          description: Proposição com Tramitação
+          headers:
+            Cache-Control: { schema: { type: string, example: "public, max-age=60" } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicPropositionDetail" }
+        "404": { $ref: "#/components/responses/PropositionNotFound" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -303,7 +549,27 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    PropositionID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    LinkID:
+      name: linkId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   responses:
+    PropositionNotFound:
+      description: "`proposition_not_found`"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    LinkNotFound:
+      description: "`link_not_found`"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     Session:
       description: |
         Sessão aberta. O refresh token vai só no cookie `nelisa_refresh`;
@@ -430,3 +696,185 @@ components:
       required: [password]
       properties:
         password: { type: string, minLength: 8, description: Nova senha, temporária }
+    Chamber:
+      type: string
+      enum: [camara, senado]
+      description: Casa legislativa com API (v1).
+    ReviewState:
+      type: string
+      enum: [draft, in_review, ready]
+      description: "Revisão: criado (draft), em revisão (in_review, \"em análise\" para o Leitor), pronto (ready)."
+    SourceSearchHit:
+      type: object
+      required: [external_id, name, kind, number, year, summary, presented_at, authors, status, source_url, linked_proposition_id, link_state]
+      properties:
+        external_id: { type: string }
+        name: { type: string, example: PEC 221/2019 }
+        kind: { type: string }
+        number: { type: integer }
+        year: { type: integer }
+        summary: { type: string, description: Ementa oficial }
+        presented_at: { type: [string, "null"], format: date-time }
+        authors: { type: array, items: { type: string } }
+        status: { type: string }
+        source_url: { type: string, description: Página pública na Casa }
+        linked_proposition_id:
+          type: [string, "null"]
+          format: uuid
+          description: Proposição a que o registro já está ligado, se houver
+        link_state:
+          type: [string, "null"]
+          enum: [confirmed, suggested, null]
+    SourceSearchResult:
+      type: object
+      required: [chamber, unavailable, hits]
+      properties:
+        chamber: { $ref: "#/components/schemas/Chamber" }
+        unavailable: { type: boolean, description: A fonte falhou nesta busca }
+        hits:
+          type: array
+          items: { $ref: "#/components/schemas/SourceSearchHit" }
+    ImportRequest:
+      type: object
+      additionalProperties: false
+      required: [chamber, external_id]
+      properties:
+        chamber: { $ref: "#/components/schemas/Chamber" }
+        external_id: { type: string, maxLength: 64, description: ID do registro na API da Casa }
+    ImportResult:
+      type: object
+      required: [proposition_id, created, suggested_links, suggestions_unavailable]
+      properties:
+        proposition_id: { type: string, format: uuid }
+        created: { type: boolean }
+        suggested_links: { type: integer, description: Vínculos de outras Casas sugeridos para o Editor conferir }
+        suggestions_unavailable:
+          type: array
+          items: { $ref: "#/components/schemas/Chamber" }
+          description: Casas que não responderam à procura de candidatos
+    SourceLink:
+      type: object
+      description: Vínculo de fonte (só a equipe vê estes campos).
+      required: [id, chamber, external_id, state, source_name, source_url, confirmed_by, confirmed_at, last_synced_at, last_sync_error, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        chamber: { $ref: "#/components/schemas/Chamber" }
+        external_id: { type: string }
+        state: { type: string, enum: [suggested, confirmed] }
+        source_name: { type: string, description: Como a Casa chama a Proposição }
+        source_url: { type: string }
+        confirmed_by: { type: [string, "null"], format: uuid }
+        confirmed_at: { type: [string, "null"], format: date-time }
+        last_synced_at: { type: [string, "null"], format: date-time }
+        last_sync_error: { type: string, description: Vazio se a última Sincronização deu certo }
+        created_at: { type: string, format: date-time }
+    TeamAttachedRef:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: [string, "null"], format: uuid, description: "null enquanto a principal não estiver cadastrada" }
+        name: { type: string }
+    TimelineEntry:
+      type: object
+      required: [chamber, at, body, description, situation, dispatch]
+      properties:
+        chamber: { $ref: "#/components/schemas/Chamber" }
+        at: { type: string, format: date-time }
+        body: { type: string, description: Órgão (sigla) }
+        description: { type: string }
+        situation: { type: string }
+        dispatch: { type: string }
+    TeamProposition:
+      type: object
+      required: [id, slug, name, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, superseded, attached_to, review_state, links, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string, example: pec-221-2019 }
+        name: { type: string, example: PEC 221/2019 }
+        kind: { type: string }
+        number: { type: integer }
+        year: { type: integer }
+        sphere: { type: string, enum: [federal, state, municipal] }
+        origin_chamber: { type: string }
+        summary: { type: string }
+        presented_at: { type: [string, "null"], format: date-time }
+        official_text_url: { type: string }
+        authors: { type: array, items: { type: string } }
+        status: { type: string }
+        superseded: { type: boolean, description: Prejudicada }
+        attached_to:
+          oneOf:
+            - $ref: "#/components/schemas/TeamAttachedRef"
+            - type: "null"
+        review_state: { $ref: "#/components/schemas/ReviewState" }
+        links:
+          type: array
+          items: { $ref: "#/components/schemas/SourceLink" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TeamPropositionDetail:
+      allOf:
+        - $ref: "#/components/schemas/TeamProposition"
+        - type: object
+          required: [attached, timeline]
+          properties:
+            attached:
+              type: array
+              items: { $ref: "#/components/schemas/TeamAttachedRef" }
+            timeline:
+              type: array
+              items: { $ref: "#/components/schemas/TimelineEntry" }
+    PublicRef:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { type: string }
+        slug: { type: [string, "null"], description: "null se a Proposição não é pública" }
+    PublicSource:
+      type: object
+      required: [chamber, name, url]
+      properties:
+        chamber: { $ref: "#/components/schemas/Chamber" }
+        name: { type: string }
+        url: { type: string }
+    PublicProposition:
+      type: object
+      description: |
+        Só dados oficiais e o selo "em análise". Nada interno (estado de
+        Revisão, quem confirmou, erros de Sincronização, sugestões).
+      required: [slug, name, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, superseded, attached_to, attached, sources, under_review, updated_at]
+      properties:
+        slug: { type: string, example: pec-221-2019 }
+        name: { type: string, example: PEC 221/2019 }
+        kind: { type: string }
+        number: { type: integer }
+        year: { type: integer }
+        sphere: { type: string, enum: [federal, state, municipal] }
+        origin_chamber: { type: string }
+        summary: { type: string, description: Ementa oficial }
+        presented_at: { type: [string, "null"], format: date-time }
+        official_text_url: { type: string, description: Link do Documento integral na Casa }
+        authors: { type: array, items: { type: string } }
+        status: { type: string, description: Situação atual oficial }
+        superseded: { type: boolean, description: Prejudicada }
+        attached_to:
+          oneOf:
+            - $ref: "#/components/schemas/PublicRef"
+            - type: "null"
+        attached:
+          type: array
+          items: { $ref: "#/components/schemas/PublicRef" }
+        sources:
+          type: array
+          items: { $ref: "#/components/schemas/PublicSource" }
+        under_review: { type: boolean, description: "\"Em análise\": só dados oficiais" }
+        updated_at: { type: string, format: date-time }
+    PublicPropositionDetail:
+      allOf:
+        - $ref: "#/components/schemas/PublicProposition"
+        - type: object
+          required: [timeline]
+          properties:
+            timeline:
+              type: array
+              items: { $ref: "#/components/schemas/TimelineEntry" }

@@ -17,10 +17,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+
+	ingestapp "github.com/mphennrichs/nelisa/api/internal/ingest/app"
+	ingestjobs "github.com/mphennrichs/nelisa/api/internal/ingest/jobs"
 	"github.com/mphennrichs/nelisa/api/internal/platform/buildinfo"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/config"
 	"github.com/mphennrichs/nelisa/api/internal/platform/db"
+	"github.com/mphennrichs/nelisa/api/internal/platform/jobs"
 	"github.com/mphennrichs/nelisa/api/internal/platform/migrate"
 	"github.com/mphennrichs/nelisa/api/internal/platform/observability"
 	"github.com/mphennrichs/nelisa/api/migrations"
@@ -82,9 +88,21 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 	defer pool.Close()
 
 	clk := clock.System{}
+	sources, err := newSources()
+	if err != nil {
+		return err
+	}
+	// A API só enfileira (confirmar um Vínculo agenda a Sincronização dele);
+	// quem executa é o worker.
+	riverClient, err := jobs.NewInsertOnlyClient(pool, logger)
+	if err != nil {
+		return err
+	}
+	sched := ingestjobs.NewScheduler(jobs.NewInserter(riverClient))
+	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), logger)
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), logger),
+		Handler:           newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -107,9 +125,9 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 	return srv.Shutdown(shutdownCtx)
 }
 
-// runWorker ainda não tem jobs: a fila do River entra na fase 1 (Importação
-// e Sincronização). Por enquanto só valida a config e espera o sinal de
-// parada, para o container já existir no stack.
+// runWorker executa os jobs do River: a Sincronização de cada Vínculo de
+// fonte confirmado e a rodada periódica que a enfileira para todos
+// (SYNC_INTERVAL).
 func runWorker(ctx context.Context, logger *slog.Logger) error {
 	cfg, err := config.Load(os.Getenv, false)
 	if err != nil {
@@ -120,9 +138,43 @@ func runWorker(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 	defer pool.Close()
-	logger.Info("worker idle: no jobs registered yet")
+	sources, err := newSources()
+	if err != nil {
+		return err
+	}
+	client, err := newWorkerClient(pool, sources, cfg.SyncInterval, clock.System{}, logger)
+	if err != nil {
+		return err
+	}
+	if err := client.Start(ctx); err != nil {
+		return fmt.Errorf("iniciando o river: %w", err)
+	}
+	logger.Info("worker started", "sync_interval", cfg.SyncInterval.String(), "concurrency", jobs.DefaultConcurrency)
 	<-ctx.Done()
-	return nil
+	stopCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return client.Stop(stopCtx)
+}
+
+// newWorkerClient monta o River do modo worker. A rodada periódica
+// enfileira um job por Vínculo por um cliente insert-only à parte: os
+// workers precisam estar registrados antes de o cliente que os executa
+// nascer.
+func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, interval time.Duration, clk clock.Clock, logger *slog.Logger) (*jobs.Client, error) {
+	inserter, err := jobs.NewInsertOnlyClient(pool, logger)
+	if err != nil {
+		return nil, err
+	}
+	sched := ingestjobs.NewScheduler(jobs.NewInserter(inserter))
+	uc := newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk)
+	workers := river.NewWorkers()
+	syncLink, syncAll := newIngestWorkers(uc, logger)
+	if err := ingestjobs.Register(workers, syncLink, syncAll); err != nil {
+		return nil, fmt.Errorf("registrando workers: %w", err)
+	}
+	return jobs.NewWorkerClient(pool, jobs.WorkerOptions{
+		Workers: workers, PeriodicJobs: ingestjobs.PeriodicJobs(interval), Logger: logger,
+	})
 }
 
 func healthcheck() int {

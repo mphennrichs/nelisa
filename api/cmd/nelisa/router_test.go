@@ -11,9 +11,13 @@ import (
 	"strings"
 	"testing"
 
+	auditapp "github.com/mphennrichs/nelisa/api/internal/audit/app"
+	ingestapp "github.com/mphennrichs/nelisa/api/internal/ingest/app"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/config"
 	"github.com/mphennrichs/nelisa/api/internal/platform/httpx"
+	progressfakes "github.com/mphennrichs/nelisa/api/internal/progress/app/fakes"
+	propfakes "github.com/mphennrichs/nelisa/api/internal/proposition/app/fakes"
 	"github.com/mphennrichs/nelisa/api/internal/team/app/fakes"
 )
 
@@ -32,9 +36,25 @@ func fakeTeam(logger *slog.Logger) teamModule {
 	return newTeamModule(testConfig(), p, clock.System{}, logger)
 }
 
+// noScheduler descarta os jobs: o roteador não precisa do River.
+type noScheduler struct{}
+
+func (noScheduler) ScheduleSync(context.Context, string) error    { return nil }
+func (noScheduler) ScheduleSyncs(context.Context, []string) error { return nil }
+
+func fakeContent(logger *slog.Logger) contentModule {
+	w := propfakes.NewWorld()
+	p := contentPorts{
+		props: w.Props(), links: w.Links(), entries: progressfakes.NewEntries(), tx: w.Tx(),
+		audit:     func(context.Context, auditapp.RecordEventInput) error { return nil },
+		scheduler: noScheduler{}, sources: ingestapp.NewSources(),
+	}
+	return newContentModule(newContentUseCases(p, clock.System{}), logger)
+}
+
 func serve(p Pinger, method, path string) *httptest.ResponseRecorder {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h := newRouter(testConfig(), p, fakeTeam(logger), logger)
+	h := newRouter(testConfig(), p, fakeTeam(logger), fakeContent(logger), logger)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest(method, path, nil))
 	return w
@@ -69,7 +89,7 @@ func TestTeamRoutesAreMounted(t *testing.T) {
 	// /auth é pública (aqui, credencial errada → 401 invalid_credentials);
 	// o resto de /api/team exige token; rota inexistente é 404.
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	h := newRouter(testConfig(), fakePinger{}, fakeTeam(logger), logger)
+	h := newRouter(testConfig(), fakePinger{}, fakeTeam(logger), fakeContent(logger), logger)
 	cases := []struct {
 		method, path, body string
 		status             int
@@ -79,6 +99,10 @@ func TestTeamRoutesAreMounted(t *testing.T) {
 		{"GET", "/api/team/me", "", 401, "unauthenticated"},
 		{"GET", "/api/team/users", "", 401, "unauthenticated"},
 		{"GET", "/api/team/nope", "", 404, "not_found"},
+		{"GET", "/api/team/propositions", "", 401, "unauthenticated"},
+		{"POST", "/api/team/propositions/import", `{}`, 401, "unauthenticated"},
+		{"GET", "/api/team/sources/search?kind=PEC&number=1&year=2020", "", 401, "unauthenticated"},
+		{"GET", "/api/public/propositions/pec-1-2020", "", 404, "proposition_not_found"},
 	}
 	for _, c := range cases {
 		w := httptest.NewRecorder()

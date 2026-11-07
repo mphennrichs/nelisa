@@ -598,6 +598,524 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/sources/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Busca uma Proposição pelo nome oficial nas Casas com API (Editor ou acima)
+         * @description Consulta todas as fontes configuradas (Câmara e Senado) por Tipo,
+         *     número e ano. Uma Casa fora do ar vem com `unavailable: true` e as
+         *     outras seguem. Cada registro diz se já está ligado a uma Proposição
+         *     (`link_state`: `confirmed` ou `suggested`).
+         */
+        get: {
+            parameters: {
+                query: {
+                    kind: string;
+                    number: number;
+                    year: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Resultado por Casa */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            results: components["schemas"]["SourceSearchResult"][];
+                        };
+                    };
+                };
+                /** @description `invalid_query` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importa uma Proposição de uma Casa (Editor ou acima)
+         * @description Busca o registro e a Tramitação na Casa escolhida e cria a
+         *     Proposição em `draft`, com o Vínculo de fonte dessa Casa confirmado
+         *     (escolher o registro é confirmar). Procura a mesma Proposição nas
+         *     outras Casas e grava o que achar como Vínculo **sugerido**: nada é
+         *     confirmado sozinho. Falha na Casa escolhida não grava nada (503);
+         *     falha só na procura de candidatos não impede a Importação e aparece
+         *     em `suggestions_unavailable`. Importar de novo um registro já
+         *     vinculado devolve 200 com a Proposição existente. Registrado na
+         *     Auditoria (`proposition.import`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportRequest"];
+                };
+            };
+            responses: {
+                /** @description O registro já estava vinculado; nada foi criado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportResult"];
+                    };
+                };
+                /** @description Proposição criada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportResult"];
+                    };
+                };
+                /** @description `invalid_json`, `unknown_chamber` ou `invalid_external_id` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `source_record_not_found`: a Casa não tem esse registro */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /**
+                 * @description `already_suggested` (o registro é sugestão de Vínculo de uma
+                 *     Proposição: confirme lá), `proposition_exists` (mesma Casa
+                 *     iniciadora, Tipo, número e ano, ligada a outro registro) ou
+                 *     `link_taken`.
+                 */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `source_unavailable`: a fonte oficial falhou; nada foi gravado */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista as Proposições para a equipe (Editor ou acima)
+         * @description Todas, em qualquer estado de Revisão, com Vínculos de fonte e a última Sincronização de cada um.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Proposições, da atualizada mais recentemente para a mais antiga */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            propositions: components["schemas"]["TeamProposition"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+            };
+            cookie?: never;
+        };
+        /** Uma Proposição como a equipe a vê (Editor ou acima) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Proposição com Vínculos, Apensação e Tramitação */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamPropositionDetail"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["PropositionNotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/submit-for-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envia para revisão (criado → em revisão) (Editor ou acima)
+         * @description A partir daqui a parte pública mostra a Proposição "em análise", só
+         *     com dados oficiais. Registrado na Auditoria
+         *     (`proposition.submit_for_review`). Marcar como pronto é da fase 2.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Novo estado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            review_state: components["schemas"]["ReviewState"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["PropositionNotFound"];
+                /** @description `invalid_review_transition`: a Proposição não está em `draft` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/links/{linkId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                linkId: components["parameters"]["LinkID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma um Vínculo de fonte sugerido (Editor ou acima)
+         * @description Só o Editor confirma (ADR 0006). A Sincronização do Vínculo é
+         *     enfileirada na mesma transação. Registrado na Auditoria
+         *     (`source_link.confirm`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    linkId: components["parameters"]["LinkID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Vínculo confirmado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SourceLink"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["LinkNotFound"];
+                /**
+                 * @description `link_not_suggested` (já confirmado), `link_taken` (o registro
+                 *     já está confirmado em outra Proposição) ou
+                 *     `chamber_already_linked` (a Proposição já tem Vínculo confirmado
+                 *     nessa Casa).
+                 */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/links/{linkId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                linkId: components["parameters"]["LinkID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Descarta um Vínculo de fonte sugerido (Editor ou acima)
+         * @description Registrado na Auditoria (`source_link.reject`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    linkId: components["parameters"]["LinkID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Descartado */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["LinkNotFound"];
+                /** @description `link_not_suggested`: vínculo confirmado não se descarta */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/propositions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proposições visíveis ao Leitor
+         * @description Só `in_review` (aparece como "em análise", `under_review: true`) e
+         *     `ready`. Rascunhos nunca aparecem. Em análise, só dados oficiais.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Proposições públicas */
+                200: {
+                    headers: {
+                        "Cache-Control"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            propositions: components["schemas"]["PublicProposition"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/propositions/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público estável ("pec-221-2019") */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Página pública de uma Proposição
+         * @description Rascunho ou inexistente respondem 404 igual, sem revelar que existe.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Identificador público estável ("pec-221-2019") */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Proposição com Tramitação */
+                200: {
+                    headers: {
+                        "Cache-Control"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PublicPropositionDetail"];
+                    };
+                };
+                404: components["responses"]["PropositionNotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -677,8 +1195,199 @@ export interface components {
             /** @description Nova senha */
             password: string;
         };
+        /**
+         * @description Casa legislativa com API (v1).
+         * @enum {string}
+         */
+        Chamber: "camara" | "senado";
+        /**
+         * @description Revisão: criado (draft), em revisão (in_review, "em análise" para o Leitor), pronto (ready).
+         * @enum {string}
+         */
+        ReviewState: "draft" | "in_review" | "ready";
+        SourceSearchHit: {
+            external_id: string;
+            /** @example PEC 221/2019 */
+            name: string;
+            kind: string;
+            number: number;
+            year: number;
+            /** @description Ementa oficial */
+            summary: string;
+            /** Format: date-time */
+            presented_at: string | null;
+            authors: string[];
+            status: string;
+            /** @description Página pública na Casa */
+            source_url: string;
+            /**
+             * Format: uuid
+             * @description Proposição a que o registro já está ligado, se houver
+             */
+            linked_proposition_id: string | null;
+            /** @enum {string|null} */
+            link_state: "confirmed" | "suggested" | null;
+        };
+        SourceSearchResult: {
+            chamber: components["schemas"]["Chamber"];
+            /** @description A fonte falhou nesta busca */
+            unavailable: boolean;
+            hits: components["schemas"]["SourceSearchHit"][];
+        };
+        ImportRequest: {
+            chamber: components["schemas"]["Chamber"];
+            /** @description ID do registro na API da Casa */
+            external_id: string;
+        };
+        ImportResult: {
+            /** Format: uuid */
+            proposition_id: string;
+            created: boolean;
+            /** @description Vínculos de outras Casas sugeridos para o Editor conferir */
+            suggested_links: number;
+            /** @description Casas que não responderam à procura de candidatos */
+            suggestions_unavailable: components["schemas"]["Chamber"][];
+        };
+        /** @description Vínculo de fonte (só a equipe vê estes campos). */
+        SourceLink: {
+            /** Format: uuid */
+            id: string;
+            chamber: components["schemas"]["Chamber"];
+            external_id: string;
+            /** @enum {string} */
+            state: "suggested" | "confirmed";
+            /** @description Como a Casa chama a Proposição */
+            source_name: string;
+            source_url: string;
+            /** Format: uuid */
+            confirmed_by: string | null;
+            /** Format: date-time */
+            confirmed_at: string | null;
+            /** Format: date-time */
+            last_synced_at: string | null;
+            /** @description Vazio se a última Sincronização deu certo */
+            last_sync_error: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        TeamAttachedRef: {
+            /**
+             * Format: uuid
+             * @description null enquanto a principal não estiver cadastrada
+             */
+            id: string | null;
+            name: string;
+        };
+        TimelineEntry: {
+            chamber: components["schemas"]["Chamber"];
+            /** Format: date-time */
+            at: string;
+            /** @description Órgão (sigla) */
+            body: string;
+            description: string;
+            situation: string;
+            dispatch: string;
+        };
+        TeamProposition: {
+            /** Format: uuid */
+            id: string;
+            /** @example pec-221-2019 */
+            slug: string;
+            /** @example PEC 221/2019 */
+            name: string;
+            kind: string;
+            number: number;
+            year: number;
+            /** @enum {string} */
+            sphere: "federal" | "state" | "municipal";
+            origin_chamber: string;
+            summary: string;
+            /** Format: date-time */
+            presented_at: string | null;
+            official_text_url: string;
+            authors: string[];
+            status: string;
+            /** @description Prejudicada */
+            superseded: boolean;
+            attached_to: components["schemas"]["TeamAttachedRef"] | null;
+            review_state: components["schemas"]["ReviewState"];
+            links: components["schemas"]["SourceLink"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        TeamPropositionDetail: components["schemas"]["TeamProposition"] & {
+            attached: components["schemas"]["TeamAttachedRef"][];
+            timeline: components["schemas"]["TimelineEntry"][];
+        };
+        PublicRef: {
+            name: string;
+            /** @description null se a Proposição não é pública */
+            slug: string | null;
+        };
+        PublicSource: {
+            chamber: components["schemas"]["Chamber"];
+            name: string;
+            url: string;
+        };
+        /**
+         * @description Só dados oficiais e o selo "em análise". Nada interno (estado de
+         *     Revisão, quem confirmou, erros de Sincronização, sugestões).
+         */
+        PublicProposition: {
+            /** @example pec-221-2019 */
+            slug: string;
+            /** @example PEC 221/2019 */
+            name: string;
+            kind: string;
+            number: number;
+            year: number;
+            /** @enum {string} */
+            sphere: "federal" | "state" | "municipal";
+            origin_chamber: string;
+            /** @description Ementa oficial */
+            summary: string;
+            /** Format: date-time */
+            presented_at: string | null;
+            /** @description Link do Documento integral na Casa */
+            official_text_url: string;
+            authors: string[];
+            /** @description Situação atual oficial */
+            status: string;
+            /** @description Prejudicada */
+            superseded: boolean;
+            attached_to: components["schemas"]["PublicRef"] | null;
+            attached: components["schemas"]["PublicRef"][];
+            sources: components["schemas"]["PublicSource"][];
+            /** @description "Em análise": só dados oficiais */
+            under_review: boolean;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PublicPropositionDetail: components["schemas"]["PublicProposition"] & {
+            timeline: components["schemas"]["TimelineEntry"][];
+        };
     };
     responses: {
+        /** @description `proposition_not_found` */
+        PropositionNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `link_not_found` */
+        LinkNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /**
          * @description Sessão aberta. O refresh token vai só no cookie `nelisa_refresh`;
          *     nunca no corpo.
@@ -745,6 +1454,8 @@ export interface components {
     };
     parameters: {
         UserID: string;
+        PropositionID: string;
+        LinkID: string;
     };
     requestBodies: never;
     headers: never;

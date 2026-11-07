@@ -26,7 +26,7 @@ func TestTeamEndToEndWithAudit(t *testing.T) {
 	cfg := testConfig()
 	cfg.BootstrapToken = "segredo-de-bootstrap-e2e"
 	clk := clock.System{}
-	h := newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), logger)
+	h := newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), fakeContent(logger), logger)
 
 	do := func(method, path, body, bearer string, cookie *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
