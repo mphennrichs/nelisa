@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/mphennrichs/nelisa/api/internal/platform/buildinfo"
+	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/config"
 	"github.com/mphennrichs/nelisa/api/internal/platform/db"
 	"github.com/mphennrichs/nelisa/api/internal/platform/migrate"
@@ -80,9 +81,10 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 	}
 	defer pool.Close()
 
+	clk := clock.System{}
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           newRouter(cfg, pool, logger),
+		Handler:           newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), logger),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
