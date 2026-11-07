@@ -86,7 +86,9 @@ Itens decididos mas ainda não desenvolvidos (o nebula não tem):
 - [ ] Troca obrigatória de senha no primeiro login e após todo reset
 - [ ] Senha mínima de 8 caracteres checada contra lista de senhas vazadas
 - [ ] Eventos de login, reset de senha e reset de 2FA registrados na Auditoria
-- [ ] Tirar do ar a tela de login do protótipo (contas de teste com senha exposta)
+- [ ] Tirar do ar a tela de login do protótipo (contas de teste com senha
+      exposta) — mantida de propósito até a fase 0: o site é usado para
+      apresentar o projeto
 
 - [ ] Domínio oficial (o usuário decide depois); ao trocar, 301 permanente de
       `nelisa.foguinhodogoias.com` para o novo
@@ -113,3 +115,4 @@ Depois da v1 (ainda sem desenho):
 - 2026-11-07 — migrations via modo migrate (one-shot); em desenvolvimento, drop/recria com migration inicial consolidada.
 - 2026-11-07 — schema congela só na migração para a AWS.
 - 2026-11-07 — testes passam local e remoto; deploy só com CI verde, para todos os projetos.
+- 2026-11-07 — protótipo continua no ar como está (apresentações) até a fase 0.
