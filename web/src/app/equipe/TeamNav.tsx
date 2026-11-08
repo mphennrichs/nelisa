@@ -8,10 +8,16 @@ export default function TeamNav() {
   const { state, logout } = useTeamSession();
   const pathname = usePathname();
   const router = useRouter();
+  const admin = state.status === "authenticated" && state.user.role === "admin";
   const links = [
-    { href: "/equipe", label: "Início" },
+    { href: "/equipe/fila", label: "Fila de revisão" },
     { href: "/equipe/proposicoes", label: "Proposições" },
-    ...(state.status === "authenticated" && state.user.role === "admin" ? [{ href: "/equipe/usuarios", label: "Usuários" }] : []),
+    ...(admin
+      ? [
+          { href: "/equipe/temas", label: "Temas" },
+          { href: "/equipe/usuarios", label: "Usuários" },
+        ]
+      : []),
     { href: "/equipe/senha", label: "Trocar senha" },
   ];
   return (

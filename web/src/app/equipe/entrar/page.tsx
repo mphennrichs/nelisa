@@ -13,7 +13,7 @@ export default function SignIn() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (state.status === "authenticated") router.replace("/equipe");
+    if (state.status === "authenticated") router.replace("/equipe/fila");
   }, [state.status, router]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {

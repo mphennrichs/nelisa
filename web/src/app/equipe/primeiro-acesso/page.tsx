@@ -25,7 +25,7 @@ export default function Bootstrap() {
         email: String(fd.get("email")),
         password: String(fd.get("password")),
       });
-      router.replace("/equipe");
+      router.replace("/equipe/fila");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Algo deu errado. Tente de novo.");
     } finally {
