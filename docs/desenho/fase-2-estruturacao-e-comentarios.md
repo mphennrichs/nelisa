@@ -42,23 +42,29 @@ Documento comentado na página da Proposição.
 
 ## 2. Extração do texto
 
-- **Recomendação:** PDFium rodando em WebAssembly dentro do Go
-  (`klippa-app/go-pdfium`, modo `webassembly`, via wazero). Sem cgo, cabe na
-  imagem `distroless/static` de hoje, e o PDF (entrada não confiável) é
-  lido dentro de uma sandbox de memória, não num processo com acesso ao
-  sistema. Custo: binário uns 5 MB maior e extração mais lenta (irrelevante,
-  é job).
-- Alternativa: `pdftotext` (poppler) chamado por `exec`. Melhor conhecido,
-  mas troca a imagem base por uma com libc e poppler (mais superfície, CVEs
-  de poppler são frequentes) e precisa de limite de recurso no processo.
-- **Spike antes de implementar** (meio dia): extrair 6 PDFs reais (2 PL e 1
-  PEC da Câmara, 2 PL e 1 PEC do Senado) com as duas opções e comparar ordem
-  de leitura, hifenização, cabeçalhos e rodapés. Escolhe-se a que acertar mais
-  artigos sem conserto; se empatar, a WebAssembly.
+- **Decidido: PDFium em WebAssembly dentro do Go** (`klippa-app/go-pdfium`,
+  modo `webassembly`, via wazero). Sem cgo, cabe na imagem
+  `distroless/static` de hoje, e o PDF (entrada não confiável) é lido dentro
+  de uma sandbox de memória, não num processo com acesso ao sistema.
+- **Spike (2026-11-08)**, 8 PDFs reais (PEC 221/2019, PEC 8/2025, PEC
+  9/2026 e PL 2338/2023 da Câmara; PEC 221/2019 e PL 2338/2023 do Senado,
+  um requerimento e um escaneado), PDFium contra `pdftotext` (poppler):
+  - Texto praticamente igual (mesmos artigos, diferenças de espaço).
+  - O PDFium mantém a ordem de leitura; o poppler jogou o título da PEC
+    8/2025 para depois da ementa.
+  - PDFium: 36 páginas em 0,6 s; binário do teste com 15 MB.
+  - O escaneado sai vazio nos dois (sem fontes): cai em `no_text`.
+  - Por isso fica o PDFium; o `pdftotext` trocaria a imagem base por uma
+    com libc e poppler sem ganho de qualidade.
 - Limpeza depois de extrair: junta palavras hifenizadas no fim da linha;
   remove linhas que se repetem em mais da metade das páginas (cabeçalho e
-  rodapé, "Página 2 de 7", o código de autenticação `*CD26…*` da Câmara);
-  normaliza espaços e travessões (`–`, `—`, `-`).
+  rodapé). Vistos no spike: na Câmara, `*CD230955946600* PEC n.9/2026`,
+  "Apresentação: …", "Assinado eletronicamente pelo(a) …", "Para verificar
+  as assinaturas, acesse …"; no Senado, `SF/23047.72450-75 (LexEdit)`.
+  Normaliza espaços, aspas curvas e travessões (`–`, `—`, `-`).
+- O avulso do Senado traz capa ("AUTORIA", "DOCUMENTOS:") e anexo
+  "LEGISLAÇÃO CITADA": o parser começa no título/ementa e para no fim da
+  Justificação.
 - PDF sem texto (escaneado): falha com motivo `no_text`. A Estruturação fica
   `manual`.
 
@@ -199,9 +205,8 @@ veja o texto oficial". Comentários não são obrigatórios.
 
 ## Decisões (confirmadas em 2026-11-08)
 
-1. **Biblioteca de PDF:** PDFium em WebAssembly (recomendado) ou
-   `pdftotext`, decidido pelo spike. Vira ADR se a escolha for
-   `pdftotext` (muda a imagem base).
+1. **Biblioteca de PDF:** PDFium em WebAssembly, confirmado pelo spike
+   (seção 2).
 2. **Colar texto quando a busca falha:** recomendado sim, só nesse caso
    (escaneado, host fora da lista). Sem isso uma Proposição municipal ou um
    PDF escaneado nunca tem Documento comentado.
