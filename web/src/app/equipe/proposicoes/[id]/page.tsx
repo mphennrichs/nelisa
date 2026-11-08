@@ -4,16 +4,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { components } from "@/lib/api/schema";
-import { ApiError, useTeamSession } from "@/lib/team/session";
+import { ApiError, useTeamSession, type User } from "@/lib/team/session";
 import { FormError, RequireTeam } from "@/lib/team/ui";
 import { REVIEW_STATE_LABEL, chamberLabel, fmtDate, fmtDateTime, officialText, chamberIn } from "@/lib/labels";
+import Editorial from "./Editorial";
 
 type Detail = components["schemas"]["TeamPropositionDetail"];
 type Link_ = components["schemas"]["SourceLink"];
 
 const TIMELINE_PAGE = 20;
 
-function PropositionDetail({ id }: { id: string }) {
+function PropositionDetail({ id, me }: { id: string; me: User }) {
   const { api } = useTeamSession();
   const [p, setP] = useState<Detail>();
   const [error, setError] = useState<string>();
@@ -23,9 +24,12 @@ function PropositionDetail({ id }: { id: string }) {
 
   const load = useCallback(async () => {
     try {
-      setP(await api<Detail>(`/api/team/propositions/${encodeURIComponent(id)}`));
+      const d = await api<Detail>(`/api/team/propositions/${encodeURIComponent(id)}`);
+      setP(d);
+      return d;
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Não foi possível carregar.");
+      return undefined;
     }
   }, [api, id]);
 
@@ -93,11 +97,17 @@ function PropositionDetail({ id }: { id: string }) {
           </>
         ) : (
           <p className="text-stone-700">
-            {p.review_state === "in_review" ? "Em revisão: aparece no site como “em análise”." : "Pronta."}{" "}
+            {p.review_state === "ready"
+              ? "Pronta: o site mostra o conteúdo da Versão vigente."
+              : p.review_badge != null
+                ? "Em revisão: o site mostra a Versão vigente e avisa que há texto novo em análise."
+                : "Em revisão: aparece no site como “em análise”, só com os dados oficiais."}{" "}
             <a href={`/proposicao/${p.slug}`} className="link">Ver como o leitor vê</a>
           </p>
         )}
       </section>
+
+      <Editorial p={p} me={me} reload={load} />
 
       <section aria-labelledby="vinculos" className="card space-y-3">
         <h2 id="vinculos" className="text-lg font-semibold">Vínculos de fonte</h2>
@@ -165,5 +175,5 @@ function PropositionDetail({ id }: { id: string }) {
 
 export default function Page() {
   const { id } = useParams<{ id: string }>();
-  return <RequireTeam>{() => <PropositionDetail id={id} />}</RequireTeam>;
+  return <RequireTeam>{(me) => <PropositionDetail id={id} me={me} />}</RequireTeam>;
 }
