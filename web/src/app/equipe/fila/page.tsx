@@ -16,6 +16,15 @@ const SPHERES: Sphere[] = ["federal", "state", "municipal"];
 const REASON_LABEL: Record<QueueItem["reason"], string> = {
   review: "Revisão",
   second_review: "Segunda revisão pendente",
+  minor_fix_check: "Correção a conferir",
+  erratum: "Errata",
+};
+
+// O que falta em cada item que não é de revisão de Versão.
+const REASON_HINT: Partial<Record<QueueItem["reason"], string>> = {
+  second_review: "Aprovada sem quatro olhos: falta outra pessoa confirmar a revisão.",
+  minor_fix_check: "Correção menor já publicada: falta um Revisor que não a fez conferir o antes e o depois.",
+  erratum: "Errata proposta: falta outro Revisor aprovar ou recusar. Até lá o site mostra o texto antigo.",
 };
 
 function isSphere(s: string | null): s is Sphere {
@@ -70,7 +79,7 @@ function Queue() {
       {items?.length === 0 && (
         <p className="card text-stone-700">
           Nada esperando revisão{sphere ? ` na Esfera ${SPHERE_LABEL[sphere].toLowerCase()}` : ""}. Proposições enviadas para
-          revisão aparecem aqui.
+          revisão, Correções a conferir e Erratas aparecem aqui.
         </p>
       )}
       {items && items.length > 0 && (
@@ -84,7 +93,7 @@ function Queue() {
                 <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs font-medium text-stone-700">{SPHERE_LABEL[it.sphere]}</span>
                 <span
                   className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                    it.reason === "second_review" ? "bg-amber-100 text-amber-900" : "bg-sky-100 text-sky-900"
+                    it.reason === "second_review" || it.reason === "erratum" ? "bg-amber-100 text-amber-900" : "bg-sky-100 text-sky-900"
                   }`}
                 >
                   {REASON_LABEL[it.reason]}
@@ -111,9 +120,7 @@ function Queue() {
                 ) : (
                   <p className="text-sm font-medium text-emerald-900">Conteúdo completo: pronto para um Revisor aprovar.</p>
                 ))}
-              {it.reason === "second_review" && (
-                <p className="text-sm text-stone-700">Aprovada sem quatro olhos: falta outra pessoa confirmar a revisão.</p>
-              )}
+              {REASON_HINT[it.reason] && <p className="text-sm text-stone-700">{REASON_HINT[it.reason]}</p>}
             </li>
           ))}
         </ul>

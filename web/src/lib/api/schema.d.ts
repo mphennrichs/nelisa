@@ -1527,6 +1527,525 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/propositions/{id}/versions/{versionId}/minor-fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Aplica uma Correção menor ao conteúdo da Versão vigente (Editor ou acima)
+         * @description Correção que não muda o sentido (digitação, formatação, link). Só na
+         *     Versão vigente de uma Proposição pronta. Exige a Posse (assume se
+         *     livre; 409 `claim_taken` se de outra pessoa), o `revision` lido
+         *     (409 `stale_content`) e nenhuma Errata pendente na Versão (409
+         *     `erratum_pending`). Mesmas validações do conteúdo, e o conteúdo
+         *     publicado não pode ficar sem Resumo, Resumo curto ou Temas. Entra na
+         *     hora: a Proposição segue pronta e o Leitor vê o texto corrigido sem
+         *     aviso; quem corrigiu entra na Autoria; a correção fica "a conferir"
+         *     na Fila (`minor_fix_check`). Auditoria `content.minor_fix` (Versão,
+         *     campos; nunca o texto), na mesma transação.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateContentRequest"];
+                };
+            };
+            responses: {
+                /** @description Correção aplicada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MinorFix"];
+                    };
+                };
+                /**
+                 * @description `revision_required`, `summary_too_long`, `short_summary_too_long`,
+                 *     `too_many_topics`, `duplicate_topic`, `topic_not_found`,
+                 *     `topic_inactive` ou `published_content_incomplete`.
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found` ou `version_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /**
+                 * @description `claim_taken`, `stale_content`, `erratum_pending`, `no_changes`
+                 *     (o texto é igual ao publicado), `version_not_current` (Versão em
+                 *     análise ou substituída) ou `not_ready` (Proposição não pronta).
+                 */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/minor-fixes/{fixId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                fixId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confere uma Correção menor (Revisor ou Admin que não a fez)
+         * @description Tira a correção da Fila. Quem a fez não confere (403 `four_eyes`),
+         *     nem o Admin. Não há "rejeitar": quem discorda faz outra Correção
+         *     menor ou propõe uma Errata. Auditoria `review.minor_fix_check`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    fixId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conferida */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MinorFix"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description `forbidden` (Editor) ou `four_eyes` */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `minor_fix_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `minor_fix_checked` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/errata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Propõe uma Errata para a Versão vigente (Editor ou acima)
+         * @description Correção que muda o sentido. Leva o conteúdo completo como fica
+         *     depois da Errata (mesmas validações do conteúdo) e a nota pública
+         *     (`said`, `correct`). Não exige Posse. No máximo uma pendente por
+         *     Versão (409 `erratum_pending`). Enquanto pendente nada muda para o
+         *     Leitor. Auditoria `review.erratum_propose`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProposeErratumRequest"];
+                };
+            };
+            responses: {
+                /** @description Errata proposta (pendente) */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erratum"];
+                    };
+                };
+                /**
+                 * @description `revision_required`, `invalid_erratum_note` e as mesmas do
+                 *     conteúdo da Correção menor.
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found` ou `version_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `erratum_pending`, `stale_content`, `no_changes`, `version_not_current` ou `not_ready` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/errata/{erratumId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+                erratumId: components["parameters"]["ErratumID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Aprova a Errata (Revisor ou Admin que não a propôs)
+         * @description Quatro olhos sem exceção: quem propôs não aprova, nem o Admin (403
+         *     `four_eyes`). O corpo leva a `revision` do conteúdo vigente que quem
+         *     aprova leu; ela e a atual têm de ser a de quando a Errata foi
+         *     proposta (`base_revision`), senão 409 `stale_content` e a Errata
+         *     precisa ser refeita. Na mesma transação: o conteúdo vigente vira o
+         *     da Errata (revision sobe, quem propôs entra na Autoria), a Errata
+         *     fica `approved` e a Auditoria registra (`review.erratum_approve`).
+         *     A nota passa a aparecer na página pública.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                    erratumId: components["parameters"]["ErratumID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description revision do conteúdo vigente que quem aprova leu */
+                        revision: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aprovada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erratum"];
+                    };
+                };
+                /** @description `revision_required` ou as do conteúdo (um Tema escolhido foi desativado no meio do caminho) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description `forbidden` (Editor) ou `four_eyes` */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `proposition_not_found`, `version_not_found` ou `erratum_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `stale_content`, `erratum_not_pending`, `version_not_current` ou `not_ready` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/errata/{erratumId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+                erratumId: components["parameters"]["ErratumID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recusa a Errata com motivo interno (Revisor ou Admin que não a propôs)
+         * @description Nada muda no conteúdo; o motivo fica só para a equipe. Auditoria
+         *     `review.erratum_reject`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                    erratumId: components["parameters"]["ErratumID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recusada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erratum"];
+                    };
+                };
+                /** @description `invalid_reason` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description `forbidden` (Editor) ou `four_eyes` */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `erratum_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `erratum_not_pending` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/errata/{erratumId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+                erratumId: components["parameters"]["ErratumID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retira a Errata pendente (só quem a propôs)
+         * @description Nada muda no conteúdo. Auditoria `review.erratum_withdraw`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                    erratumId: components["parameters"]["ErratumID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Retirada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erratum"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description `forbidden` (não é quem propôs) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `erratum_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `erratum_not_pending` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/team/propositions/{id}/claim": {
         parameters: {
             query?: never;
@@ -1619,9 +2138,12 @@ export interface paths {
         };
         /**
          * Fila de revisão (Editor ou acima)
-         * @description Proposições `in_review` com Versão em análise (`reason: review`) e
+         * @description Proposições `in_review` com Versão em análise (`reason: review`),
          *     Proposições `ready` com Segunda revisão pendente
-         *     (`reason: second_review`). Ordem: Esfera (federal > estadual >
+         *     (`reason: second_review`), com Correção menor a conferir
+         *     (`reason: minor_fix_check`, um item por Proposição, desde a mais
+         *     antiga) e com Errata pendente (`reason: erratum`); estes três só
+         *     da Versão vigente. Ordem: Esfera (federal > estadual >
          *     municipal), depois votação mais próxima (ainda sem dado: todas "sem
          *     votação"), depois mais antigo na fila primeiro.
          */
@@ -2210,6 +2732,20 @@ export interface components {
         };
         PublicPropositionDetail: components["schemas"]["PublicProposition"] & {
             timeline: components["schemas"]["TimelineEntry"][];
+            /**
+             * @description Erratas aprovadas da Versão vigente, da mais nova para a mais
+             *     antiga. Pendentes, recusadas e retiradas nunca saem; nem quem
+             *     propôs ou decidiu.
+             */
+            errata: components["schemas"]["PublicErratum"][];
+        };
+        PublicErratum: {
+            /** Format: date-time */
+            approved_at: string;
+            /** @description "Dizia X" */
+            said: string;
+            /** @description "O correto é Y" */
+            correct: string;
         };
         /** @enum {string} */
         Sphere: "federal" | "state" | "municipal";
@@ -2345,10 +2881,102 @@ export interface components {
             /** @description Admin autor: se aprovar, fica a Segunda revisão pendente */
             approval_breaks_four_eyes: boolean;
             can_second_review: boolean;
-            /** @description Nomes da equipe por id (Autoria, Posse, aprovação) */
+            /** @description Pode aplicar Correção menor na vigente: Proposição pronta, sem Errata pendente, Posse livre ou sua */
+            can_minor_fix: boolean;
+            /** @description Pode propor Errata: Proposição pronta, sem Errata pendente */
+            can_propose_erratum: boolean;
+            /** @description Correções menores a conferir, da mais antiga para a mais nova */
+            minor_fixes: components["schemas"]["TeamMinorFix"][];
+            /** @description Errata pendente da Versão vigente */
+            pending_erratum: components["schemas"]["TeamErratum"] | null;
+            /** @description Histórico das outras Erratas, da mais nova para a mais antiga */
+            errata: components["schemas"]["TeamErratum"][];
+            /** @description Nomes da equipe por id (Autoria, Posse, aprovação, correções) */
             people: {
                 [key: string]: string;
             };
+        };
+        ContentSnapshot: {
+            summary: string;
+            short_summary: string;
+            topic_ids: string[];
+        };
+        /** @enum {string} */
+        MinorFixField: "summary" | "short_summary" | "topic_ids";
+        MinorFix: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            version_id: string;
+            fields: components["schemas"]["MinorFixField"][];
+            before: components["schemas"]["ContentSnapshot"];
+            after: components["schemas"]["ContentSnapshot"];
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            checked_by: string | null;
+            /** Format: date-time */
+            checked_at: string | null;
+        };
+        TeamMinorFix: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            version_id: string;
+            fields: components["schemas"]["MinorFixField"][];
+            before: components["schemas"]["ContentSnapshot"];
+            after: components["schemas"]["ContentSnapshot"];
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** @description Quem pergunta pode conferir (Revisor ou Admin que não a fez) */
+            can_check_minor_fix: boolean;
+        };
+        /** @enum {string} */
+        ErratumState: "pending" | "approved" | "rejected" | "withdrawn";
+        Erratum: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            version_id: string;
+            proposed: components["schemas"]["ContentSnapshot"];
+            said: string;
+            correct: string;
+            /** @description revision do conteúdo vigente quando foi proposta */
+            base_revision: number;
+            state: components["schemas"]["ErratumState"];
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            decided_by: string | null;
+            /** Format: date-time */
+            decided_at: string | null;
+            /** @description Motivo interno da recusa ("" nos outros estados) */
+            reason: string;
+        };
+        TeamErratum: components["schemas"]["Erratum"] & {
+            /** @description O conteúdo vigente mudou desde a proposta: aprovar dá 409 */
+            stale: boolean;
+            /** @description Quem pergunta pode aprovar ou recusar (Revisor ou Admin que não a propôs) */
+            can_decide_erratum: boolean;
+            /** @description Quem pergunta pode retirar (quem propôs) */
+            can_withdraw_erratum: boolean;
+        };
+        ProposeErratumRequest: {
+            summary?: string;
+            short_summary?: string;
+            topic_ids?: string[];
+            /** @description "Dizia X" (nota pública) */
+            said: string;
+            /** @description "O correto é Y" (nota pública) */
+            correct: string;
+            /** @description O revision lido do conteúdo vigente */
+            revision: number;
         };
         Approval: {
             /** Format: uuid */
@@ -2369,7 +2997,7 @@ export interface components {
             slug: string;
             sphere: components["schemas"]["Sphere"];
             /** @enum {string} */
-            reason: "review" | "second_review";
+            reason: "review" | "second_review" | "minor_fix_check" | "erratum";
             version: {
                 /** Format: uuid */
                 id: string;
@@ -2473,6 +3101,7 @@ export interface components {
         UserID: string;
         PropositionID: string;
         VersionID: string;
+        ErratumID: string;
         LinkID: string;
     };
     requestBodies: never;

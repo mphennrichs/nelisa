@@ -68,6 +68,20 @@ export const VERSION_STATE_LABEL: Record<components["schemas"]["PropositionVersi
   superseded: "Substituída",
 };
 
+export const ERRATUM_STATE_LABEL: Record<components["schemas"]["ErratumState"], string> = {
+  pending: "Pendente",
+  approved: "Aprovada",
+  rejected: "Recusada",
+  withdrawn: "Retirada",
+};
+
+/** Campos do conteúdo que uma Correção menor pode mudar. */
+export const CONTENT_FIELD_LABEL: Record<components["schemas"]["MinorFixField"], string> = {
+  summary: "Resumo",
+  short_summary: "Resumo curto",
+  topic_ids: "Temas",
+};
+
 /** Texto do Selo de revisão: nunca nomes, só quantas pessoas revisaram. */
 export function reviewBadgeLabel(badge: number) {
   return badge >= 2 ? "Revisado por 2 pessoas" : "Revisado por 1 pessoa";
