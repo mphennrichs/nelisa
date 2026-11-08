@@ -15,7 +15,7 @@ var t0 = time.Date(2026, 11, 7, 12, 0, 0, 0, time.UTC)
 func mk(t *testing.T, origin domain.Chamber, state domain.ReviewState) domain.Proposition {
 	t.Helper()
 	p, err := domain.NewProposition("p1", "pec-221-2019", "pec", 221, 2019, origin, domain.OfficialData{
-		Summary: "  Altera a jornada  ", Status: "Em tramitação", Authors: []string{"Dep. Fulana", "  "},
+		OfficialSummary: "  Altera a jornada  ", Status: "Em tramitação", Authors: []string{"Dep. Fulana", "  "},
 	}, t0)
 	if err != nil {
 		t.Fatal(err)
@@ -29,7 +29,7 @@ func TestNewPropositionNormalizesAndStartsAsDraft(t *testing.T) {
 	if p.Name() != "PEC 221/2019" || p.Kind != "PEC" || p.Sphere != domain.SphereFederal || p.ReviewState != domain.ReviewDraft {
 		t.Errorf("got %+v", p)
 	}
-	if p.Summary != "Altera a jornada" || len(p.Authors) != 1 {
+	if p.OfficialSummary != "Altera a jornada" || len(p.Authors) != 1 {
 		t.Errorf("official data not cleaned: %+v", p.OfficialData)
 	}
 	for _, c := range []struct {
@@ -88,10 +88,10 @@ func TestSubmitForReviewOnlyFromDraft(t *testing.T) {
 
 func TestCleanDropsHostileValues(t *testing.T) {
 	d := domain.OfficialData{
-		OfficialTextURL: "javascript:alert(1)", Summary: strings.Repeat("a", 20_000), Status: "Declarada Prejudicada",
+		OfficialTextURL: "javascript:alert(1)", OfficialSummary: strings.Repeat("a", 20_000), Status: "Declarada Prejudicada",
 	}.Clean()
-	if d.OfficialTextURL != "" || len([]rune(d.Summary)) != 10_000 || !d.Superseded {
-		t.Errorf("got url=%q len=%d superseded=%v", d.OfficialTextURL, len(d.Summary), d.Superseded)
+	if d.OfficialTextURL != "" || len([]rune(d.OfficialSummary)) != 10_000 || !d.Superseded {
+		t.Errorf("got url=%q len=%d superseded=%v", d.OfficialTextURL, len(d.OfficialSummary), d.Superseded)
 	}
 }
 
@@ -104,18 +104,18 @@ func TestApplySyncRules(t *testing.T) {
 	// A Casa revisora com evento mais novo dita a situação, mas não a ementa.
 	p.ApplySync(domain.SyncUpdate{
 		Chamber: domain.ChamberSenado, LatestEventAt: ptr(t0.Add(48 * time.Hour)),
-		Data: domain.OfficialData{Summary: "outra ementa", Status: "Aguardando votação no Senado"},
+		Data: domain.OfficialData{OfficialSummary: "outra ementa", Status: "Aguardando votação no Senado"},
 	}, t0.Add(time.Hour))
-	if p.Summary != "Altera a jornada" || p.Status != "Aguardando votação no Senado" || !p.StatusAt.Equal(t0.Add(48*time.Hour)) {
+	if p.OfficialSummary != "Altera a jornada" || p.Status != "Aguardando votação no Senado" || !p.StatusAt.Equal(t0.Add(48*time.Hour)) {
 		t.Errorf("after senado sync: %+v", p)
 	}
 	// A iniciadora, com evento mais velho, atualiza a identificação mas não
 	// a situação.
 	p.ApplySync(domain.SyncUpdate{
 		Chamber: domain.ChamberCamara, LatestEventAt: ptr(t0.Add(time.Hour)), ReportsAttachment: true,
-		Data: domain.OfficialData{Summary: "ementa nova", Status: "Remetida ao Senado", AttachedToName: "PEC 32/2015"},
+		Data: domain.OfficialData{OfficialSummary: "ementa nova", Status: "Remetida ao Senado", AttachedToName: "PEC 32/2015"},
 	}, t0.Add(2*time.Hour))
-	if p.Summary != "ementa nova" || p.Status != "Aguardando votação no Senado" || p.AttachedToName != "PEC 32/2015" {
+	if p.OfficialSummary != "ementa nova" || p.Status != "Aguardando votação no Senado" || p.AttachedToName != "PEC 32/2015" {
 		t.Errorf("after camara sync: %+v", p)
 	}
 	if p.ReviewState != domain.ReviewInReview {

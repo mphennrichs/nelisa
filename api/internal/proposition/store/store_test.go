@@ -28,7 +28,7 @@ func mkProp(t *testing.T, s *store.Propositions, id, slug string, number int, or
 	t.Helper()
 	presented := t0.Add(-24 * time.Hour)
 	p, err := domain.NewProposition(id, slug, "PEC", number, 2019, origin, domain.OfficialData{
-		Summary: "Altera a jornada", Authors: []string{"Dep. Fulana"}, PresentedAt: &presented,
+		OfficialSummary: "Altera a jornada", Authors: []string{"Dep. Fulana"}, PresentedAt: &presented,
 		OfficialTextURL: "https://www.camara.leg.br/texto",
 	}, t0)
 	if err != nil {

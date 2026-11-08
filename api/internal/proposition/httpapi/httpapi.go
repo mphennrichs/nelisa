@@ -87,7 +87,7 @@ type teamPropositionDTO struct {
 	Year            int             `json:"year"`
 	Sphere          string          `json:"sphere"`
 	OriginChamber   string          `json:"origin_chamber"`
-	Summary         string          `json:"summary"`
+	OfficialSummary string          `json:"official_summary"`
 	PresentedAt     *string         `json:"presented_at"`
 	OfficialTextURL string          `json:"official_text_url"`
 	Authors         []string        `json:"authors"`
@@ -152,7 +152,7 @@ func toTeamDTO(tp app.TeamProposition) teamPropositionDTO {
 	p := tp.Proposition
 	out := teamPropositionDTO{
 		ID: p.ID, Slug: p.Slug, Name: p.Name(), Kind: p.Kind, Number: p.Number, Year: p.Year,
-		Sphere: string(p.Sphere), OriginChamber: string(p.OriginChamber), Summary: p.Summary,
+		Sphere: string(p.Sphere), OriginChamber: string(p.OriginChamber), OfficialSummary: p.OfficialSummary,
 		PresentedAt: tsPtr(p.PresentedAt), OfficialTextURL: p.OfficialTextURL, Authors: nonNil(p.Authors),
 		Status: p.Status, Superseded: p.Superseded, ReviewState: string(p.ReviewState),
 		Links: make([]linkDTO, 0, len(tp.Links)), CreatedAt: ts(p.CreatedAt), UpdatedAt: ts(p.UpdatedAt),
@@ -268,7 +268,7 @@ type publicPropositionDTO struct {
 	Year            int               `json:"year"`
 	Sphere          string            `json:"sphere"`
 	OriginChamber   string            `json:"origin_chamber"`
-	Summary         string            `json:"summary"`
+	OfficialSummary string            `json:"official_summary"`
 	PresentedAt     *string           `json:"presented_at"`
 	OfficialTextURL string            `json:"official_text_url"`
 	Authors         []string          `json:"authors"`
@@ -293,7 +293,7 @@ func toPublicRef(r domain.PublicRef) publicRefDTO {
 func toPublicDTO(p domain.PublicProposition) publicPropositionDTO {
 	out := publicPropositionDTO{
 		Slug: p.Slug, Name: p.Name, Kind: p.Kind, Number: p.Number, Year: p.Year,
-		Sphere: string(p.Sphere), OriginChamber: string(p.OriginChamber), Summary: p.Summary,
+		Sphere: string(p.Sphere), OriginChamber: string(p.OriginChamber), OfficialSummary: p.OfficialSummary,
 		PresentedAt: tsPtr(p.PresentedAt), OfficialTextURL: p.OfficialTextURL, Authors: nonNil(p.Authors),
 		Status: p.Status, Superseded: p.Superseded, UnderReview: p.UnderReview, UpdatedAt: ts(p.UpdatedAt),
 		Attached: make([]publicRefDTO, 0, len(p.Attached)), Sources: make([]publicSourceDTO, 0, len(p.Sources)),

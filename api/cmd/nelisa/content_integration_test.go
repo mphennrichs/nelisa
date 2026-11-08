@@ -29,7 +29,7 @@ var day0 = time.Date(2019, 11, 26, 12, 0, 0, 0, time.UTC)
 func fakeSources() (ingestapp.Sources, *fakes.Source, *fakes.Source) {
 	camara, senado := fakes.NewSource(ingestapp.ChamberCamara), fakes.NewSource(ingestapp.ChamberSenado)
 	camara.Put(ingestapp.SourceRecord{
-		ExternalID: "2192459", Kind: "PEC", Number: 221, Year: 2019, Summary: "Reduz a jornada de trabalho",
+		ExternalID: "2192459", Kind: "PEC", Number: 221, Year: 2019, OfficialSummary: "Reduz a jornada de trabalho",
 		OriginChamber: ingestapp.ChamberCamara, Role: "origin", Status: "Remetida ao Senado Federal",
 		SourceURL: "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2192459",
 		Authors:   []string{"Dep. Reginaldo Lopes (PT/MG)"}, PresentedAt: day0,

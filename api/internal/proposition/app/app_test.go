@@ -48,7 +48,7 @@ func (e *env) importPEC(t *testing.T) app.CreateImportedResult {
 			Chamber: domain.ChamberCamara, ExternalID: "2192459", SourceName: "PEC 221/2019",
 			SourceURL: "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2192459",
 			Kind:      "PEC", Number: 221, Year: 2019, OriginChamber: domain.ChamberCamara,
-			Data:     domain.OfficialData{Summary: "Altera a jornada de trabalho", Status: "Em tramitação"},
+			Data:     domain.OfficialData{OfficialSummary: "Altera a jornada de trabalho", Status: "Em tramitação"},
 			EditorID: "editor-1",
 			Candidates: []app.Candidate{
 				{Chamber: domain.ChamberSenado, ExternalID: "8441243", SourceName: "PEC 221/2019", SourceURL: "https://www25.senado.leg.br/x"},
@@ -339,7 +339,7 @@ func TestApplySyncKeepsReviewStateAndRefusesSuggestions(t *testing.T) {
 	for range 2 {
 		if err := e.catalog().ApplySync(ctx, app.ApplySyncInput{
 			LinkID: res.Link.ID, LatestEventAt: &later, ReportsAttachment: true,
-			Data: domain.OfficialData{Summary: "Altera a jornada de trabalho", Status: "Promulgada"},
+			Data: domain.OfficialData{OfficialSummary: "Altera a jornada de trabalho", Status: "Promulgada"},
 		}); err != nil {
 			t.Fatal(err)
 		}

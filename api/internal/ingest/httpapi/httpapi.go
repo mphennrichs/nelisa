@@ -47,7 +47,7 @@ type hitDTO struct {
 	Kind                string   `json:"kind"`
 	Number              int      `json:"number"`
 	Year                int      `json:"year"`
-	Summary             string   `json:"summary"`
+	OfficialSummary     string   `json:"official_summary"`
 	PresentedAt         *string  `json:"presented_at"`
 	Authors             []string `json:"authors"`
 	Status              string   `json:"status"`
@@ -82,7 +82,7 @@ func (h *Handlers) search(w http.ResponseWriter, r *http.Request) {
 			rec := hit.Record
 			d := hitDTO{
 				ExternalID: rec.ExternalID, Name: officialName(rec), Kind: rec.Kind, Number: rec.Number, Year: rec.Year,
-				Summary: rec.Summary, Authors: nonNil(rec.Authors), Status: rec.Status, SourceURL: rec.SourceURL,
+				OfficialSummary: rec.OfficialSummary, Authors: nonNil(rec.Authors), Status: rec.Status, SourceURL: rec.SourceURL,
 			}
 			if !rec.PresentedAt.IsZero() {
 				s := rec.PresentedAt.UTC().Format(time.RFC3339)

@@ -44,7 +44,7 @@ function List() {
                   {suggested > 0 && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">{suggested} vínculo(s) a conferir</span>}
                   {failing && <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-800">erro de sincronização</span>}
                 </p>
-                <p className="line-clamp-2 text-sm text-stone-700">{p.summary}</p>
+                <p className="line-clamp-2 text-sm text-stone-700">{p.official_summary}</p>
                 <p className="text-xs text-stone-600">
                   {chamberLabel(p.origin_chamber)} · atualizada em {fmtDateTime(p.updated_at)}
                 </p>

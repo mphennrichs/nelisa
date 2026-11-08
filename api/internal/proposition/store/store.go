@@ -49,7 +49,7 @@ func (s *Propositions) Create(ctx context.Context, p domain.Proposition) error {
 	err := s.q(ctx).CreateProposition(ctx, dbgen.CreatePropositionParams{
 		ID: p.ID, Slug: p.Slug, Kind: p.Kind, Number: int32(p.Number), Year: int32(p.Year),
 		Sphere: string(p.Sphere), OriginChamber: string(p.OriginChamber),
-		Summary: p.Summary, PresentedAt: p.PresentedAt, OfficialTextUrl: p.OfficialTextURL,
+		OfficialSummary: p.OfficialSummary, PresentedAt: p.PresentedAt, OfficialTextUrl: p.OfficialTextURL,
 		Authors: nonNil(p.Authors), Status: p.Status, StatusAt: p.StatusAt,
 		AttachedTo: p.AttachedToID, AttachedToName: p.AttachedToName, Superseded: p.Superseded,
 		ReviewState: string(p.ReviewState), CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
@@ -116,7 +116,7 @@ func (s *Propositions) ListUnresolvedAttachments(ctx context.Context, name strin
 
 func (s *Propositions) Update(ctx context.Context, p domain.Proposition) error {
 	err := s.q(ctx).UpdateProposition(ctx, dbgen.UpdatePropositionParams{
-		ID: p.ID, Summary: p.Summary, PresentedAt: p.PresentedAt, OfficialTextUrl: p.OfficialTextURL,
+		ID: p.ID, OfficialSummary: p.OfficialSummary, PresentedAt: p.PresentedAt, OfficialTextUrl: p.OfficialTextURL,
 		Authors: nonNil(p.Authors), Status: p.Status, StatusAt: p.StatusAt,
 		AttachedTo: p.AttachedToID, AttachedToName: p.AttachedToName, Superseded: p.Superseded,
 		ReviewState: string(p.ReviewState), UpdatedAt: p.UpdatedAt,
@@ -153,7 +153,7 @@ func toProposition(r dbgen.PropositionProposition) domain.Proposition {
 		ID: r.ID, Slug: r.Slug, Kind: r.Kind, Number: int(r.Number), Year: int(r.Year),
 		Sphere: domain.Sphere(r.Sphere), OriginChamber: domain.Chamber(r.OriginChamber),
 		OfficialData: domain.OfficialData{
-			Summary: r.Summary, PresentedAt: utc(r.PresentedAt), OfficialTextURL: r.OfficialTextUrl,
+			OfficialSummary: r.OfficialSummary, PresentedAt: utc(r.PresentedAt), OfficialTextURL: r.OfficialTextUrl,
 			Authors: r.Authors, Status: r.Status, AttachedToName: r.AttachedToName, Superseded: r.Superseded,
 		},
 		StatusAt: utc(r.StatusAt), AttachedToID: r.AttachedTo, ReviewState: domain.ReviewState(r.ReviewState),

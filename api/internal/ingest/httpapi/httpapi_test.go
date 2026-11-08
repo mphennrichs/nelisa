@@ -28,7 +28,7 @@ type server struct {
 func newServer() *server {
 	w := fakes.NewWorld()
 	camara, senado := fakes.NewSource(app.ChamberCamara), fakes.NewSource(app.ChamberSenado)
-	camara.Put(app.SourceRecord{ExternalID: "2192459", Kind: "PEC", Number: 221, Year: 2019, Summary: "Altera a jornada",
+	camara.Put(app.SourceRecord{ExternalID: "2192459", Kind: "PEC", Number: 221, Year: 2019, OfficialSummary: "Altera a jornada",
 		PresentedAt: time.Date(2019, 11, 26, 0, 0, 0, 0, time.UTC)},
 		fakes.Progress1("1-100", time.Date(2019, 11, 26, 0, 0, 0, 0, time.UTC), "Apresentação"))
 	sources := app.NewSources(camara, senado)

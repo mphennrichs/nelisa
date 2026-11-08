@@ -80,7 +80,7 @@ func (s *server) do(method, path, actor string) *httptest.ResponseRecorder {
 func (s *server) seed(t *testing.T, state domain.ReviewState) domain.Proposition {
 	t.Helper()
 	p, err := domain.NewProposition("11111111-1111-4111-8111-111111111111", "pec-221-2019", "PEC", 221, 2019,
-		domain.ChamberCamara, domain.OfficialData{Summary: "Altera a jornada", Status: "Em tramitação"}, t0)
+		domain.ChamberCamara, domain.OfficialData{OfficialSummary: "Altera a jornada", Status: "Em tramitação"}, t0)
 	if err != nil {
 		t.Fatal(err)
 	}

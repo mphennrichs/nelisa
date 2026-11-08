@@ -35,7 +35,7 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getPublicProposition((await params).slug);
   if (!p) return { title: "Proposição não encontrada · Nelisa" };
-  const description = p.summary.length > 200 ? `${p.summary.slice(0, 197)}…` : p.summary;
+  const description = p.official_summary.length > 200 ? `${p.official_summary.slice(0, 197)}…` : p.official_summary;
   return {
     title: `${p.name} · Nelisa`,
     description,
@@ -59,7 +59,7 @@ export default async function PropositionPage({ params }: Props) {
             {p.under_review && <UnderReviewBadge />}
           </div>
           <h1 className="text-3xl font-bold text-balance sm:text-4xl">{p.name}</h1>
-          <p className="text-lg leading-relaxed text-stone-800">{p.summary}</p>
+          <p className="text-lg leading-relaxed text-stone-800">{p.official_summary}</p>
           {p.under_review && (
             <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
               Em análise pela equipe: por enquanto mostramos só os dados oficiais. O resumo e os comentários do Nelisa

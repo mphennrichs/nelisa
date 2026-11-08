@@ -136,17 +136,17 @@ func SlugWithChamber(kind string, number, year int, origin Chamber) string {
 
 // Limites dos dados oficiais: a fonte é tratada como hostil.
 const (
-	maxSummaryLen = 10_000
-	maxStatusLen  = 1_000
-	maxURLLen     = 2_000
-	maxAuthors    = 200
-	maxAuthorLen  = 300
+	maxOfficialSummaryLen = 10_000
+	maxStatusLen          = 1_000
+	maxURLLen             = 2_000
+	maxAuthors            = 200
+	maxAuthorLen          = 300
 )
 
 // OfficialData é o que as fontes dizem da Proposição. Nada aqui é
 // produzido pelo Nelisa; em "em análise" é tudo o que o Leitor vê.
 type OfficialData struct {
-	Summary         string
+	OfficialSummary string
 	PresentedAt     *time.Time
 	OfficialTextURL string
 	Authors         []string
@@ -160,9 +160,9 @@ type OfficialData struct {
 // máximo, URL só http(s), autores vazios fora.
 func (d OfficialData) Clean() OfficialData {
 	out := OfficialData{
-		Summary:        truncate(strings.TrimSpace(d.Summary), maxSummaryLen),
-		Status:         truncate(strings.TrimSpace(d.Status), maxStatusLen),
-		AttachedToName: truncate(strings.TrimSpace(d.AttachedToName), 100),
+		OfficialSummary: truncate(strings.TrimSpace(d.OfficialSummary), maxOfficialSummaryLen),
+		Status:          truncate(strings.TrimSpace(d.Status), maxStatusLen),
+		AttachedToName:  truncate(strings.TrimSpace(d.AttachedToName), 100),
 	}
 	out.Superseded = d.Superseded || IsSupersededStatus(out.Status)
 	if d.PresentedAt != nil && !d.PresentedAt.IsZero() {
@@ -280,7 +280,7 @@ type SyncUpdate struct {
 func (p *Proposition) ApplySync(u SyncUpdate, now time.Time) {
 	d := u.Data.Clean()
 	if u.Chamber == p.OriginChamber {
-		p.Summary, p.PresentedAt, p.OfficialTextURL, p.Authors = d.Summary, d.PresentedAt, d.OfficialTextURL, d.Authors
+		p.OfficialSummary, p.PresentedAt, p.OfficialTextURL, p.Authors = d.OfficialSummary, d.PresentedAt, d.OfficialTextURL, d.Authors
 	}
 	if u.ReportsAttachment {
 		if p.AttachedToName != d.AttachedToName {

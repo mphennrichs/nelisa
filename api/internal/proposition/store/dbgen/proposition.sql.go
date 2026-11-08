@@ -75,7 +75,7 @@ const createProposition = `-- name: CreateProposition :exec
 
 INSERT INTO proposition.propositions (
     id, slug, kind, number, year, sphere, origin_chamber,
-    summary, presented_at, official_text_url, authors, status, status_at,
+    official_summary, presented_at, official_text_url, authors, status, status_at,
     attached_to, attached_to_name, superseded, review_state, created_at, updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,
@@ -92,7 +92,7 @@ type CreatePropositionParams struct {
 	Year            int32
 	Sphere          string
 	OriginChamber   string
-	Summary         string
+	OfficialSummary string
 	PresentedAt     *time.Time
 	OfficialTextUrl string
 	Authors         []string
@@ -116,7 +116,7 @@ func (q *Queries) CreateProposition(ctx context.Context, arg CreatePropositionPa
 		arg.Year,
 		arg.Sphere,
 		arg.OriginChamber,
-		arg.Summary,
+		arg.OfficialSummary,
 		arg.PresentedAt,
 		arg.OfficialTextUrl,
 		arg.Authors,
@@ -145,7 +145,7 @@ func (q *Queries) DeleteSuggestedLink(ctx context.Context, id string) (int64, er
 }
 
 const findPropositionsByName = `-- name: FindPropositionsByName :many
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
 WHERE kind = $1 AND number = $2 AND year = $3
 ORDER BY created_at, id
 `
@@ -173,7 +173,7 @@ func (q *Queries) FindPropositionsByName(ctx context.Context, arg FindPropositio
 			&i.Year,
 			&i.Sphere,
 			&i.OriginChamber,
-			&i.Summary,
+			&i.OfficialSummary,
 			&i.PresentedAt,
 			&i.OfficialTextUrl,
 			&i.Authors,
@@ -221,7 +221,7 @@ func (q *Queries) GetLink(ctx context.Context, id string) (PropositionSourceLink
 }
 
 const getPropositionByID = `-- name: GetPropositionByID :one
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE id = $1
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE id = $1
 `
 
 func (q *Queries) GetPropositionByID(ctx context.Context, id string) (PropositionProposition, error) {
@@ -235,7 +235,7 @@ func (q *Queries) GetPropositionByID(ctx context.Context, id string) (Propositio
 		&i.Year,
 		&i.Sphere,
 		&i.OriginChamber,
-		&i.Summary,
+		&i.OfficialSummary,
 		&i.PresentedAt,
 		&i.OfficialTextUrl,
 		&i.Authors,
@@ -252,7 +252,7 @@ func (q *Queries) GetPropositionByID(ctx context.Context, id string) (Propositio
 }
 
 const getPropositionByIDForUpdate = `-- name: GetPropositionByIDForUpdate :one
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE id = $1 FOR UPDATE
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE id = $1 FOR UPDATE
 `
 
 // Serializa mudanças concorrentes na mesma Proposição (duas
@@ -268,7 +268,7 @@ func (q *Queries) GetPropositionByIDForUpdate(ctx context.Context, id string) (P
 		&i.Year,
 		&i.Sphere,
 		&i.OriginChamber,
-		&i.Summary,
+		&i.OfficialSummary,
 		&i.PresentedAt,
 		&i.OfficialTextUrl,
 		&i.Authors,
@@ -285,7 +285,7 @@ func (q *Queries) GetPropositionByIDForUpdate(ctx context.Context, id string) (P
 }
 
 const getPropositionBySlug = `-- name: GetPropositionBySlug :one
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE slug = $1
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE slug = $1
 `
 
 func (q *Queries) GetPropositionBySlug(ctx context.Context, slug string) (PropositionProposition, error) {
@@ -299,7 +299,7 @@ func (q *Queries) GetPropositionBySlug(ctx context.Context, slug string) (Propos
 		&i.Year,
 		&i.Sphere,
 		&i.OriginChamber,
-		&i.Summary,
+		&i.OfficialSummary,
 		&i.PresentedAt,
 		&i.OfficialTextUrl,
 		&i.Authors,
@@ -316,7 +316,7 @@ func (q *Queries) GetPropositionBySlug(ctx context.Context, slug string) (Propos
 }
 
 const listAttachedTo = `-- name: ListAttachedTo :many
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE attached_to = $1 ORDER BY year, number, id
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE attached_to = $1 ORDER BY year, number, id
 `
 
 func (q *Queries) ListAttachedTo(ctx context.Context, attachedTo *string) ([]PropositionProposition, error) {
@@ -336,7 +336,7 @@ func (q *Queries) ListAttachedTo(ctx context.Context, attachedTo *string) ([]Pro
 			&i.Year,
 			&i.Sphere,
 			&i.OriginChamber,
-			&i.Summary,
+			&i.OfficialSummary,
 			&i.PresentedAt,
 			&i.OfficialTextUrl,
 			&i.Authors,
@@ -506,7 +506,7 @@ func (q *Queries) ListLinksByPropositions(ctx context.Context, ids []string) ([]
 }
 
 const listPropositions = `-- name: ListPropositions :many
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions ORDER BY updated_at DESC, id
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions ORDER BY updated_at DESC, id
 `
 
 func (q *Queries) ListPropositions(ctx context.Context) ([]PropositionProposition, error) {
@@ -526,7 +526,7 @@ func (q *Queries) ListPropositions(ctx context.Context) ([]PropositionPropositio
 			&i.Year,
 			&i.Sphere,
 			&i.OriginChamber,
-			&i.Summary,
+			&i.OfficialSummary,
 			&i.PresentedAt,
 			&i.OfficialTextUrl,
 			&i.Authors,
@@ -550,7 +550,7 @@ func (q *Queries) ListPropositions(ctx context.Context) ([]PropositionPropositio
 }
 
 const listPropositionsInStates = `-- name: ListPropositionsInStates :many
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
 WHERE review_state = ANY($1::text[])
 ORDER BY updated_at DESC, id
 `
@@ -574,7 +574,7 @@ func (q *Queries) ListPropositionsInStates(ctx context.Context, states []string)
 			&i.Year,
 			&i.Sphere,
 			&i.OriginChamber,
-			&i.Summary,
+			&i.OfficialSummary,
 			&i.PresentedAt,
 			&i.OfficialTextUrl,
 			&i.Authors,
@@ -598,7 +598,7 @@ func (q *Queries) ListPropositionsInStates(ctx context.Context, states []string)
 }
 
 const listUnresolvedAttachments = `-- name: ListUnresolvedAttachments :many
-SELECT id, slug, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
+SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
 WHERE attached_to IS NULL AND attached_to_name = $1
 `
 
@@ -621,7 +621,7 @@ func (q *Queries) ListUnresolvedAttachments(ctx context.Context, attachedToName 
 			&i.Year,
 			&i.Sphere,
 			&i.OriginChamber,
-			&i.Summary,
+			&i.OfficialSummary,
 			&i.PresentedAt,
 			&i.OfficialTextUrl,
 			&i.Authors,
@@ -682,7 +682,7 @@ func (q *Queries) UpdateLinkSync(ctx context.Context, arg UpdateLinkSyncParams) 
 
 const updateProposition = `-- name: UpdateProposition :exec
 UPDATE proposition.propositions
-SET summary = $2,
+SET official_summary = $2,
     presented_at = $3,
     official_text_url = $4,
     authors = $5,
@@ -698,7 +698,7 @@ WHERE id = $1
 
 type UpdatePropositionParams struct {
 	ID              string
-	Summary         string
+	OfficialSummary string
 	PresentedAt     *time.Time
 	OfficialTextUrl string
 	Authors         []string
@@ -714,7 +714,7 @@ type UpdatePropositionParams struct {
 func (q *Queries) UpdateProposition(ctx context.Context, arg UpdatePropositionParams) error {
 	_, err := q.db.Exec(ctx, updateProposition,
 		arg.ID,
-		arg.Summary,
+		arg.OfficialSummary,
 		arg.PresentedAt,
 		arg.OfficialTextUrl,
 		arg.Authors,

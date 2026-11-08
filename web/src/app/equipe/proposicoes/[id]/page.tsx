@@ -71,7 +71,7 @@ function PropositionDetail({ id }: { id: string }) {
           <span>Iniciada {chamberIn(p.origin_chamber)} · apresentada em {fmtDate(p.presented_at)}</span>
         </p>
         <h1 className="text-2xl font-bold">{p.name}</h1>
-        <p className="leading-relaxed text-stone-800">{p.summary}</p>
+        <p className="leading-relaxed text-stone-800">{p.official_summary}</p>
       </header>
 
       <div aria-live="polite" className="space-y-2">

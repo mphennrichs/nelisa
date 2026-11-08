@@ -96,7 +96,7 @@ function Importer() {
                     <p className="font-medium">
                       {h.name} <span className="text-sm font-normal text-stone-600">· apresentada em {fmtDate(h.presented_at)}</span>
                     </p>
-                    <p className="text-stone-800">{h.summary}</p>
+                    <p className="text-stone-800">{h.official_summary}</p>
                     {h.status && <p className="text-sm text-stone-600">Situação: {officialText(h.status)}</p>}
                     <p className="text-sm"><a href={h.source_url} className="link" rel="noopener noreferrer">Ver {chamberIn(r.chamber)}</a></p>
                     {h.linked_proposition_id ? (

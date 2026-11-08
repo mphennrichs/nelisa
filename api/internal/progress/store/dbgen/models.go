@@ -40,7 +40,7 @@ type PropositionProposition struct {
 	Year            int32
 	Sphere          string
 	OriginChamber   string
-	Summary         string
+	OfficialSummary string
 	PresentedAt     *time.Time
 	OfficialTextUrl string
 	Authors         []string

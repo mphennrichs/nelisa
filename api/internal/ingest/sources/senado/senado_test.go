@@ -81,7 +81,7 @@ func TestSearchPEC221Revisora(t *testing.T) {
 		Kind:            "PEC",
 		Number:          221,
 		Year:            2019,
-		Summary:         "Altera o art. 7º da Constituição Federal para reduzir a duração máxima semanal do trabalho e prever 2 (dois) dias de repouso semanal remunerado, sem qualquer redução salarial; e dá outras providências.",
+		OfficialSummary: "Altera o art. 7º da Constituição Federal para reduzir a duração máxima semanal do trabalho e prever 2 (dois) dias de repouso semanal remunerado, sem qualquer redução salarial; e dá outras providências.",
 		PresentedAt:     brt("2006-01-02", "2026-05-28"),
 		OfficialTextURL: "https://legis.senado.gov.br/sdleg-getter/dadosabertos/documento/d11bdbc4-b414-4842-bf97-882601e75cbe",
 		Authors:         []string{"Câmara dos Deputados"},

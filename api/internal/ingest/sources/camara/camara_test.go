@@ -86,7 +86,7 @@ func TestSearchPEC221(t *testing.T) {
 		Kind:            "PEC",
 		Number:          221,
 		Year:            2019,
-		Summary:         "Altera o Art. 7º inciso XII da constituição Federal, reduzindo a jornada de trabalho a 36 horas semanais em 10 anos.",
+		OfficialSummary: "Altera o Art. 7º inciso XII da constituição Federal, reduzindo a jornada de trabalho a 36 horas semanais em 10 anos.",
 		PresentedAt:     brt("2019-12-11T17:37"),
 		OfficialTextURL: "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=1845483",
 		Authors:         []string{"Reginaldo Lopes"},

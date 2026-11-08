@@ -34,8 +34,8 @@ type SourceRecord struct {
 	Number     int
 	Year       int
 	// Ementa oficial.
-	Summary     string
-	PresentedAt time.Time
+	OfficialSummary string
+	PresentedAt     time.Time
 	// OfficialTextURL é o link do Documento integral na Casa ("" se não houver).
 	OfficialTextURL string
 	// Authors como a Casa escreve ("Câmara dos Deputados", "Dep. Fulano (PT/SP)").

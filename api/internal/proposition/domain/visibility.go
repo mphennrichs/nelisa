@@ -49,7 +49,7 @@ type PublicProposition struct {
 	Year            int
 	Sphere          Sphere
 	OriginChamber   Chamber
-	Summary         string
+	OfficialSummary string
 	PresentedAt     *time.Time
 	OfficialTextURL string
 	Authors         []string
@@ -74,7 +74,7 @@ func PublicView(p Proposition, links []SourceLink, principal *Proposition, attac
 	out := PublicProposition{
 		Slug: p.Slug, Name: p.Name(), Kind: p.Kind, Number: p.Number, Year: p.Year,
 		Sphere: p.Sphere, OriginChamber: p.OriginChamber,
-		Summary: p.Summary, PresentedAt: p.PresentedAt, OfficialTextURL: p.OfficialTextURL,
+		OfficialSummary: p.OfficialSummary, PresentedAt: p.PresentedAt, OfficialTextURL: p.OfficialTextURL,
 		Authors: append([]string(nil), p.Authors...), Status: p.Status, Superseded: p.Superseded,
 		UnderReview: p.ReviewState == ReviewInReview, UpdatedAt: p.UpdatedAt,
 		Sources: []PublicSource{}, Attached: []PublicRef{},

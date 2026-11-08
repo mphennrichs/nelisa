@@ -3,7 +3,7 @@
 -- name: CreateProposition :exec
 INSERT INTO proposition.propositions (
     id, slug, kind, number, year, sphere, origin_chamber,
-    summary, presented_at, official_text_url, authors, status, status_at,
+    official_summary, presented_at, official_text_url, authors, status, status_at,
     attached_to, attached_to_name, superseded, review_state, created_at, updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,
@@ -51,7 +51,7 @@ WHERE attached_to IS NULL AND attached_to_name = $1;
 
 -- name: UpdateProposition :exec
 UPDATE proposition.propositions
-SET summary = $2,
+SET official_summary = $2,
     presented_at = $3,
     official_text_url = $4,
     authors = $5,

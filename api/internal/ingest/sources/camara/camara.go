@@ -256,7 +256,7 @@ func mapProposition(id string, p proposition) (app.SourceRecord, error) {
 		Kind:            kind,
 		Number:          int(p.Numero),
 		Year:            int(p.Ano),
-		Summary:         summary,
+		OfficialSummary: summary,
 		PresentedAt:     presented,
 		OfficialTextURL: httpsrc.OfficialURL(str(p.URLInteiroTeor)),
 		Status:          status,

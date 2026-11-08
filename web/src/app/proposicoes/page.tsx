@@ -33,7 +33,7 @@ export default async function PropositionsPage() {
               <h2 className="text-xl font-semibold">
                 <Link href={`/proposicao/${p.slug}`} className="hover:underline">{p.name}</Link>
               </h2>
-              <p className="leading-relaxed text-stone-800">{p.summary}</p>
+              <p className="leading-relaxed text-stone-800">{p.official_summary}</p>
               {p.status && <p className="text-sm text-stone-600">Situação: {officialText(p.status)}</p>}
             </li>
           ))}

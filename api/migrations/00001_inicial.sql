@@ -82,7 +82,7 @@ CREATE TABLE proposition.propositions (
     origin_chamber   text NOT NULL CHECK (origin_chamber <> ''),
     -- Dados oficiais, copiados da fonte pela Importação e pela
     -- Sincronização. Nada aqui é produzido pelo Nelisa.
-    summary          text NOT NULL DEFAULT '',
+    official_summary text NOT NULL DEFAULT '',
     presented_at     timestamptz,
     official_text_url text NOT NULL DEFAULT '',
     authors          text[] NOT NULL DEFAULT '{}',

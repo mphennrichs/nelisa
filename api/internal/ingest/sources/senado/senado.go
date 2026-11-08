@@ -272,7 +272,7 @@ func mapProcess(id string, p process) (app.SourceRecord, error) {
 		Kind:            kind,
 		Number:          int(p.Numero),
 		Year:            int(p.Ano),
-		Summary:         summary,
+		OfficialSummary: summary,
 		PresentedAt:     presented,
 		OfficialTextURL: textURL,
 		Authors:         authors,

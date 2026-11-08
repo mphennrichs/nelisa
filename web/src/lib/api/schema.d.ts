@@ -1299,8 +1299,8 @@ export interface components {
             kind: string;
             number: number;
             year: number;
-            /** @description Ementa oficial */
-            summary: string;
+            /** @description Ementa oficial (da fonte) */
+            official_summary: string;
             /** Format: date-time */
             presented_at: string | null;
             authors: string[];
@@ -1388,7 +1388,8 @@ export interface components {
             /** @enum {string} */
             sphere: "federal" | "state" | "municipal";
             origin_chamber: string;
-            summary: string;
+            /** @description Ementa oficial (da fonte) */
+            official_summary: string;
             /** Format: date-time */
             presented_at: string | null;
             official_text_url: string;
@@ -1433,8 +1434,8 @@ export interface components {
             /** @enum {string} */
             sphere: "federal" | "state" | "municipal";
             origin_chamber: string;
-            /** @description Ementa oficial */
-            summary: string;
+            /** @description Ementa oficial (da fonte) */
+            official_summary: string;
             /** Format: date-time */
             presented_at: string | null;
             /** @description Link do Documento integral na Casa */

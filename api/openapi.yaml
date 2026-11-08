@@ -747,14 +747,14 @@ components:
       description: "Revisão: criado (draft), em revisão (in_review, \"em análise\" para o Leitor), pronto (ready)."
     SourceSearchHit:
       type: object
-      required: [external_id, name, kind, number, year, summary, presented_at, authors, status, source_url, linked_proposition_id, link_state]
+      required: [external_id, name, kind, number, year, official_summary, presented_at, authors, status, source_url, linked_proposition_id, link_state]
       properties:
         external_id: { type: string }
         name: { type: string, example: PEC 221/2019 }
         kind: { type: string }
         number: { type: integer }
         year: { type: integer }
-        summary: { type: string, description: Ementa oficial }
+        official_summary: { type: string, description: Ementa oficial (da fonte) }
         presented_at: { type: [string, "null"], format: date-time }
         authors: { type: array, items: { type: string } }
         status: { type: string }
@@ -827,7 +827,7 @@ components:
         dispatch: { type: string }
     TeamProposition:
       type: object
-      required: [id, slug, name, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, superseded, attached_to, review_state, links, created_at, updated_at]
+      required: [id, slug, name, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, superseded, attached_to, review_state, links, created_at, updated_at]
       properties:
         id: { type: string, format: uuid }
         slug: { type: string, example: pec-221-2019 }
@@ -837,7 +837,7 @@ components:
         year: { type: integer }
         sphere: { type: string, enum: [federal, state, municipal] }
         origin_chamber: { type: string }
-        summary: { type: string }
+        official_summary: { type: string, description: Ementa oficial (da fonte) }
         presented_at: { type: [string, "null"], format: date-time }
         official_text_url: { type: string }
         authors: { type: array, items: { type: string } }
@@ -883,7 +883,7 @@ components:
       description: |
         Só dados oficiais e o selo "em análise". Nada interno (estado de
         Revisão, quem confirmou, erros de Sincronização, sugestões).
-      required: [slug, name, kind, number, year, sphere, origin_chamber, summary, presented_at, official_text_url, authors, status, superseded, attached_to, attached, sources, under_review, updated_at]
+      required: [slug, name, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, superseded, attached_to, attached, sources, under_review, updated_at]
       properties:
         slug: { type: string, example: pec-221-2019 }
         name: { type: string, example: PEC 221/2019 }
@@ -892,7 +892,7 @@ components:
         year: { type: integer }
         sphere: { type: string, enum: [federal, state, municipal] }
         origin_chamber: { type: string }
-        summary: { type: string, description: Ementa oficial }
+        official_summary: { type: string, description: Ementa oficial (da fonte) }
         presented_at: { type: [string, "null"], format: date-time }
         official_text_url: { type: string, description: Link do Documento integral na Casa }
         authors: { type: array, items: { type: string } }

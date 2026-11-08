@@ -23,7 +23,7 @@ type env struct {
 func newEnv() *env {
 	e := &env{w: fakes.NewWorld(), camara: fakes.NewSource(app.ChamberCamara), senado: fakes.NewSource(app.ChamberSenado)}
 	e.camara.Put(app.SourceRecord{
-		ExternalID: "2192459", Kind: "PEC", Number: 221, Year: 2019, Summary: "Altera a jornada",
+		ExternalID: "2192459", Kind: "PEC", Number: 221, Year: 2019, OfficialSummary: "Altera a jornada",
 		OriginChamber: app.ChamberCamara, Role: "origin", Status: "Remetida ao Senado",
 	}, fakes.Progress1("1-100", t0, "Apresentação"), fakes.Progress1("2-200", t0.Add(48*time.Hour), "Aprovada"))
 	e.senado.Put(app.SourceRecord{ExternalID: "8441243", Kind: "PEC", Number: 221, Year: 2019, Role: "review"},

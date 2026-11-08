@@ -217,7 +217,7 @@ func catalogErr(err error) error {
 
 func officialData(r ingestapp.SourceRecord) propdomain.OfficialData {
 	d := propdomain.OfficialData{
-		Summary: r.Summary, OfficialTextURL: r.OfficialTextURL, Authors: r.Authors,
+		OfficialSummary: r.OfficialSummary, OfficialTextURL: r.OfficialTextURL, Authors: r.Authors,
 		Status: r.Status, AttachedToName: r.AttachedTo,
 	}
 	if !r.PresentedAt.IsZero() {
