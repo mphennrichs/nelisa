@@ -18,6 +18,8 @@ import (
 	"github.com/mphennrichs/nelisa/api/internal/platform/httpx"
 	progressfakes "github.com/mphennrichs/nelisa/api/internal/progress/app/fakes"
 	propfakes "github.com/mphennrichs/nelisa/api/internal/proposition/app/fakes"
+	queuefakes "github.com/mphennrichs/nelisa/api/internal/queue/app/fakes"
+	reviewfakes "github.com/mphennrichs/nelisa/api/internal/review/app/fakes"
 	"github.com/mphennrichs/nelisa/api/internal/team/app/fakes"
 )
 
@@ -45,7 +47,9 @@ func (noScheduler) ScheduleSyncs(context.Context, []string) error { return nil }
 func fakeContent(logger *slog.Logger) contentModule {
 	w := propfakes.NewWorld()
 	p := contentPorts{
-		props: w.Props(), links: w.Links(), entries: progressfakes.NewEntries(), tx: w.Tx(),
+		props: w.Props(), versions: w.Versions(), contents: w.Contents(), topics: w.Topics(), links: w.Links(),
+		approvals: reviewfakes.NewWorld().Approvals(), claims: queuefakes.NewWorld().Claims(), users: fakes.NewWorld().Users(),
+		entries: progressfakes.NewEntries(), tx: w.Tx(),
 		audit:     func(context.Context, auditapp.RecordEventInput) error { return nil },
 		scheduler: noScheduler{}, sources: ingestapp.NewSources(),
 	}
@@ -103,6 +107,13 @@ func TestTeamRoutesAreMounted(t *testing.T) {
 		{"POST", "/api/team/propositions/import", `{}`, 401, "unauthenticated"},
 		{"GET", "/api/team/sources/search?kind=PEC&number=1&year=2020", "", 401, "unauthenticated"},
 		{"GET", "/api/public/propositions/pec-1-2020", "", 404, "proposition_not_found"},
+		{"GET", "/api/team/queue", "", 401, "unauthenticated"},
+		{"GET", "/api/team/topics", "", 401, "unauthenticated"},
+		{"POST", "/api/team/topics", `{}`, 401, "unauthenticated"},
+		{"POST", "/api/team/propositions/x/claim", "", 401, "unauthenticated"},
+		{"POST", "/api/team/propositions/x/versions/y/approve", "", 401, "unauthenticated"},
+		{"POST", "/api/team/propositions/x/versions/y/second-review", "", 401, "unauthenticated"},
+		{"PUT", "/api/team/propositions/x/versions/y/content", `{}`, 401, "unauthenticated"},
 	}
 	for _, c := range cases {
 		w := httptest.NewRecorder()

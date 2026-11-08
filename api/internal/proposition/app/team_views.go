@@ -19,6 +19,7 @@ type TeamPropositionDetail struct {
 	Principal *domain.Proposition
 	Attached  []domain.Proposition
 	Timeline  []TimelineEntry
+	Editorial TeamEditorial
 }
 
 type ListPropositionsInput struct{}
@@ -66,22 +67,44 @@ type GetPropositionInput struct {
 	PropositionID string
 }
 
-// GetProposition mostra uma Proposição à equipe, com Vínculos e Tramitação.
-type GetProposition struct {
-	props    PropositionRepo
-	links    LinkRepo
-	timeline TimelineReader
+// TeamEditorial é o ciclo editorial como a equipe o vê, com as decisões
+// de permissão já tomadas pela API (o front não decide).
+type TeamEditorial struct {
+	Versions []domain.Version
+	// Contents traz o conteúdo da Versão em análise e o da vigente.
+	Contents map[string]domain.Content
+	// Topics são todos os Temas, para mostrar nomes (inclusive de
+	// desativados ainda em uso).
+	Topics map[string]domain.Topic
+	Claim  *ClaimInfo
+	Review ReviewStatus
+	// People são os nomes de quem aparece (Autoria, Posse, aprovação).
+	People           map[string]string
+	CanEdit          bool
+	CanCreateVersion bool
 }
 
-func NewGetProposition(props PropositionRepo, links LinkRepo, timeline TimelineReader) *GetProposition {
-	return &GetProposition{props: props, links: links, timeline: timeline}
+// GetProposition mostra uma Proposição à equipe, com Vínculos, Tramitação,
+// Versões, conteúdo editorial, Posse e Revisão.
+type GetProposition struct {
+	repos    EditorialRepos
+	links    LinkRepo
+	timeline TimelineReader
+	claims   Claims
+	reviews  Reviews
+	people   People
+}
+
+func NewGetProposition(repos EditorialRepos, links LinkRepo, timeline TimelineReader, claims Claims, reviews Reviews, people People) *GetProposition {
+	return &GetProposition{repos: repos, links: links, timeline: timeline, claims: claims, reviews: reviews, people: people}
 }
 
 func (uc *GetProposition) Execute(ctx context.Context, in GetPropositionInput) (TeamPropositionDetail, error) {
-	if _, err := requireEditor(ctx); err != nil {
+	actor, err := requireEditor(ctx)
+	if err != nil {
 		return TeamPropositionDetail{}, err
 	}
-	p, err := uc.props.FindByID(ctx, in.PropositionID)
+	p, err := uc.repos.Props.FindByID(ctx, in.PropositionID)
 	if err != nil {
 		return TeamPropositionDetail{}, err
 	}
@@ -89,7 +112,7 @@ func (uc *GetProposition) Execute(ctx context.Context, in GetPropositionInput) (
 	if err != nil {
 		return TeamPropositionDetail{}, err
 	}
-	principal, attached, err := relatives(ctx, uc.props, p)
+	principal, attached, err := relatives(ctx, uc.repos.Props, p)
 	if err != nil {
 		return TeamPropositionDetail{}, err
 	}
@@ -97,10 +120,83 @@ func (uc *GetProposition) Execute(ctx context.Context, in GetPropositionInput) (
 	if err != nil {
 		return TeamPropositionDetail{}, err
 	}
+	ed, err := uc.editorial(ctx, p.ID, actor.UserID)
+	if err != nil {
+		return TeamPropositionDetail{}, err
+	}
 	return TeamPropositionDetail{
 		TeamProposition: TeamProposition{Proposition: p, Links: links},
-		Principal:       principal, Attached: attached, Timeline: tl,
+		Principal:       principal, Attached: attached, Timeline: tl, Editorial: ed,
 	}, nil
+}
+
+func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID string) (TeamEditorial, error) {
+	vs, err := uc.repos.Versions.ListByProposition(ctx, propositionID)
+	if err != nil {
+		return TeamEditorial{}, err
+	}
+	current, pending := domain.FindVersions(vs)
+	var ids []string
+	for _, v := range []*domain.Version{pending, current} {
+		if v != nil {
+			ids = append(ids, v.ID)
+		}
+	}
+	ed := TeamEditorial{Versions: vs, Contents: map[string]domain.Content{}}
+	if len(ids) > 0 {
+		cs, err := uc.repos.Contents.ListByVersions(ctx, ids)
+		if err != nil {
+			return TeamEditorial{}, err
+		}
+		for _, c := range cs {
+			ed.Contents[c.VersionID] = c
+		}
+	}
+	topics, err := uc.repos.Topics.List(ctx)
+	if err != nil {
+		return TeamEditorial{}, err
+	}
+	ed.Topics = domain.TopicsByID(topics)
+	if ed.Claim, err = uc.claims.Current(ctx, propositionID); err != nil {
+		return TeamEditorial{}, err
+	}
+	if ed.Review, err = uc.reviews.Status(ctx, propositionID); err != nil {
+		return TeamEditorial{}, err
+	}
+	// Editar exige a Posse livre ou do próprio Ator; o caso de uso de
+	// gravar confere de novo.
+	free := ed.Claim == nil || ed.Claim.UserID == actorID
+	ed.CanEdit = pending != nil && free
+	ed.CanCreateVersion = pending == nil && free
+
+	var who []string
+	for _, c := range ed.Contents {
+		who = append(who, c.Authors...)
+		if c.UpdatedBy != "" {
+			who = append(who, c.UpdatedBy)
+		}
+	}
+	for _, v := range vs {
+		if v.CreatedBy != "" {
+			who = append(who, v.CreatedBy)
+		}
+	}
+	if ed.Claim != nil {
+		who = append(who, ed.Claim.UserID)
+	}
+	if a := ed.Review.Current; a != nil {
+		who = append(who, a.ApprovedBy)
+		if a.SecondReviewBy != "" {
+			who = append(who, a.SecondReviewBy)
+		}
+	}
+	ed.People = map[string]string{}
+	if len(who) > 0 {
+		if ed.People, err = uc.people.Names(ctx, who); err != nil {
+			return TeamEditorial{}, err
+		}
+	}
+	return ed, nil
 }
 
 // relatives devolve a principal (se resolvida) e as apensadas a p.

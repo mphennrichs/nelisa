@@ -166,7 +166,7 @@ func TestSourceLinkStates(t *testing.T) {
 
 func TestPublicViewHidesDraftsAndInternalData(t *testing.T) {
 	draft := mk(t, domain.ChamberCamara, domain.ReviewDraft)
-	if _, ok := domain.PublicView(draft, nil, nil, nil); ok {
+	if _, ok := domain.PublicView(draft, nil, nil, nil, domain.Editorial{}); ok {
 		t.Fatal("draft must not be public")
 	}
 	p := mk(t, domain.ChamberCamara, domain.ReviewInReview)
@@ -179,7 +179,7 @@ func TestPublicViewHidesDraftsAndInternalData(t *testing.T) {
 	attachedReady.Kind, attachedReady.Number, attachedReady.Slug = "PEC", 8, "pec-8-2025"
 	attachedDraft := mk(t, domain.ChamberCamara, domain.ReviewDraft)
 
-	v, ok := domain.PublicView(p, []domain.SourceLink{confirmed, suggested}, &principal, []domain.Proposition{attachedReady, attachedDraft})
+	v, ok := domain.PublicView(p, []domain.SourceLink{confirmed, suggested}, &principal, []domain.Proposition{attachedReady, attachedDraft}, domain.Editorial{})
 	if !ok || !v.UnderReview {
 		t.Fatalf("in_review must be public and under review: %v %+v", ok, v)
 	}
@@ -192,8 +192,10 @@ func TestPublicViewHidesDraftsAndInternalData(t *testing.T) {
 	if len(v.Attached) != 1 || v.Attached[0].Slug != "pec-8-2025" {
 		t.Errorf("only public attached are listed: %+v", v.Attached)
 	}
+	// Pronta sem Versão vigente aprovada não deveria existir; se existir,
+	// sai como "em análise", só com dados oficiais.
 	ready := mk(t, domain.ChamberCamara, domain.ReviewReady)
-	if v, ok := domain.PublicView(ready, nil, nil, nil); !ok || v.UnderReview {
-		t.Errorf("ready: %v %+v", ok, v)
+	if v, ok := domain.PublicView(ready, nil, nil, nil, domain.Editorial{}); !ok || !v.UnderReview || v.ReviewBadge != 0 {
+		t.Errorf("ready without current version: %v %+v", ok, v)
 	}
 }

@@ -16,13 +16,15 @@ import (
 // uso do ingest) já autorizou, audita e chama tudo dentro da própria
 // transação. Nunca confirmam um Vínculo sugerido: só ConfirmLink faz isso.
 type Catalog struct {
-	props PropositionRepo
-	links LinkRepo
-	clock clock.Clock
+	props    PropositionRepo
+	versions VersionRepo
+	contents ContentRepo
+	links    LinkRepo
+	clock    clock.Clock
 }
 
-func NewCatalog(props PropositionRepo, links LinkRepo, clk clock.Clock) *Catalog {
-	return &Catalog{props: props, links: links, clock: clk}
+func NewCatalog(repos EditorialRepos, links LinkRepo, clk clock.Clock) *Catalog {
+	return &Catalog{props: repos.Props, versions: repos.Versions, contents: repos.Contents, links: links, clock: clk}
 }
 
 // LinksByExternal devolve os Vínculos (sugeridos e confirmados) desses
@@ -83,7 +85,7 @@ type CreateImportedResult struct {
 	Suggested   []domain.SourceLink
 }
 
-// CreateImported cria a Proposição em "criado", o Vínculo confirmado da
+// CreateImported cria a Proposição em "criado" com a Versão 1 em análise, o Vínculo confirmado da
 // Casa escolhida e os sugeridos das outras, e resolve a Apensação nos dois
 // sentidos. Chame dentro de uma transação.
 func (c *Catalog) CreateImported(ctx context.Context, in CreateImportedInput) (CreateImportedResult, error) {
@@ -117,6 +119,19 @@ func (c *Catalog) CreateImported(ctx context.Context, in CreateImportedInput) (C
 		return CreateImportedResult{}, err
 	}
 	if err := c.props.Create(ctx, p); err != nil {
+		return CreateImportedResult{}, err
+	}
+	// A Versão 1 ("Texto original") nasce em análise, com conteúdo vazio:
+	// é nela que o Editor escreve o primeiro Resumo.
+	versionID, err := newID()
+	if err != nil {
+		return CreateImportedResult{}, err
+	}
+	v := domain.NewImportedVersion(versionID, p, now)
+	if err := c.versions.Create(ctx, v); err != nil {
+		return CreateImportedResult{}, err
+	}
+	if err := c.contents.Create(ctx, domain.NewEmptyContent(v.ID, now)); err != nil {
 		return CreateImportedResult{}, err
 	}
 

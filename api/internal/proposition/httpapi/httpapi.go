@@ -25,6 +25,12 @@ type UseCases struct {
 	ConfirmLink      *app.ConfirmLink
 	RejectLink       *app.RejectLink
 	SubmitForReview  *app.SubmitForReview
+	CreateVersion    *app.CreateVersion
+	UpdateContent    *app.UpdateContent
+	ConfirmContent   *app.ConfirmContent
+	ListTopics       *app.ListTopics
+	CreateTopic      *app.CreateTopic
+	UpdateTopic      *app.UpdateTopic
 	ListPublic       *app.ListPublicPropositions
 	GetPublic        *app.GetPublicProposition
 }
@@ -48,6 +54,15 @@ func (h *Handlers) RegisterTeam(r chi.Router) {
 		r.Post("/propositions/{id}/submit-for-review", h.submitForReview)
 		r.Post("/propositions/{id}/links/{linkId}/confirm", h.confirmLink)
 		r.Post("/propositions/{id}/links/{linkId}/reject", h.rejectLink)
+		r.Post("/propositions/{id}/versions", h.createVersion)
+		r.Put("/propositions/{id}/versions/{versionId}/content", h.updateContent)
+		r.Post("/propositions/{id}/versions/{versionId}/content/confirm", h.confirmContent)
+		r.Get("/topics", h.listTopics)
+	})
+	r.Group(func(r chi.Router) {
+		r.Use(auth.RequireRole(auth.RoleAdmin))
+		r.Post("/topics", h.createTopic)
+		r.Patch("/topics/{topicId}", h.updateTopic)
 	})
 }
 
@@ -113,6 +128,7 @@ type teamPropositionDetailDTO struct {
 	teamPropositionDTO
 	Attached []attachedRefDTO `json:"attached"`
 	Timeline []timelineDTO    `json:"timeline"`
+	editorialDTO
 }
 
 func ts(t time.Time) string { return t.UTC().Format(time.RFC3339) }
@@ -209,6 +225,7 @@ func (h *Handlers) get(w http.ResponseWriter, r *http.Request) {
 		id := a.ID
 		out.Attached = append(out.Attached, attachedRefDTO{ID: &id, Name: a.Name()})
 	}
+	out.editorialDTO = toEditorialDTO(d.Editorial, actorID(r))
 	w.Header().Set("Cache-Control", "no-store")
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
@@ -279,6 +296,17 @@ type publicPropositionDTO struct {
 	Sources         []publicSourceDTO `json:"sources"`
 	UnderReview     bool              `json:"under_review"`
 	UpdatedAt       string            `json:"updated_at"`
+	// Da Versão vigente; vazios/nulos sem ela.
+	Summary        string                   `json:"summary"`
+	ShortSummary   string                   `json:"short_summary"`
+	Topics         []string                 `json:"topics"`
+	ReviewBadge    *int                     `json:"review_badge"`
+	PendingVersion *publicPendingVersionDTO `json:"pending_version"`
+}
+
+type publicPendingVersionDTO struct {
+	Label           string `json:"label"`
+	OfficialTextURL string `json:"official_text_url"`
 }
 
 type publicPropositionDetailDTO struct {
@@ -297,6 +325,14 @@ func toPublicDTO(p domain.PublicProposition) publicPropositionDTO {
 		PresentedAt: tsPtr(p.PresentedAt), OfficialTextURL: p.OfficialTextURL, Authors: nonNil(p.Authors),
 		Status: p.Status, Superseded: p.Superseded, UnderReview: p.UnderReview, UpdatedAt: ts(p.UpdatedAt),
 		Attached: make([]publicRefDTO, 0, len(p.Attached)), Sources: make([]publicSourceDTO, 0, len(p.Sources)),
+		Summary: p.Summary, ShortSummary: p.ShortSummary, Topics: nonNil(p.Topics),
+	}
+	if p.ReviewBadge == 1 || p.ReviewBadge == 2 {
+		b := p.ReviewBadge
+		out.ReviewBadge = &b
+	}
+	if p.PendingVersion != nil {
+		out.PendingVersion = &publicPendingVersionDTO{Label: p.PendingVersion.Label, OfficialTextURL: p.PendingVersion.OfficialTextURL}
 	}
 	if p.AttachedTo != nil {
 		ref := toPublicRef(*p.AttachedTo)
@@ -361,10 +397,34 @@ func errMappings() []errMapping {
 		{domain.ErrLinkTaken, http.StatusConflict, "link_taken", "Este registro já está vinculado a outra Proposição."},
 		{domain.ErrChamberAlreadyLinked, http.StatusConflict, "chamber_already_linked", "A Proposição já tem um vínculo confirmado nessa Casa."},
 		{domain.ErrInvalidTransition, http.StatusConflict, "invalid_review_transition", "A Proposição não está no estado certo para isso."},
+		{domain.ErrVersionNotFound, http.StatusNotFound, "version_not_found", "Versão não encontrada."},
+		{domain.ErrVersionNotEditable, http.StatusConflict, "version_not_editable", "Só a Versão em análise pode ser editada."},
+		{domain.ErrPendingVersionExists, http.StatusConflict, "pending_version_exists", "Já existe uma Versão em análise; aprove-a antes de registrar outra."},
+		{domain.ErrStaleContent, http.StatusConflict, "stale_content", "Outra pessoa gravou este conteúdo depois que você o abriu. Recarregue para ver a versão atual."},
+		{domain.ErrNothingToConfirm, http.StatusConflict, "nothing_to_confirm", "Não há conteúdo trazido da Versão anterior para confirmar."},
+		{domain.ErrInvalidLabel, http.StatusBadRequest, "invalid_label", "Rótulo da Versão é obrigatório (até 120 caracteres)."},
+		{domain.ErrInvalidVersionURL, http.StatusBadRequest, "invalid_official_text_url", "Informe o link http(s) do Documento integral."},
+		{domain.ErrSummaryTooLong, http.StatusBadRequest, "summary_too_long", "O Resumo pode ter até 5.000 caracteres."},
+		{domain.ErrShortSummaryTooLong, http.StatusBadRequest, "short_summary_too_long", "O Resumo curto pode ter até 280 caracteres."},
+		{domain.ErrTooManyTopics, http.StatusBadRequest, "too_many_topics", "Escolha no máximo 3 Temas."},
+		{domain.ErrDuplicateTopic, http.StatusBadRequest, "duplicate_topic", "Tema repetido."},
+		{domain.ErrTopicNotFound, http.StatusNotFound, "topic_not_found", "Tema não encontrado."},
+		{domain.ErrTopicInactive, http.StatusBadRequest, "topic_inactive", "Este Tema foi desativado e não pode ser escolhido."},
+		{domain.ErrInvalidTopicName, http.StatusBadRequest, "invalid_topic_name", "Nome do Tema é obrigatório (até 60 caracteres)."},
+		{domain.ErrTopicNameTaken, http.StatusConflict, "topic_name_taken", "Já existe um Tema com esse nome."},
 	}
 }
 
 func writeErr(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) {
+	var taken *app.ClaimTakenError
+	if errors.As(err, &taken) {
+		holder := taken.HolderName
+		if holder == "" {
+			holder = "Outra pessoa"
+		}
+		httpx.WriteError(w, http.StatusConflict, "claim_taken", holder+" está com a posse desta Proposição.")
+		return
+	}
 	for _, m := range errMappings() {
 		if errors.Is(err, m.err) {
 			httpx.WriteError(w, m.status, m.code, m.message)

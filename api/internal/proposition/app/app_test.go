@@ -28,7 +28,7 @@ func as(id string, role auth.Role) context.Context {
 
 var editor = as("editor-1", auth.RoleEditor)
 
-func (e *env) catalog() *app.Catalog { return app.NewCatalog(e.w.Props(), e.w.Links(), e.clk) }
+func (e *env) catalog() *app.Catalog { return app.NewCatalog(e.w.Repos(), e.w.Links(), e.clk) }
 func (e *env) confirm() *app.ConfirmLink {
 	return app.NewConfirmLink(e.w.Links(), e.w.Tx(), e.w.Audit(), e.w.Scheduler(), e.clk)
 }
@@ -95,7 +95,7 @@ func TestTeamUseCasesRefuseAnonymousAndNonTeam(t *testing.T) {
 			return err
 		},
 		"get": func(ctx context.Context) error {
-			_, err := app.NewGetProposition(e.w.Props(), e.w.Links(), e.w.Timeline()).Execute(ctx, app.GetPropositionInput{PropositionID: pid})
+			_, err := app.NewGetProposition(e.w.Repos(), e.w.Links(), e.w.Timeline(), e.w.Claims(), e.w.Reviews(), e.w.People()).Execute(ctx, app.GetPropositionInput{PropositionID: pid})
 			return err
 		},
 	}
@@ -366,8 +366,8 @@ func TestApplySyncKeepsReviewStateAndRefusesSuggestions(t *testing.T) {
 func TestPublicLayerHidesDraftsAndInternalData(t *testing.T) {
 	e := newEnv()
 	res := e.importPEC(t)
-	list := app.NewListPublicPropositions(e.w.Props(), e.w.Links())
-	get := app.NewGetPublicProposition(e.w.Props(), e.w.Links(), e.w.Timeline())
+	list := app.NewListPublicPropositions(e.w.Repos(), e.w.Links(), e.w.Reviews())
+	get := app.NewGetPublicProposition(e.w.Repos(), e.w.Links(), e.w.Timeline(), e.w.Reviews())
 	ctx := context.Background()
 
 	if ps, err := list.Execute(ctx); err != nil || len(ps) != 0 {

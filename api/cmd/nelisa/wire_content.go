@@ -21,6 +21,14 @@ import (
 	propdomain "github.com/mphennrichs/nelisa/api/internal/proposition/domain"
 	prophttp "github.com/mphennrichs/nelisa/api/internal/proposition/httpapi"
 	propstore "github.com/mphennrichs/nelisa/api/internal/proposition/store"
+	queueapp "github.com/mphennrichs/nelisa/api/internal/queue/app"
+	queuehttp "github.com/mphennrichs/nelisa/api/internal/queue/httpapi"
+	queuestore "github.com/mphennrichs/nelisa/api/internal/queue/store"
+	reviewapp "github.com/mphennrichs/nelisa/api/internal/review/app"
+	reviewhttp "github.com/mphennrichs/nelisa/api/internal/review/httpapi"
+	reviewstore "github.com/mphennrichs/nelisa/api/internal/review/store"
+	teamapp "github.com/mphennrichs/nelisa/api/internal/team/app"
+	teamstore "github.com/mphennrichs/nelisa/api/internal/team/store"
 )
 
 // Os módulos de conteúdo (proposition, progress, ingest) não se importam:
@@ -45,7 +53,15 @@ type recordAudit func(ctx context.Context, in auditapp.RecordEventInput) error
 // Em produção vêm do Postgres e do River; nos testes, dos fakes.
 type contentPorts struct {
 	props     propapp.PropositionRepo
+	versions  propapp.VersionRepo
+	contents  propapp.ContentRepo
+	topics    propapp.TopicRepo
 	links     propapp.LinkRepo
+	approvals reviewapp.ApprovalRepo
+	claims    queueapp.ClaimRepo
+	// users é o cadastro da equipe, só para nomes e conta ativa
+	// (teamapp.Directory).
+	users     teamapp.UserRepo
 	entries   progressapp.EntryRepo
 	tx        txRunner
 	audit     recordAudit
@@ -56,7 +72,13 @@ type contentPorts struct {
 func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, sources ingestapp.Sources) contentPorts {
 	return contentPorts{
 		props:     propstore.NewPropositions(pool),
+		versions:  propstore.NewVersions(pool),
+		contents:  propstore.NewContents(pool),
+		topics:    propstore.NewTopics(pool),
 		links:     propstore.NewLinks(pool),
+		approvals: reviewstore.New(pool),
+		claims:    queuestore.New(pool),
+		users:     teamstore.NewUsers(pool),
 		entries:   progressstore.New(pool),
 		tx:        db.NewTxRunner(pool),
 		audit:     auditapp.NewRecordEvent(auditstore.New(pool), clk).Execute,
@@ -68,6 +90,8 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 // contentUseCases são os casos de uso montados, para a API e o worker.
 type contentUseCases struct {
 	prop     prophttp.UseCases
+	review   reviewhttp.UseCases
+	queue    queuehttp.UseCases
 	ingest   ingesthttp.UseCases
 	syncLink *ingestapp.SyncLink
 	syncAll  *ingestapp.SyncAll
@@ -75,21 +99,49 @@ type contentUseCases struct {
 
 func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 	timeline := progressapp.NewTimeline(p.entries)
-	catalog := propapp.NewCatalog(p.props, p.links, clk)
+	repos := propapp.EditorialRepos{Props: p.props, Versions: p.versions, Contents: p.contents, Topics: p.topics}
+	catalog := propapp.NewCatalog(repos, p.links, clk)
 	ic := ingestCatalog{c: catalog}
 	pw := progressWriter{uc: progressapp.NewRecordEntries(p.entries, clk)}
 	tl := timelineReader{uc: timeline}
 	pa := propositionAudit{record: p.audit}
 	ia := ingestAudit{record: p.audit}
+
+	// Ciclo editorial: proposition, review e queue não se importam; os
+	// adaptadores de wire_editorial.go ligam as portas de um às operações
+	// de sistema do outro.
+	directory := teamapp.NewDirectory(p.users)
+	editorial := propapp.NewEditorial(repos, clk)
+	gate := queueapp.NewGate(p.claims, queuePeople{d: directory}, clk)
+	reports := reviewapp.NewReports(p.approvals, reviewEditorial{e: editorial})
+	pc := propClaims{g: gate}
+	pr := propReviews{r: reports}
+	re := reviewEditorial{e: editorial}
+	qp := queuePeople{d: directory}
 	return contentUseCases{
 		prop: prophttp.UseCases{
 			ListPropositions: propapp.NewListPropositions(p.props, p.links),
-			GetProposition:   propapp.NewGetProposition(p.props, p.links, tl),
+			GetProposition:   propapp.NewGetProposition(repos, p.links, tl, pc, pr, propPeople{d: directory}),
 			ConfirmLink:      propapp.NewConfirmLink(p.links, p.tx, pa, p.scheduler, clk),
 			RejectLink:       propapp.NewRejectLink(p.links, p.tx, pa),
 			SubmitForReview:  propapp.NewSubmitForReview(p.props, p.tx, pa, clk),
-			ListPublic:       propapp.NewListPublicPropositions(p.props, p.links),
-			GetPublic:        propapp.NewGetPublicProposition(p.props, p.links, tl),
+			CreateVersion:    propapp.NewCreateVersion(repos, pc, p.tx, pa, clk),
+			UpdateContent:    propapp.NewUpdateContent(repos, pc, p.tx, pa, clk),
+			ConfirmContent:   propapp.NewConfirmContent(repos, pc, p.tx, pa, clk),
+			ListTopics:       propapp.NewListTopics(p.topics),
+			CreateTopic:      propapp.NewCreateTopic(p.topics, p.tx, pa, clk),
+			UpdateTopic:      propapp.NewUpdateTopic(p.topics, p.tx, pa),
+			ListPublic:       propapp.NewListPublicPropositions(repos, p.links, pr),
+			GetPublic:        propapp.NewGetPublicProposition(repos, p.links, tl, pr),
+		},
+		review: reviewhttp.UseCases{
+			Approve:      reviewapp.NewApprove(p.approvals, re, reviewClaims{g: gate}, p.tx, reviewAudit{record: p.audit}, clk),
+			SecondReview: reviewapp.NewSecondReview(p.approvals, re, p.tx, reviewAudit{record: p.audit}, clk),
+		},
+		queue: queuehttp.UseCases{
+			Claim:     queueapp.NewClaim(p.claims, queueProps{e: editorial}, qp, p.tx, clk),
+			Release:   queueapp.NewRelease(p.claims, qp, p.tx, queueAudit{record: p.audit}, clk),
+			ListQueue: queueapp.NewListQueue(queueProps{e: editorial}, queueSecondReviews{r: reports}, p.claims, qp, clk),
 		},
 		ingest: ingesthttp.UseCases{
 			SearchSources: ingestapp.NewSearchSources(p.sources, ic),
@@ -103,11 +155,16 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 // contentModule é o que o roteador precisa dos módulos de conteúdo.
 type contentModule struct {
 	prop   *prophttp.Handlers
+	review *reviewhttp.Handlers
+	queue  *queuehttp.Handlers
 	ingest *ingesthttp.Handlers
 }
 
 func newContentModule(uc contentUseCases, logger *slog.Logger) contentModule {
-	return contentModule{prop: prophttp.New(uc.prop, logger), ingest: ingesthttp.New(uc.ingest, logger)}
+	return contentModule{
+		prop: prophttp.New(uc.prop, logger), review: reviewhttp.New(uc.review, logger),
+		queue: queuehttp.New(uc.queue, logger), ingest: ingesthttp.New(uc.ingest, logger),
+	}
 }
 
 // newIngestWorkers monta os workers do River para o modo worker.

@@ -2,11 +2,18 @@ package domain
 
 import "time"
 
-// Regra de visibilidade da parte pública (CONTEXT.md, "Revisão"):
+// Regra de visibilidade da parte pública (CONTEXT.md, "Revisão" e
+// "Versão vigente / em análise"):
 //   - "criado" (draft) não existe para o Leitor;
-//   - "em revisão" (in_review) aparece como "em análise", só com o que não é
+//   - sem Versão vigente, aparece como "em análise", só com o que não é
 //     produzido pelo Nelisa (dados oficiais, Tramitação, fontes);
-//   - "pronto" (ready) aparece completo.
+//   - com Versão vigente, ganha Resumo, Resumo curto, Temas e Selo dela;
+//   - com vigente e uma Versão em análise, também o aviso "há texto novo em
+//     análise" com o rótulo e o link oficial da Versão nova, e nada mais
+//     dela.
+//
+// Nunca saem: conteúdo da Versão em análise, Autoria editorial, quem
+// aprovou, Posse, "a confirmar" e a revisão (trava otimista).
 //
 // Toda rota /api/public passa por aqui; nenhuma outra camada decide.
 
@@ -58,16 +65,45 @@ type PublicProposition struct {
 	AttachedTo      *PublicRef
 	Attached        []PublicRef
 	Sources         []PublicSource
-	// UnderReview: "em análise". Enquanto true, só dados oficiais.
+	// UnderReview: "em análise" (sem Versão vigente). Enquanto true, só
+	// dados oficiais.
 	UnderReview bool
 	UpdatedAt   time.Time
+
+	// Da Versão vigente; vazios sem ela.
+	Summary      string
+	ShortSummary string
+	Topics       []string
+	// ReviewBadge é o Selo: 2 ("revisado por 2 pessoas") ou 1; 0 sem
+	// Versão vigente.
+	ReviewBadge int
+	// PendingVersion é o aviso de texto novo em análise (só com vigente).
+	PendingVersion *PublicPendingVersion
+}
+
+// PublicPendingVersion é tudo o que o Leitor sabe da Versão em análise: o
+// rótulo e o link oficial. O conteúdo dela não sai.
+type PublicPendingVersion struct {
+	Label           string
+	OfficialTextURL string
+}
+
+// Editorial é o ciclo editorial de uma Proposição, como a camada pública o
+// recebe: todas as Versões e os conteúdos disponíveis (a regra escolhe o
+// que sai, quem chama não precisa filtrar), os Temas conhecidos e o Selo
+// de cada Versão aprovada (decidido pelo módulo review).
+type Editorial struct {
+	Versions []Version
+	Contents []Content
+	Topics   map[string]Topic
+	Badges   map[string]int
 }
 
 // PublicView aplica a regra de visibilidade. ok é false para o que o
 // Leitor não pode ver (o chamador responde 404, sem dizer que existe).
 // principal é a Proposição a que p está apensada (nil se não há ou não
 // está cadastrada); attached são as apensadas a p.
-func PublicView(p Proposition, links []SourceLink, principal *Proposition, attached []Proposition) (PublicProposition, bool) {
+func PublicView(p Proposition, links []SourceLink, principal *Proposition, attached []Proposition, ed Editorial) (PublicProposition, bool) {
 	if !p.ReviewState.IsPublic() {
 		return PublicProposition{}, false
 	}
@@ -76,9 +112,10 @@ func PublicView(p Proposition, links []SourceLink, principal *Proposition, attac
 		Sphere: p.Sphere, OriginChamber: p.OriginChamber,
 		OfficialSummary: p.OfficialSummary, PresentedAt: p.PresentedAt, OfficialTextURL: p.OfficialTextURL,
 		Authors: append([]string(nil), p.Authors...), Status: p.Status, Superseded: p.Superseded,
-		UnderReview: p.ReviewState == ReviewInReview, UpdatedAt: p.UpdatedAt,
-		Sources: []PublicSource{}, Attached: []PublicRef{},
+		UnderReview: true, UpdatedAt: p.UpdatedAt,
+		Sources: []PublicSource{}, Attached: []PublicRef{}, Topics: []string{},
 	}
+	applyEditorial(&out, p, ed)
 	switch {
 	case principal != nil:
 		out.AttachedTo = publicRef(*principal)
@@ -104,4 +141,50 @@ func publicRef(p Proposition) *PublicRef {
 		r.Slug = p.Slug
 	}
 	return r
+}
+
+// applyEditorial acrescenta o que é da Versão vigente e o aviso da Versão
+// em análise. Conteúdo só é lido se for da vigente desta Proposição.
+func applyEditorial(out *PublicProposition, p Proposition, ed Editorial) {
+	var current, pending *Version
+	for i := range ed.Versions {
+		v := &ed.Versions[i]
+		if v.PropositionID != p.ID {
+			continue
+		}
+		switch v.State {
+		case VersionCurrent:
+			current = v
+		case VersionPending:
+			pending = v
+		}
+	}
+	if current == nil {
+		return
+	}
+	var content *Content
+	for i := range ed.Contents {
+		if ed.Contents[i].VersionID == current.ID {
+			content = &ed.Contents[i]
+		}
+	}
+	badge := ed.Badges[current.ID]
+	if content == nil || (badge != 1 && badge != 2) {
+		// Vigente sem conteúdo ou sem aprovação conhecida: na dúvida, segue
+		// "em análise", só com dados oficiais.
+		return
+	}
+	out.UnderReview = false
+	out.Summary, out.ShortSummary, out.ReviewBadge = content.Summary, content.ShortSummary, badge
+	for _, id := range content.TopicIDs {
+		if t, ok := ed.Topics[id]; ok {
+			out.Topics = append(out.Topics, t.Name)
+		}
+	}
+	if current.OfficialTextURL != "" {
+		out.OfficialTextURL = current.OfficialTextURL
+	}
+	if pending != nil {
+		out.PendingVersion = &PublicPendingVersion{Label: pending.Label, OfficialTextURL: pending.OfficialTextURL}
+	}
 }

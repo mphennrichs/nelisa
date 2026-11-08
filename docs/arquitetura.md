@@ -161,6 +161,22 @@ importam o `team`.
   `pec-10-2015-senado`). As rotas públicas usam o slug; as da equipe, o
   UUID.
 
+### Ciclo editorial (fase 2)
+
+- `proposition` (Versão, conteúdo editorial, Temas), `review` (aprovação,
+  quatro olhos, Selo) e `queue` (Posse, Fila) não se importam.
+  `cmd/nelisa/wire_editorial.go` liga as portas: o `proposition` pede a
+  Posse (`Claims`) ao `queue` e a situação da Revisão e o Selo
+  (`Reviews`, `BadgeReader`) ao `review`; o `review` pede a Versão em
+  análise e a promoção (`Editorial`) ao `proposition` e a soltura da
+  Posse ao `queue`; o `queue` pede Proposições ao `proposition`,
+  Segundas revisões pendentes ao `review` e nomes/conta ativa ao `team`
+  (`team/app.Directory`).
+- Posse de conta desativada vale como livre: quem checa (o `queue`)
+  ignora, em vez de a desativação soltar as posses.
+- A regra pública lê só o conteúdo da Versão vigente com aprovação
+  conhecida (`domain.PublicView` recebe todas as Versões e escolhe).
+
 ### HTTP
 
 - **chi** como roteador. Contrato em `openapi.yaml`; quem muda um endpoint

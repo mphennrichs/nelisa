@@ -892,7 +892,15 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Uma Proposição como a equipe a vê (Editor ou acima) */
+        /**
+         * Uma Proposição como a equipe a vê (Editor ou acima)
+         * @description Traz também o ciclo editorial: Versões, conteúdo da Versão em
+         *     análise e da vigente, Posse, Selo, aprovação da vigente e as
+         *     decisões de permissão para quem pergunta (`can_edit`,
+         *     `can_create_version`, `can_approve` com `approve_blockers`,
+         *     `approval_breaks_four_eyes`, `can_second_review`). O front não
+         *     decide: mostra o que a API diz.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -904,7 +912,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Proposição com Vínculos, Apensação e Tramitação */
+                /** @description Proposição com Vínculos, Apensação, Tramitação e ciclo editorial */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1106,6 +1114,719 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/propositions/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra uma Versão nova do Documento integral (Editor ou acima)
+         * @description Só sem Versão em análise. A Proposição pronta volta para
+         *     `in_review`; o conteúdo da Versão vigente é copiado para a nova
+         *     marcado a confirmar (`needs_confirmation`), com a mesma Autoria.
+         *     Quem registra assume a Posse (409 `claim_taken` se ela é de outra
+         *     pessoa). Registrado na Auditoria (`version.create`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateVersionRequest"];
+                };
+            };
+            responses: {
+                /** @description Versão criada (em análise) e o conteúdo dela */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            version: components["schemas"]["PropositionVersion"];
+                            content: components["schemas"]["VersionContent"];
+                        };
+                    };
+                };
+                /** @description `invalid_json`, `invalid_label` ou `invalid_official_text_url` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["PropositionNotFound"];
+                /** @description `pending_version_exists` ou `claim_taken` (a mensagem traz o nome de quem tem a Posse) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Grava Resumo, Resumo curto e Temas da Versão em análise (Editor ou acima)
+         * @description Só a Versão em análise é editável. Exige a Posse: se está livre
+         *     (ou expirada, ou de conta desativada) é assumida; se é de outra
+         *     pessoa, 409 `claim_taken`. Trava otimista: mande o `revision` lido;
+         *     se alguém gravou depois, 409 `stale_content` e nada muda. Quem grava
+         *     entra na Autoria (`authors`). Salvar não confirma conteúdo trazido.
+         *     Gravação sem mudança só renova a atividade da Posse. Registrado na
+         *     Auditoria (`content.update`, com os campos alterados, nunca o texto).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateContentRequest"];
+                };
+            };
+            responses: {
+                /** @description Conteúdo gravado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionContent"];
+                    };
+                };
+                /**
+                 * @description `invalid_json` (inclusive sem `revision`), `summary_too_long`,
+                 *     `short_summary_too_long`, `too_many_topics`, `duplicate_topic` ou
+                 *     `topic_inactive` (Tema desativado só fica se já estava escolhido).
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `topic_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content` ou `version_not_editable` (Versão vigente ou substituída) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/content/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma o conteúdo trazido da Versão anterior (Editor ou acima)
+         * @description Ação explícita, separada de gravar. Exige a Posse como gravar e o
+         *     `revision` lido (confirma-se o que se viu). Quem confirma entra na
+         *     Autoria. Registrado na Auditoria (`content.confirm`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmContentRequest"];
+                };
+            };
+            responses: {
+                /** @description Conteúdo confirmado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionContent"];
+                    };
+                };
+                /** @description `invalid_json` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found` ou `version_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content`, `version_not_editable` ou `nothing_to_confirm` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Aprova (marca como pronta) a Versão em análise (Revisor ou Admin)
+         * @description Não exige Posse. A Proposição precisa estar `in_review` e o
+         *     conteúdo completo (Resumo e Resumo curto, 1 a 3 Temas ativos, nada a
+         *     confirmar). Quatro olhos: quem está na Autoria não aprova (403
+         *     `four_eyes`), exceto o Admin, que aprova sem quatro olhos
+         *     (`four_eyes: false`, Selo 1, Segunda revisão pendente). Na mesma
+         *     transação: a Versão vira a vigente, a anterior é substituída, a
+         *     Proposição fica `ready`, a Posse é solta e a Auditoria registra
+         *     (`review.approve`). Falha em qualquer passo desfaz tudo.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Aprovada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Approval"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description `forbidden` (Editor) ou `four_eyes` */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `proposition_not_found` ou `version_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /**
+                 * @description `content_incomplete` (a mensagem lista o que falta),
+                 *     `version_not_pending` ou `invalid_review_transition` (rascunho).
+                 */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/second-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma a segunda revisão de uma aprovação sem quatro olhos (Revisor ou Admin)
+         * @description Só para a Versão vigente aprovada sem quatro olhos. Quem aprovou e
+         *     quem está na Autoria não fazem a segunda (403 `four_eyes`). O Selo
+         *     passa a 2. Registrado na Auditoria (`review.second_review`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Segunda revisão registrada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Approval"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description `forbidden` (Editor) ou `four_eyes` */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `proposition_not_found` ou `version_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `no_second_review_pending` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assume a Posse da Proposição (Editor ou acima)
+         * @description Se outra pessoa tem a Posse e ela vale, 409 `claim_taken` com o nome
+         *     dela na mensagem. A Posse expira com 3 dias sem atividade; Posse de
+         *     conta desativada vale como livre. Assumir a própria só renova.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Posse assumida */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Claim"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["PropositionNotFound"];
+                /** @description `claim_taken` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        /**
+         * Solta a Posse (quem a tem, ou Revisor/Admin)
+         * @description Revisor e Admin soltam a Posse de qualquer um; isso fica na
+         *     Auditoria (`claim.release`). Sem Posse, não faz nada.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Solta (ou já estava livre) */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fila de revisão (Editor ou acima)
+         * @description Proposições `in_review` com Versão em análise (`reason: review`) e
+         *     Proposições `ready` com Segunda revisão pendente
+         *     (`reason: second_review`). Ordem: Esfera (federal > estadual >
+         *     municipal), depois votação mais próxima (ainda sem dado: todas "sem
+         *     votação"), depois mais antigo na fila primeiro.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    sphere?: components["schemas"]["Sphere"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Itens da Fila */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["QueueItem"][];
+                        };
+                    };
+                };
+                /** @description `invalid_sphere` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista os Temas, ativos e desativados (Editor ou acima)
+         * @description Desativados não devem ser oferecidos na escolha; continuam nas Versões que já os usam.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Temas por nome */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            topics: components["schemas"]["Topic"][];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /**
+         * Cria um Tema (só Admin)
+         * @description Registrado na Auditoria (`topic.create`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Tema criado */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Topic"];
+                    };
+                };
+                /** @description `invalid_json` ou `invalid_topic_name` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `topic_name_taken` (sem diferenciar maiúsculas) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/topics/{topicId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topicId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Renomeia, desativa ou reativa um Tema (só Admin)
+         * @description Registrado na Auditoria (`topic.rename`, `topic.deactivate`, `topic.reactivate`).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    topicId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        active?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Tema atualizado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Topic"];
+                    };
+                };
+                /** @description `invalid_json` ou `invalid_topic_name` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `topic_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `topic_name_taken` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/public/propositions": {
         parameters: {
             query?: never;
@@ -1115,8 +1836,10 @@ export interface paths {
         };
         /**
          * Proposições visíveis ao Leitor
-         * @description Só `in_review` (aparece como "em análise", `under_review: true`) e
-         *     `ready`. Rascunhos nunca aparecem. Em análise, só dados oficiais.
+         * @description Só `in_review` e `ready`. Rascunhos nunca aparecem. Sem Versão
+         *     vigente aparece como "em análise" (`under_review: true`), só com
+         *     dados oficiais; com vigente, ganha Resumo, Resumo curto, Temas e
+         *     Selo dela, e o aviso de texto novo em análise se houver.
          */
         get: {
             parameters: {
@@ -1408,7 +2131,7 @@ export interface components {
         TeamPropositionDetail: components["schemas"]["TeamProposition"] & {
             attached: components["schemas"]["TeamAttachedRef"][];
             timeline: components["schemas"]["TimelineEntry"][];
-        };
+        } & components["schemas"]["TeamEditorial"];
         PublicRef: {
             name: string;
             /** @description null se a Proposição não é pública */
@@ -1420,8 +2143,10 @@ export interface components {
             url: string;
         };
         /**
-         * @description Só dados oficiais e o selo "em análise". Nada interno (estado de
-         *     Revisão, quem confirmou, erros de Sincronização, sugestões).
+         * @description Dados oficiais e, com Versão vigente, Resumo, Resumo curto, Temas e
+         *     Selo dela. Nada interno (estado de Revisão, conteúdo da Versão em
+         *     análise, Autoria, quem aprovou, Posse, "a confirmar", revisão,
+         *     quem confirmou vínculos, erros de Sincronização, sugestões).
          */
         PublicProposition: {
             /** @example pec-221-2019 */
@@ -1448,13 +2173,203 @@ export interface components {
             attached_to: components["schemas"]["PublicRef"] | null;
             attached: components["schemas"]["PublicRef"][];
             sources: components["schemas"]["PublicSource"][];
-            /** @description "Em análise": só dados oficiais */
+            /** @description "Em análise" (sem Versão vigente): só dados oficiais */
             under_review: boolean;
             /** Format: date-time */
             updated_at: string;
+            /** @description Resumo da Versão vigente; vazio sem ela */
+            summary: string;
+            /** @description Resumo curto da Versão vigente; vazio sem ela */
+            short_summary: string;
+            /** @description Nomes dos Temas da Versão vigente; vazio sem ela */
+            topics: string[];
+            /**
+             * @description Selo de revisão: 2 ("revisado por 2 pessoas") ou 1; null sem Versão vigente. Nunca nomes.
+             * @enum {integer|null}
+             */
+            review_badge: 1 | 2 | null;
+            /** @description Aviso "há texto novo em análise" (só com Versão vigente). Nada do conteúdo dela. */
+            pending_version: components["schemas"]["PublicPendingVersion"] | null;
+        };
+        PublicPendingVersion: {
+            /** @example Substitutivo da CCJ */
+            label: string;
+            official_text_url: string;
         };
         PublicPropositionDetail: components["schemas"]["PublicProposition"] & {
             timeline: components["schemas"]["TimelineEntry"][];
+        };
+        /** @enum {string} */
+        Sphere: "federal" | "state" | "municipal";
+        PropositionVersion: {
+            /** Format: uuid */
+            id: string;
+            seq: number;
+            label: string;
+            /** @description Link do Documento integral desta Versão */
+            official_text_url: string;
+            /**
+             * @description em análise, vigente, substituída
+             * @enum {string}
+             */
+            state: "pending" | "current" | "superseded";
+            /**
+             * Format: uuid
+             * @description null quando veio da Importação
+             */
+            created_by: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description Conteúdo editorial de uma Versão (só a equipe vê estes campos). */
+        VersionContent: {
+            /** Format: uuid */
+            version_id: string;
+            /** @description Resumo */
+            summary: string;
+            /** @description Resumo curto */
+            short_summary: string;
+            topic_ids: string[];
+            /** @description Copiado da Versão anterior e ainda não confirmado */
+            needs_confirmation: boolean;
+            /** @description Autoria editorial (ids; nomes em `people` no detalhe) */
+            authors: string[];
+            /** @description Trava otimista; mande de volta ao gravar */
+            revision: number;
+            /** Format: uuid */
+            updated_by: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateVersionRequest: {
+            /** @example Substitutivo da CCJ */
+            label: string;
+            /** @description Link http(s) do Documento integral */
+            official_text_url: string;
+        };
+        UpdateContentRequest: {
+            summary?: string;
+            short_summary?: string;
+            topic_ids?: string[];
+            /** @description O revision lido */
+            revision: number;
+        };
+        ConfirmContentRequest: {
+            /** @description O revision lido */
+            revision: number;
+        };
+        Topic: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            active: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description Posse (só a equipe vê). */
+        Claim: {
+            /** Format: uuid */
+            holder_id: string;
+            holder_name: string;
+            /** Format: date-time */
+            claimed_at: string;
+            /** Format: date-time */
+            last_activity_at: string;
+            /**
+             * Format: date-time
+             * @description 3 dias depois da última atividade
+             */
+            expires_at: string;
+        };
+        TeamClaim: components["schemas"]["Claim"] & {
+            /** @description A Posse é de quem pergunta */
+            mine: boolean;
+        };
+        ApprovalInfo: {
+            /** Format: uuid */
+            version_id: string;
+            /** Format: uuid */
+            approved_by: string;
+            /** Format: date-time */
+            approved_at: string;
+            four_eyes: boolean;
+            /** Format: uuid */
+            second_review_by: string | null;
+            /** Format: date-time */
+            second_review_at: string | null;
+            pending_second_review: boolean;
+        };
+        Blocker: {
+            /**
+             * @description `role`, `no_pending_version`, `not_in_review`, `four_eyes`,
+             *     `summary`, `short_summary`, `topics`, `inactive_topics` ou
+             *     `needs_confirmation`.
+             */
+            code: string;
+            /** @description Texto para a tela */
+            message: string;
+        };
+        TeamEditorial: {
+            versions: components["schemas"]["PropositionVersion"][];
+            pending_content: components["schemas"]["VersionContent"] | null;
+            current_content: components["schemas"]["VersionContent"] | null;
+            /** @description Todos os Temas, para mostrar nomes */
+            topics: components["schemas"]["Topic"][];
+            claim: components["schemas"]["TeamClaim"] | null;
+            /**
+             * @description Selo da Versão vigente
+             * @enum {integer|null}
+             */
+            review_badge: 1 | 2 | null;
+            current_approval: components["schemas"]["ApprovalInfo"] | null;
+            /** @description Pode gravar o conteúdo da Versão em análise (Posse livre ou sua) */
+            can_edit: boolean;
+            can_create_version: boolean;
+            can_approve: boolean;
+            /** @description Por que quem pergunta não pode aprovar agora (vazio se pode) */
+            approve_blockers: components["schemas"]["Blocker"][];
+            /** @description Admin autor: se aprovar, fica a Segunda revisão pendente */
+            approval_breaks_four_eyes: boolean;
+            can_second_review: boolean;
+            /** @description Nomes da equipe por id (Autoria, Posse, aprovação) */
+            people: {
+                [key: string]: string;
+            };
+        };
+        Approval: {
+            /** Format: uuid */
+            version_id: string;
+            /** Format: date-time */
+            approved_at: string;
+            four_eyes: boolean;
+            /** Format: date-time */
+            second_review_at: string | null;
+            pending_second_review: boolean;
+            /** @enum {integer} */
+            review_badge: 1 | 2;
+        };
+        QueueItem: {
+            /** Format: uuid */
+            proposition_id: string;
+            name: string;
+            slug: string;
+            sphere: components["schemas"]["Sphere"];
+            /** @enum {string} */
+            reason: "review" | "second_review";
+            version: {
+                /** Format: uuid */
+                id: string;
+                seq: number;
+                label: string;
+            };
+            /**
+             * Format: date-time
+             * @description Desde quando está na Fila
+             */
+            since: string;
+            claim: components["schemas"]["Claim"] | null;
+            /** @description O que falta no conteúdo para aprovar (itens de revisão) */
+            missing: components["schemas"]["Blocker"][];
         };
     };
     responses: {
@@ -1543,6 +2458,7 @@ export interface components {
     parameters: {
         UserID: string;
         PropositionID: string;
+        VersionID: string;
         LinkID: string;
     };
     requestBodies: never;

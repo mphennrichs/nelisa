@@ -55,6 +55,8 @@ func newRouter(_ config.Config, db Pinger, team teamModule, content contentModul
 			r.Use(team.authenticate)
 			team.handlers.RegisterAuthenticated(r)
 			content.prop.RegisterTeam(r)
+			content.review.RegisterTeam(r)
+			content.queue.RegisterTeam(r)
 			content.ingest.RegisterTeam(r)
 		})
 	})

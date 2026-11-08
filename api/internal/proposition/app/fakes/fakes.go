@@ -31,7 +31,17 @@ type World struct {
 	events    []RecordedEvent
 	scheduled []string
 	timeline  map[string][]app.TimelineEntry
+	versions  map[string]domain.Version
+	contents  map[string]domain.Content
+	topics    map[string]domain.Topic
+	claims    map[string]app.ClaimInfo
 	inTx      bool
+
+	// Statuses e Badges são o que o módulo review responderia.
+	Statuses map[string]app.ReviewStatus
+	Badges   map[string]int
+	// Names são os nomes da equipe (módulo team).
+	Names map[string]string
 
 	// AuditErr, se definido, faz toda gravação de Auditoria falhar.
 	AuditErr error
@@ -43,6 +53,9 @@ func NewWorld() *World {
 	return &World{
 		props: map[string]domain.Proposition{}, links: map[string]domain.SourceLink{},
 		timeline: map[string][]app.TimelineEntry{},
+		versions: map[string]domain.Version{}, contents: map[string]domain.Content{}, topics: map[string]domain.Topic{},
+		claims: map[string]app.ClaimInfo{}, Statuses: map[string]app.ReviewStatus{}, Badges: map[string]int{},
+		Names: map[string]string{},
 	}
 }
 
@@ -100,6 +113,8 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	}
 	props, links := maps.Clone(w.props), maps.Clone(w.links)
 	events, scheduled := slices.Clone(w.events), slices.Clone(w.scheduled)
+	versions, contents, topics := maps.Clone(w.versions), maps.Clone(w.contents), maps.Clone(w.topics)
+	claims := maps.Clone(w.claims)
 	w.inTx = true
 	w.mu.Unlock()
 
@@ -110,6 +125,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	w.inTx = false
 	if err != nil {
 		w.props, w.links, w.events, w.scheduled = props, links, events, scheduled
+		w.versions, w.contents, w.topics, w.claims = versions, contents, topics, claims
 	}
 	return err
 }

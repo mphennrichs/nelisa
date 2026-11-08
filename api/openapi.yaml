@@ -26,6 +26,8 @@ tags:
   - name: equipe
   - name: fontes
   - name: proposições
+  - name: ciclo editorial
+  - name: fila
   - name: público
 paths:
   /version:
@@ -435,9 +437,16 @@ paths:
     get:
       tags: [proposições]
       summary: Uma Proposição como a equipe a vê (Editor ou acima)
+      description: |
+        Traz também o ciclo editorial: Versões, conteúdo da Versão em
+        análise e da vigente, Posse, Selo, aprovação da vigente e as
+        decisões de permissão para quem pergunta (`can_edit`,
+        `can_create_version`, `can_approve` com `approve_blockers`,
+        `approval_breaks_four_eyes`, `can_second_review`). O front não
+        decide: mostra o que a API diz.
       responses:
         "200":
-          description: Proposição com Vínculos, Apensação e Tramitação
+          description: Proposição com Vínculos, Apensação, Tramitação e ciclo editorial
           content:
             application/json:
               schema: { $ref: "#/components/schemas/TeamPropositionDetail" }
@@ -521,13 +530,377 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/team/propositions/{id}/versions:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Registra uma Versão nova do Documento integral (Editor ou acima)
+      description: |
+        Só sem Versão em análise. A Proposição pronta volta para
+        `in_review`; o conteúdo da Versão vigente é copiado para a nova
+        marcado a confirmar (`needs_confirmation`), com a mesma Autoria.
+        Quem registra assume a Posse (409 `claim_taken` se ela é de outra
+        pessoa). Registrado na Auditoria (`version.create`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateVersionRequest" }
+      responses:
+        "201":
+          description: Versão criada (em análise) e o conteúdo dela
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, content]
+                properties:
+                  version: { $ref: "#/components/schemas/PropositionVersion" }
+                  content: { $ref: "#/components/schemas/VersionContent" }
+        "400":
+          description: "`invalid_json`, `invalid_label` ou `invalid_official_text_url`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/PropositionNotFound" }
+        "409":
+          description: "`pending_version_exists` ou `claim_taken` (a mensagem traz o nome de quem tem a Posse)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/content:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    put:
+      tags: [ciclo editorial]
+      summary: Grava Resumo, Resumo curto e Temas da Versão em análise (Editor ou acima)
+      description: |
+        Só a Versão em análise é editável. Exige a Posse: se está livre
+        (ou expirada, ou de conta desativada) é assumida; se é de outra
+        pessoa, 409 `claim_taken`. Trava otimista: mande o `revision` lido;
+        se alguém gravou depois, 409 `stale_content` e nada muda. Quem grava
+        entra na Autoria (`authors`). Salvar não confirma conteúdo trazido.
+        Gravação sem mudança só renova a atividade da Posse. Registrado na
+        Auditoria (`content.update`, com os campos alterados, nunca o texto).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateContentRequest" }
+      responses:
+        "200":
+          description: Conteúdo gravado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VersionContent" }
+        "400":
+          description: |
+            `invalid_json` (inclusive sem `revision`), `summary_too_long`,
+            `short_summary_too_long`, `too_many_topics`, `duplicate_topic` ou
+            `topic_inactive` (Tema desativado só fica se já estava escolhido).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `topic_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content` ou `version_not_editable` (Versão vigente ou substituída)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/content/confirm:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Confirma o conteúdo trazido da Versão anterior (Editor ou acima)
+      description: |
+        Ação explícita, separada de gravar. Exige a Posse como gravar e o
+        `revision` lido (confirma-se o que se viu). Quem confirma entra na
+        Autoria. Registrado na Auditoria (`content.confirm`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmContentRequest" }
+      responses:
+        "200":
+          description: Conteúdo confirmado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VersionContent" }
+        "400":
+          description: "`invalid_json`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found` ou `version_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content`, `version_not_editable` ou `nothing_to_confirm`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/approve:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Aprova (marca como pronta) a Versão em análise (Revisor ou Admin)
+      description: |
+        Não exige Posse. A Proposição precisa estar `in_review` e o
+        conteúdo completo (Resumo e Resumo curto, 1 a 3 Temas ativos, nada a
+        confirmar). Quatro olhos: quem está na Autoria não aprova (403
+        `four_eyes`), exceto o Admin, que aprova sem quatro olhos
+        (`four_eyes: false`, Selo 1, Segunda revisão pendente). Na mesma
+        transação: a Versão vira a vigente, a anterior é substituída, a
+        Proposição fica `ready`, a Posse é solta e a Auditoria registra
+        (`review.approve`). Falha em qualquer passo desfaz tudo.
+      responses:
+        "200":
+          description: Aprovada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Approval" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`forbidden` (Editor) ou `four_eyes`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`proposition_not_found` ou `version_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: |
+            `content_incomplete` (a mensagem lista o que falta),
+            `version_not_pending` ou `invalid_review_transition` (rascunho).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/second-review:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Confirma a segunda revisão de uma aprovação sem quatro olhos (Revisor ou Admin)
+      description: |
+        Só para a Versão vigente aprovada sem quatro olhos. Quem aprovou e
+        quem está na Autoria não fazem a segunda (403 `four_eyes`). O Selo
+        passa a 2. Registrado na Auditoria (`review.second_review`).
+      responses:
+        "200":
+          description: Segunda revisão registrada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Approval" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`forbidden` (Editor) ou `four_eyes`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`proposition_not_found` ou `version_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`no_second_review_pending`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/claim:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+    post:
+      tags: [fila]
+      summary: Assume a Posse da Proposição (Editor ou acima)
+      description: |
+        Se outra pessoa tem a Posse e ela vale, 409 `claim_taken` com o nome
+        dela na mensagem. A Posse expira com 3 dias sem atividade; Posse de
+        conta desativada vale como livre. Assumir a própria só renova.
+      responses:
+        "200":
+          description: Posse assumida
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Claim" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/PropositionNotFound" }
+        "409":
+          description: "`claim_taken`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [fila]
+      summary: Solta a Posse (quem a tem, ou Revisor/Admin)
+      description: |
+        Revisor e Admin soltam a Posse de qualquer um; isso fica na
+        Auditoria (`claim.release`). Sem Posse, não faz nada.
+      responses:
+        "204": { description: Solta (ou já estava livre) }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/queue:
+    get:
+      tags: [fila]
+      summary: Fila de revisão (Editor ou acima)
+      description: |
+        Proposições `in_review` com Versão em análise (`reason: review`) e
+        Proposições `ready` com Segunda revisão pendente
+        (`reason: second_review`). Ordem: Esfera (federal > estadual >
+        municipal), depois votação mais próxima (ainda sem dado: todas "sem
+        votação"), depois mais antigo na fila primeiro.
+      parameters:
+        - name: sphere
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/Sphere" }
+      responses:
+        "200":
+          description: Itens da Fila
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/QueueItem" }
+        "400":
+          description: "`invalid_sphere`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/topics:
+    get:
+      tags: [ciclo editorial]
+      summary: Lista os Temas, ativos e desativados (Editor ou acima)
+      description: Desativados não devem ser oferecidos na escolha; continuam nas Versões que já os usam.
+      responses:
+        "200":
+          description: Temas por nome
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [topics]
+                properties:
+                  topics:
+                    type: array
+                    items: { $ref: "#/components/schemas/Topic" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [ciclo editorial]
+      summary: Cria um Tema (só Admin)
+      description: Registrado na Auditoria (`topic.create`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 60 }
+      responses:
+        "201":
+          description: Tema criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Topic" }
+        "400":
+          description: "`invalid_json` ou `invalid_topic_name`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: "`topic_name_taken` (sem diferenciar maiúsculas)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/topics/{topicId}:
+    parameters:
+      - name: topicId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [ciclo editorial]
+      summary: Renomeia, desativa ou reativa um Tema (só Admin)
+      description: Registrado na Auditoria (`topic.rename`, `topic.deactivate`, `topic.reactivate`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string, maxLength: 60 }
+                active: { type: boolean }
+      responses:
+        "200":
+          description: Tema atualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Topic" }
+        "400":
+          description: "`invalid_json` ou `invalid_topic_name`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`topic_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`topic_name_taken`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/public/propositions:
     get:
       tags: [público]
       summary: Proposições visíveis ao Leitor
       description: |
-        Só `in_review` (aparece como "em análise", `under_review: true`) e
-        `ready`. Rascunhos nunca aparecem. Em análise, só dados oficiais.
+        Só `in_review` e `ready`. Rascunhos nunca aparecem. Sem Versão
+        vigente aparece como "em análise" (`under_review: true`), só com
+        dados oficiais; com vigente, ganha Resumo, Resumo curto, Temas e
+        Selo dela, e o aviso de texto novo em análise se houver.
       security: []
       responses:
         "200":
@@ -585,6 +958,11 @@ components:
       schema: { type: string, format: uuid }
     PropositionID:
       name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VersionID:
+      name: versionId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -865,6 +1243,7 @@ components:
             timeline:
               type: array
               items: { $ref: "#/components/schemas/TimelineEntry" }
+        - $ref: "#/components/schemas/TeamEditorial"
     PublicRef:
       type: object
       required: [name, slug]
@@ -881,9 +1260,11 @@ components:
     PublicProposition:
       type: object
       description: |
-        Só dados oficiais e o selo "em análise". Nada interno (estado de
-        Revisão, quem confirmou, erros de Sincronização, sugestões).
-      required: [slug, name, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, superseded, attached_to, attached, sources, under_review, updated_at]
+        Dados oficiais e, com Versão vigente, Resumo, Resumo curto, Temas e
+        Selo dela. Nada interno (estado de Revisão, conteúdo da Versão em
+        análise, Autoria, quem aprovou, Posse, "a confirmar", revisão,
+        quem confirmou vínculos, erros de Sincronização, sugestões).
+      required: [slug, name, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, superseded, attached_to, attached, sources, under_review, updated_at, summary, short_summary, topics, review_badge, pending_version]
       properties:
         slug: { type: string, example: pec-221-2019 }
         name: { type: string, example: PEC 221/2019 }
@@ -908,8 +1289,29 @@ components:
         sources:
           type: array
           items: { $ref: "#/components/schemas/PublicSource" }
-        under_review: { type: boolean, description: "\"Em análise\": só dados oficiais" }
+        under_review: { type: boolean, description: "\"Em análise\" (sem Versão vigente): só dados oficiais" }
         updated_at: { type: string, format: date-time }
+        summary: { type: string, description: "Resumo da Versão vigente; vazio sem ela" }
+        short_summary: { type: string, description: "Resumo curto da Versão vigente; vazio sem ela" }
+        topics:
+          type: array
+          items: { type: string }
+          description: Nomes dos Temas da Versão vigente; vazio sem ela
+        review_badge:
+          type: [integer, "null"]
+          enum: [1, 2, null]
+          description: "Selo de revisão: 2 (\"revisado por 2 pessoas\") ou 1; null sem Versão vigente. Nunca nomes."
+        pending_version:
+          oneOf:
+            - $ref: "#/components/schemas/PublicPendingVersion"
+            - type: "null"
+          description: Aviso "há texto novo em análise" (só com Versão vigente). Nada do conteúdo dela.
+    PublicPendingVersion:
+      type: object
+      required: [label, official_text_url]
+      properties:
+        label: { type: string, example: Substitutivo da CCJ }
+        official_text_url: { type: string }
     PublicPropositionDetail:
       allOf:
         - $ref: "#/components/schemas/PublicProposition"
@@ -919,3 +1321,185 @@ components:
             timeline:
               type: array
               items: { $ref: "#/components/schemas/TimelineEntry" }
+    Sphere:
+      type: string
+      enum: [federal, state, municipal]
+    PropositionVersion:
+      type: object
+      required: [id, seq, label, official_text_url, state, created_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        seq: { type: integer, minimum: 1 }
+        label: { type: string, maxLength: 120 }
+        official_text_url: { type: string, description: Link do Documento integral desta Versão }
+        state: { type: string, enum: [pending, current, superseded], description: "em análise, vigente, substituída" }
+        created_by: { type: [string, "null"], format: uuid, description: "null quando veio da Importação" }
+        created_at: { type: string, format: date-time }
+    VersionContent:
+      type: object
+      description: Conteúdo editorial de uma Versão (só a equipe vê estes campos).
+      required: [version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at]
+      properties:
+        version_id: { type: string, format: uuid }
+        summary: { type: string, maxLength: 5000, description: Resumo }
+        short_summary: { type: string, maxLength: 280, description: Resumo curto }
+        topic_ids:
+          type: array
+          maxItems: 3
+          items: { type: string, format: uuid }
+        needs_confirmation: { type: boolean, description: Copiado da Versão anterior e ainda não confirmado }
+        authors:
+          type: array
+          items: { type: string, format: uuid }
+          description: Autoria editorial (ids; nomes em `people` no detalhe)
+        revision: { type: integer, description: Trava otimista; mande de volta ao gravar }
+        updated_by: { type: [string, "null"], format: uuid }
+        updated_at: { type: string, format: date-time }
+    CreateVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [label, official_text_url]
+      properties:
+        label: { type: string, maxLength: 120, example: Substitutivo da CCJ }
+        official_text_url: { type: string, description: Link http(s) do Documento integral }
+    UpdateContentRequest:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        summary: { type: string, maxLength: 5000 }
+        short_summary: { type: string, maxLength: 280 }
+        topic_ids:
+          type: array
+          maxItems: 3
+          items: { type: string, format: uuid }
+        revision: { type: integer, description: O revision lido }
+    ConfirmContentRequest:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, description: O revision lido }
+    Topic:
+      type: object
+      required: [id, name, active, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, maxLength: 60 }
+        active: { type: boolean }
+        created_at: { type: string, format: date-time }
+    Claim:
+      type: object
+      description: Posse (só a equipe vê).
+      required: [holder_id, holder_name, claimed_at, last_activity_at, expires_at]
+      properties:
+        holder_id: { type: string, format: uuid }
+        holder_name: { type: string }
+        claimed_at: { type: string, format: date-time }
+        last_activity_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time, description: 3 dias depois da última atividade }
+    TeamClaim:
+      allOf:
+        - $ref: "#/components/schemas/Claim"
+        - type: object
+          required: [mine]
+          properties:
+            mine: { type: boolean, description: A Posse é de quem pergunta }
+    ApprovalInfo:
+      type: object
+      required: [version_id, approved_by, approved_at, four_eyes, second_review_by, second_review_at, pending_second_review]
+      properties:
+        version_id: { type: string, format: uuid }
+        approved_by: { type: string, format: uuid }
+        approved_at: { type: string, format: date-time }
+        four_eyes: { type: boolean }
+        second_review_by: { type: [string, "null"], format: uuid }
+        second_review_at: { type: [string, "null"], format: date-time }
+        pending_second_review: { type: boolean }
+    Blocker:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: |
+            `role`, `no_pending_version`, `not_in_review`, `four_eyes`,
+            `summary`, `short_summary`, `topics`, `inactive_topics` ou
+            `needs_confirmation`.
+        message: { type: string, description: Texto para a tela }
+    TeamEditorial:
+      type: object
+      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, people]
+      properties:
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/PropositionVersion" }
+        pending_content:
+          oneOf:
+            - $ref: "#/components/schemas/VersionContent"
+            - type: "null"
+        current_content:
+          oneOf:
+            - $ref: "#/components/schemas/VersionContent"
+            - type: "null"
+        topics:
+          type: array
+          items: { $ref: "#/components/schemas/Topic" }
+          description: Todos os Temas, para mostrar nomes
+        claim:
+          oneOf:
+            - $ref: "#/components/schemas/TeamClaim"
+            - type: "null"
+        review_badge: { type: [integer, "null"], enum: [1, 2, null], description: Selo da Versão vigente }
+        current_approval:
+          oneOf:
+            - $ref: "#/components/schemas/ApprovalInfo"
+            - type: "null"
+        can_edit: { type: boolean, description: Pode gravar o conteúdo da Versão em análise (Posse livre ou sua) }
+        can_create_version: { type: boolean }
+        can_approve: { type: boolean }
+        approve_blockers:
+          type: array
+          items: { $ref: "#/components/schemas/Blocker" }
+          description: Por que quem pergunta não pode aprovar agora (vazio se pode)
+        approval_breaks_four_eyes: { type: boolean, description: "Admin autor: se aprovar, fica a Segunda revisão pendente" }
+        can_second_review: { type: boolean }
+        people:
+          type: object
+          additionalProperties: { type: string }
+          description: Nomes da equipe por id (Autoria, Posse, aprovação)
+    Approval:
+      type: object
+      required: [version_id, approved_at, four_eyes, second_review_at, pending_second_review, review_badge]
+      properties:
+        version_id: { type: string, format: uuid }
+        approved_at: { type: string, format: date-time }
+        four_eyes: { type: boolean }
+        second_review_at: { type: [string, "null"], format: date-time }
+        pending_second_review: { type: boolean }
+        review_badge: { type: integer, enum: [1, 2] }
+    QueueItem:
+      type: object
+      required: [proposition_id, name, slug, sphere, reason, version, since, claim, missing]
+      properties:
+        proposition_id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        sphere: { $ref: "#/components/schemas/Sphere" }
+        reason: { type: string, enum: [review, second_review] }
+        version:
+          type: object
+          required: [id, seq, label]
+          properties:
+            id: { type: string, format: uuid }
+            seq: { type: integer }
+            label: { type: string }
+        since: { type: string, format: date-time, description: Desde quando está na Fila }
+        claim:
+          oneOf:
+            - $ref: "#/components/schemas/Claim"
+            - type: "null"
+        missing:
+          type: array
+          items: { $ref: "#/components/schemas/Blocker" }
+          description: O que falta no conteúdo para aprovar (itens de revisão)

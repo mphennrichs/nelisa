@@ -46,12 +46,18 @@ func newServer(t *testing.T) *server {
 	clk := &clock.Fixed{T: t0}
 	uc := httpapi.UseCases{
 		ListPropositions: app.NewListPropositions(w.Props(), w.Links()),
-		GetProposition:   app.NewGetProposition(w.Props(), w.Links(), w.Timeline()),
+		GetProposition:   app.NewGetProposition(w.Repos(), w.Links(), w.Timeline(), w.Claims(), w.Reviews(), w.People()),
 		ConfirmLink:      app.NewConfirmLink(w.Links(), w.Tx(), w.Audit(), w.Scheduler(), clk),
 		RejectLink:       app.NewRejectLink(w.Links(), w.Tx(), w.Audit()),
 		SubmitForReview:  app.NewSubmitForReview(w.Props(), w.Tx(), w.Audit(), clk),
-		ListPublic:       app.NewListPublicPropositions(w.Props(), w.Links()),
-		GetPublic:        app.NewGetPublicProposition(w.Props(), w.Links(), w.Timeline()),
+		CreateVersion:    app.NewCreateVersion(w.Repos(), w.Claims(), w.Tx(), w.Audit(), clk),
+		UpdateContent:    app.NewUpdateContent(w.Repos(), w.Claims(), w.Tx(), w.Audit(), clk),
+		ConfirmContent:   app.NewConfirmContent(w.Repos(), w.Claims(), w.Tx(), w.Audit(), clk),
+		ListTopics:       app.NewListTopics(w.Topics()),
+		CreateTopic:      app.NewCreateTopic(w.Topics(), w.Tx(), w.Audit(), clk),
+		UpdateTopic:      app.NewUpdateTopic(w.Topics(), w.Tx(), w.Audit()),
+		ListPublic:       app.NewListPublicPropositions(w.Repos(), w.Links(), w.Reviews()),
+		GetPublic:        app.NewGetPublicProposition(w.Repos(), w.Links(), w.Timeline(), w.Reviews()),
 	}
 	h := httpapi.New(uc, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	r := chi.NewRouter()
@@ -65,7 +71,11 @@ func newServer(t *testing.T) *server {
 }
 
 func (s *server) do(method, path, actor string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest(method, path, nil)
+	return s.doJSON(method, path, actor, "")
+}
+
+func (s *server) doJSON(method, path, actor, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, path, strings.NewReader(body))
 	if actor != "" {
 		r.Header.Set("X-Test-Actor", actor)
 	}

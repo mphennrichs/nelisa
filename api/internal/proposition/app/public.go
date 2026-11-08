@@ -21,19 +21,56 @@ type PublicPropositionDetail struct {
 	Timeline []PublicTimelineEntry
 }
 
-// ListPublicPropositions lista o que o Leitor pode ver.
-type ListPublicPropositions struct {
-	props PropositionRepo
-	links LinkRepo
+// publicEditorial junta o ciclo editorial de várias Proposições para a
+// regra de visibilidade. Só lê o conteúdo das Versões vigentes: o da Versão
+// em análise nem sai do banco. A regra (domain.PublicView) confere de novo.
+func publicEditorial(ctx context.Context, repos EditorialRepos, badges BadgeReader, propositionIDs []string) (domain.Editorial, error) {
+	ed := domain.Editorial{}
+	if len(propositionIDs) == 0 {
+		return ed, nil
+	}
+	vs, err := repos.Versions.ListByPropositions(ctx, propositionIDs)
+	if err != nil {
+		return ed, err
+	}
+	ed.Versions = vs
+	var currentIDs []string
+	for _, v := range vs {
+		if v.State == domain.VersionCurrent {
+			currentIDs = append(currentIDs, v.ID)
+		}
+	}
+	if len(currentIDs) == 0 {
+		return ed, nil
+	}
+	if ed.Contents, err = repos.Contents.ListByVersions(ctx, currentIDs); err != nil {
+		return ed, err
+	}
+	if ed.Badges, err = badges.Badges(ctx, currentIDs); err != nil {
+		return ed, err
+	}
+	topics, err := repos.Topics.List(ctx)
+	if err != nil {
+		return ed, err
+	}
+	ed.Topics = domain.TopicsByID(topics)
+	return ed, nil
 }
 
-func NewListPublicPropositions(props PropositionRepo, links LinkRepo) *ListPublicPropositions {
-	return &ListPublicPropositions{props: props, links: links}
+// ListPublicPropositions lista o que o Leitor pode ver.
+type ListPublicPropositions struct {
+	repos  EditorialRepos
+	links  LinkRepo
+	badges BadgeReader
+}
+
+func NewListPublicPropositions(repos EditorialRepos, links LinkRepo, badges BadgeReader) *ListPublicPropositions {
+	return &ListPublicPropositions{repos: repos, links: links, badges: badges}
 }
 
 func (uc *ListPublicPropositions) Execute(ctx context.Context) ([]domain.PublicProposition, error) {
 	// O filtro no banco é só eficiência; quem decide é PublicView abaixo.
-	ps, err := uc.props.ListInStates(ctx, domain.PublicStates())
+	ps, err := uc.repos.Props.ListInStates(ctx, domain.PublicStates())
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +88,14 @@ func (uc *ListPublicPropositions) Execute(ctx context.Context) ([]domain.PublicP
 			byProp[l.PropositionID] = append(byProp[l.PropositionID], l)
 		}
 	}
+	ed, err := publicEditorial(ctx, uc.repos, uc.badges, ids)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]domain.PublicProposition, 0, len(ps))
 	for _, p := range ps {
 		// Na lista, a Apensação vai só pelo nome; a página traz o resto.
-		if v, ok := domain.PublicView(p, byProp[p.ID], nil, nil); ok {
+		if v, ok := domain.PublicView(p, byProp[p.ID], nil, nil, ed); ok {
 			out = append(out, v)
 		}
 	}
@@ -63,17 +104,18 @@ func (uc *ListPublicPropositions) Execute(ctx context.Context) ([]domain.PublicP
 
 // GetPublicProposition é a página pública de uma Proposição, pelo slug.
 type GetPublicProposition struct {
-	props    PropositionRepo
+	repos    EditorialRepos
 	links    LinkRepo
 	timeline TimelineReader
+	badges   BadgeReader
 }
 
-func NewGetPublicProposition(props PropositionRepo, links LinkRepo, timeline TimelineReader) *GetPublicProposition {
-	return &GetPublicProposition{props: props, links: links, timeline: timeline}
+func NewGetPublicProposition(repos EditorialRepos, links LinkRepo, timeline TimelineReader, badges BadgeReader) *GetPublicProposition {
+	return &GetPublicProposition{repos: repos, links: links, timeline: timeline, badges: badges}
 }
 
 func (uc *GetPublicProposition) Execute(ctx context.Context, slug string) (PublicPropositionDetail, error) {
-	p, err := uc.props.FindBySlug(ctx, slug)
+	p, err := uc.repos.Props.FindBySlug(ctx, slug)
 	if err != nil {
 		return PublicPropositionDetail{}, err
 	}
@@ -85,11 +127,15 @@ func (uc *GetPublicProposition) Execute(ctx context.Context, slug string) (Publi
 	if err != nil {
 		return PublicPropositionDetail{}, err
 	}
-	principal, attached, err := relatives(ctx, uc.props, p)
+	principal, attached, err := relatives(ctx, uc.repos.Props, p)
 	if err != nil && !errors.Is(err, domain.ErrPropositionNotFound) {
 		return PublicPropositionDetail{}, err
 	}
-	view, ok := domain.PublicView(p, links, principal, attached)
+	ed, err := publicEditorial(ctx, uc.repos, uc.badges, []string{p.ID})
+	if err != nil {
+		return PublicPropositionDetail{}, err
+	}
+	view, ok := domain.PublicView(p, links, principal, attached, ed)
 	if !ok {
 		return PublicPropositionDetail{}, domain.ErrPropositionNotFound
 	}
