@@ -30,6 +30,12 @@ function Timeline({ entries }: { entries: Entry[] }) {
   );
 }
 
+// A nota é escrita pela equipe; a pontuação final é da frase montada aqui
+// ("dizia X; o correto é Y."), para não sair "X.;" nem "Y..".
+function trimEnd(s: string) {
+  return s.trim().replace(/[\s.;,]+$/, "");
+}
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -105,6 +111,22 @@ export default async function PropositionPage({ params }: Props) {
                 <p key={i} className="whitespace-pre-line [overflow-wrap:anywhere]">{para}</p>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Notas das Erratas aprovadas da Versão vigente (a API só manda
+            essas, já na ordem: mais nova primeiro). */}
+        {reviewed && p.errata.length > 0 && (
+          <section aria-labelledby="erratas" className="space-y-3">
+            <h2 id="erratas" className="text-lg font-semibold">Erratas</h2>
+            <p className="text-sm text-stone-700">Correções que mudaram o sentido do resumo depois de publicado.</p>
+            <ul className="max-w-prose space-y-3">
+              {p.errata.map((e, i) => (
+                <li key={`${e.approved_at}-${i}`} className="rounded-md border-l-4 border-amber-500 bg-amber-50 px-4 py-3 leading-relaxed [overflow-wrap:anywhere]">
+                  Em <time dateTime={e.approved_at}>{fmtDate(e.approved_at)}</time>: dizia {trimEnd(e.said)}; o correto é {trimEnd(e.correct)}.
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

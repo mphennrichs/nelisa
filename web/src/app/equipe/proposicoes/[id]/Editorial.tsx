@@ -1,12 +1,14 @@
 "use client";
 
 // Seção "Conteúdo" da Proposição na equipe: Versões, Posse, Resumo, Resumo
-// curto, Temas, aprovação e Selo. Toda decisão de permissão vem da API
+// curto, Temas, aprovação, Selo e (em Corrections.tsx) Correção menor e
+// Errata. Toda decisão de permissão vem da API
 // (can_*, approve_blockers); aqui só mostramos e chamamos.
 import { useEffect, useState } from "react";
 import type { components } from "@/lib/api/schema";
 import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FieldError, FormError } from "@/lib/team/ui";
+import Corrections from "./Corrections";
 import { VERSION_STATE_LABEL, charCount, fmtDateTime, paragraphs, reviewBadgeLabel } from "@/lib/labels";
 
 type Detail = components["schemas"]["TeamPropositionDetail"];
@@ -386,6 +388,14 @@ export default function Editorial({ p, reload }: { p: Detail; reload: () => Prom
           </div>
         </details>
       )}
+
+      {/* Correção menor e Errata do conteúdo publicado: só aparece quando a
+          API diz que há algo a fazer ou a mostrar. */}
+      {current &&
+        p.current_content &&
+        (p.can_minor_fix || p.can_propose_erratum || p.pending_erratum || p.minor_fixes.length > 0 || p.errata.length > 0) && (
+          <Corrections key={current.id} p={p} current={current} content={p.current_content} reload={reload} />
+        )}
     </section>
   );
 }
