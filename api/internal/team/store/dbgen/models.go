@@ -69,6 +69,53 @@ type PropositionSourceLink struct {
 	CreatedAt     time.Time
 }
 
+type PropositionTopic struct {
+	ID        string
+	Name      string
+	Active    bool
+	CreatedAt time.Time
+}
+
+type PropositionVersion struct {
+	ID              string
+	PropositionID   string
+	Seq             int32
+	Label           string
+	OfficialTextUrl string
+	State           string
+	CreatedBy       *string
+	CreatedAt       time.Time
+}
+
+type PropositionVersionContent struct {
+	VersionID         string
+	Summary           string
+	ShortSummary      string
+	TopicIds          []string
+	NeedsConfirmation bool
+	Authors           []string
+	Revision          int32
+	UpdatedBy         *string
+	UpdatedAt         time.Time
+}
+
+type QueueClaim struct {
+	PropositionID  string
+	UserID         string
+	ClaimedAt      time.Time
+	LastActivityAt time.Time
+}
+
+type ReviewApproval struct {
+	VersionID      string
+	PropositionID  string
+	ApprovedBy     string
+	ApprovedAt     time.Time
+	FourEyes       bool
+	SecondReviewBy *string
+	SecondReviewAt *time.Time
+}
+
 type TeamRefreshToken struct {
 	ID        string
 	UserID    string

@@ -60,3 +60,23 @@ sql:
         sql_package: pgx/v5
         emit_interface: false
         emit_json_tags: false
+  - engine: postgresql
+    schema: migrations
+    queries: queries/review.sql
+    gen:
+      go:
+        package: dbgen
+        out: internal/review/store/dbgen
+        sql_package: pgx/v5
+        emit_interface: false
+        emit_json_tags: false
+  - engine: postgresql
+    schema: migrations
+    queries: queries/queue.sql
+    gen:
+      go:
+        package: dbgen
+        out: internal/queue/store/dbgen
+        sql_package: pgx/v5
+        emit_interface: false
+        emit_json_tags: false

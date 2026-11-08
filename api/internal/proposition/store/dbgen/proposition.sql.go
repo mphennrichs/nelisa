@@ -31,6 +31,39 @@ func (q *Queries) ConfirmLink(ctx context.Context, arg ConfirmLinkParams) (int64
 	return result.RowsAffected(), nil
 }
 
+const createContent = `-- name: CreateContent :exec
+INSERT INTO proposition.version_contents (
+    version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type CreateContentParams struct {
+	VersionID         string
+	Summary           string
+	ShortSummary      string
+	TopicIds          []string
+	NeedsConfirmation bool
+	Authors           []string
+	Revision          int32
+	UpdatedBy         *string
+	UpdatedAt         time.Time
+}
+
+func (q *Queries) CreateContent(ctx context.Context, arg CreateContentParams) error {
+	_, err := q.db.Exec(ctx, createContent,
+		arg.VersionID,
+		arg.Summary,
+		arg.ShortSummary,
+		arg.TopicIds,
+		arg.NeedsConfirmation,
+		arg.Authors,
+		arg.Revision,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createLink = `-- name: CreateLink :exec
 INSERT INTO proposition.source_links (
     id, proposition_id, chamber, external_id, state, source_name, source_url,
@@ -132,6 +165,62 @@ func (q *Queries) CreateProposition(ctx context.Context, arg CreatePropositionPa
 	return err
 }
 
+const createTopic = `-- name: CreateTopic :exec
+
+INSERT INTO proposition.topics (id, name, active, created_at) VALUES ($1, $2, $3, $4)
+`
+
+type CreateTopicParams struct {
+	ID        string
+	Name      string
+	Active    bool
+	CreatedAt time.Time
+}
+
+// Temas.
+func (q *Queries) CreateTopic(ctx context.Context, arg CreateTopicParams) error {
+	_, err := q.db.Exec(ctx, createTopic,
+		arg.ID,
+		arg.Name,
+		arg.Active,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const createVersion = `-- name: CreateVersion :exec
+
+INSERT INTO proposition.versions (
+    id, proposition_id, seq, label, official_text_url, state, created_by, created_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type CreateVersionParams struct {
+	ID              string
+	PropositionID   string
+	Seq             int32
+	Label           string
+	OfficialTextUrl string
+	State           string
+	CreatedBy       *string
+	CreatedAt       time.Time
+}
+
+// Versões e conteúdo editorial.
+func (q *Queries) CreateVersion(ctx context.Context, arg CreateVersionParams) error {
+	_, err := q.db.Exec(ctx, createVersion,
+		arg.ID,
+		arg.PropositionID,
+		arg.Seq,
+		arg.Label,
+		arg.OfficialTextUrl,
+		arg.State,
+		arg.CreatedBy,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const deleteSuggestedLink = `-- name: DeleteSuggestedLink :execrows
 DELETE FROM proposition.source_links WHERE id = $1 AND state = 'suggested'
 `
@@ -194,6 +283,27 @@ func (q *Queries) FindPropositionsByName(ctx context.Context, arg FindPropositio
 		return nil, err
 	}
 	return items, nil
+}
+
+const getContent = `-- name: GetContent :one
+SELECT version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at FROM proposition.version_contents WHERE version_id = $1
+`
+
+func (q *Queries) GetContent(ctx context.Context, versionID string) (PropositionVersionContent, error) {
+	row := q.db.QueryRow(ctx, getContent, versionID)
+	var i PropositionVersionContent
+	err := row.Scan(
+		&i.VersionID,
+		&i.Summary,
+		&i.ShortSummary,
+		&i.TopicIds,
+		&i.NeedsConfirmation,
+		&i.Authors,
+		&i.Revision,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getLink = `-- name: GetLink :one
@@ -315,6 +425,42 @@ func (q *Queries) GetPropositionBySlug(ctx context.Context, slug string) (Propos
 	return i, err
 }
 
+const getTopic = `-- name: GetTopic :one
+SELECT id, name, active, created_at FROM proposition.topics WHERE id = $1
+`
+
+func (q *Queries) GetTopic(ctx context.Context, id string) (PropositionTopic, error) {
+	row := q.db.QueryRow(ctx, getTopic, id)
+	var i PropositionTopic
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Active,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getVersion = `-- name: GetVersion :one
+SELECT id, proposition_id, seq, label, official_text_url, state, created_by, created_at FROM proposition.versions WHERE id = $1
+`
+
+func (q *Queries) GetVersion(ctx context.Context, id string) (PropositionVersion, error) {
+	row := q.db.QueryRow(ctx, getVersion, id)
+	var i PropositionVersion
+	err := row.Scan(
+		&i.ID,
+		&i.PropositionID,
+		&i.Seq,
+		&i.Label,
+		&i.OfficialTextUrl,
+		&i.State,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listAttachedTo = `-- name: ListAttachedTo :many
 SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions WHERE attached_to = $1 ORDER BY year, number, id
 `
@@ -376,6 +522,42 @@ func (q *Queries) ListConfirmedLinkIDs(ctx context.Context) ([]string, error) {
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listContentsByVersions = `-- name: ListContentsByVersions :many
+SELECT version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at FROM proposition.version_contents
+WHERE version_id = ANY($1::uuid[])
+ORDER BY version_id
+`
+
+func (q *Queries) ListContentsByVersions(ctx context.Context, ids []string) ([]PropositionVersionContent, error) {
+	rows, err := q.db.Query(ctx, listContentsByVersions, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionVersionContent
+	for rows.Next() {
+		var i PropositionVersionContent
+		if err := rows.Scan(
+			&i.VersionID,
+			&i.Summary,
+			&i.ShortSummary,
+			&i.TopicIds,
+			&i.NeedsConfirmation,
+			&i.Authors,
+			&i.Revision,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -597,6 +779,35 @@ func (q *Queries) ListPropositionsInStates(ctx context.Context, states []string)
 	return items, nil
 }
 
+const listTopics = `-- name: ListTopics :many
+SELECT id, name, active, created_at FROM proposition.topics ORDER BY lower(name), id
+`
+
+func (q *Queries) ListTopics(ctx context.Context) ([]PropositionTopic, error) {
+	rows, err := q.db.Query(ctx, listTopics)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionTopic
+	for rows.Next() {
+		var i PropositionTopic
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Active,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUnresolvedAttachments = `-- name: ListUnresolvedAttachments :many
 SELECT id, slug, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, status_at, attached_to, attached_to_name, superseded, review_state, created_at, updated_at FROM proposition.propositions
 WHERE attached_to IS NULL AND attached_to_name = $1
@@ -644,6 +855,74 @@ func (q *Queries) ListUnresolvedAttachments(ctx context.Context, attachedToName 
 	return items, nil
 }
 
+const listVersionsByProposition = `-- name: ListVersionsByProposition :many
+SELECT id, proposition_id, seq, label, official_text_url, state, created_by, created_at FROM proposition.versions WHERE proposition_id = $1 ORDER BY seq
+`
+
+func (q *Queries) ListVersionsByProposition(ctx context.Context, propositionID string) ([]PropositionVersion, error) {
+	rows, err := q.db.Query(ctx, listVersionsByProposition, propositionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionVersion
+	for rows.Next() {
+		var i PropositionVersion
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.Seq,
+			&i.Label,
+			&i.OfficialTextUrl,
+			&i.State,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVersionsByPropositions = `-- name: ListVersionsByPropositions :many
+SELECT id, proposition_id, seq, label, official_text_url, state, created_by, created_at FROM proposition.versions
+WHERE proposition_id = ANY($1::uuid[])
+ORDER BY proposition_id, seq
+`
+
+func (q *Queries) ListVersionsByPropositions(ctx context.Context, ids []string) ([]PropositionVersion, error) {
+	rows, err := q.db.Query(ctx, listVersionsByPropositions, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionVersion
+	for rows.Next() {
+		var i PropositionVersion
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.Seq,
+			&i.Label,
+			&i.OfficialTextUrl,
+			&i.State,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const slugExists = `-- name: SlugExists :one
 SELECT EXISTS (SELECT 1 FROM proposition.propositions WHERE slug = $1)
 `
@@ -653,6 +932,52 @@ func (q *Queries) SlugExists(ctx context.Context, slug string) (bool, error) {
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const updateContent = `-- name: UpdateContent :execrows
+UPDATE proposition.version_contents
+SET summary = $1,
+    short_summary = $2,
+    topic_ids = $3,
+    needs_confirmation = $4,
+    authors = $5,
+    revision = $6,
+    updated_by = $7,
+    updated_at = $8
+WHERE version_id = $9 AND revision = $10
+`
+
+type UpdateContentParams struct {
+	Summary           string
+	ShortSummary      string
+	TopicIds          []string
+	NeedsConfirmation bool
+	Authors           []string
+	Revision          int32
+	UpdatedBy         *string
+	UpdatedAt         time.Time
+	VersionID         string
+	PrevRevision      int32
+}
+
+// Só grava se ninguém gravou depois da leitura (trava otimista).
+func (q *Queries) UpdateContent(ctx context.Context, arg UpdateContentParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateContent,
+		arg.Summary,
+		arg.ShortSummary,
+		arg.TopicIds,
+		arg.NeedsConfirmation,
+		arg.Authors,
+		arg.Revision,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+		arg.VersionID,
+		arg.PrevRevision,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateLinkSync = `-- name: UpdateLinkSync :exec
@@ -727,4 +1052,39 @@ func (q *Queries) UpdateProposition(ctx context.Context, arg UpdatePropositionPa
 		arg.UpdatedAt,
 	)
 	return err
+}
+
+const updateTopic = `-- name: UpdateTopic :exec
+UPDATE proposition.topics SET name = $2, active = $3 WHERE id = $1
+`
+
+type UpdateTopicParams struct {
+	ID     string
+	Name   string
+	Active bool
+}
+
+func (q *Queries) UpdateTopic(ctx context.Context, arg UpdateTopicParams) error {
+	_, err := q.db.Exec(ctx, updateTopic, arg.ID, arg.Name, arg.Active)
+	return err
+}
+
+const updateVersionState = `-- name: UpdateVersionState :execrows
+UPDATE proposition.versions SET state = $1
+WHERE id = $2 AND state = $3
+`
+
+type UpdateVersionStateParams struct {
+	State     string
+	ID        string
+	FromState string
+}
+
+// Só muda se ainda estiver no estado esperado.
+func (q *Queries) UpdateVersionState(ctx context.Context, arg UpdateVersionStateParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateVersionState, arg.State, arg.ID, arg.FromState)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

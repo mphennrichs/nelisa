@@ -104,3 +104,66 @@ DELETE FROM proposition.source_links WHERE id = $1 AND state = 'suggested';
 UPDATE proposition.source_links
 SET last_synced_at = $2, last_sync_error = $3, source_name = $4, source_url = $5
 WHERE id = $1;
+
+-- Versões e conteúdo editorial.
+
+-- name: CreateVersion :exec
+INSERT INTO proposition.versions (
+    id, proposition_id, seq, label, official_text_url, state, created_by, created_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: GetVersion :one
+SELECT * FROM proposition.versions WHERE id = $1;
+
+-- name: ListVersionsByProposition :many
+SELECT * FROM proposition.versions WHERE proposition_id = $1 ORDER BY seq;
+
+-- name: ListVersionsByPropositions :many
+SELECT * FROM proposition.versions
+WHERE proposition_id = ANY(sqlc.arg(ids)::uuid[])
+ORDER BY proposition_id, seq;
+
+-- name: UpdateVersionState :execrows
+-- Só muda se ainda estiver no estado esperado.
+UPDATE proposition.versions SET state = sqlc.arg(state)
+WHERE id = sqlc.arg(id) AND state = sqlc.arg(from_state);
+
+-- name: CreateContent :exec
+INSERT INTO proposition.version_contents (
+    version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+
+-- name: GetContent :one
+SELECT * FROM proposition.version_contents WHERE version_id = $1;
+
+-- name: ListContentsByVersions :many
+SELECT * FROM proposition.version_contents
+WHERE version_id = ANY(sqlc.arg(ids)::uuid[])
+ORDER BY version_id;
+
+-- name: UpdateContent :execrows
+-- Só grava se ninguém gravou depois da leitura (trava otimista).
+UPDATE proposition.version_contents
+SET summary = sqlc.arg(summary),
+    short_summary = sqlc.arg(short_summary),
+    topic_ids = sqlc.arg(topic_ids),
+    needs_confirmation = sqlc.arg(needs_confirmation),
+    authors = sqlc.arg(authors),
+    revision = sqlc.arg(revision),
+    updated_by = sqlc.arg(updated_by),
+    updated_at = sqlc.arg(updated_at)
+WHERE version_id = sqlc.arg(version_id) AND revision = sqlc.arg(prev_revision);
+
+-- Temas.
+
+-- name: CreateTopic :exec
+INSERT INTO proposition.topics (id, name, active, created_at) VALUES ($1, $2, $3, $4);
+
+-- name: GetTopic :one
+SELECT * FROM proposition.topics WHERE id = $1;
+
+-- name: ListTopics :many
+SELECT * FROM proposition.topics ORDER BY lower(name), id;
+
+-- name: UpdateTopic :exec
+UPDATE proposition.topics SET name = $2, active = $3 WHERE id = $1;

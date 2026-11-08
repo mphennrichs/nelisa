@@ -9,6 +9,8 @@ CREATE SCHEMA IF NOT EXISTS team;
 CREATE SCHEMA IF NOT EXISTS audit;
 CREATE SCHEMA IF NOT EXISTS proposition;
 CREATE SCHEMA IF NOT EXISTS progress;
+CREATE SCHEMA IF NOT EXISTS review;
+CREATE SCHEMA IF NOT EXISTS queue;
 -- Tabelas da fila de jobs (River). Quem as cria são as migrations do
 -- próprio River, aplicadas pelo modo migrate logo depois desta
 -- (platform/migrate); aqui só nasce o schema.
@@ -143,6 +145,59 @@ CREATE UNIQUE INDEX source_links_confirmed_chamber_key ON proposition.source_lin
     WHERE state = 'confirmed';
 CREATE INDEX source_links_external_idx ON proposition.source_links (chamber, external_id);
 
+-- Versão: uma edição do Documento integral. A Importação cria a 1
+-- ('pending', "Texto original"); o Editor cria as seguintes à mão. A
+-- aprovação leva a 'pending' a 'current' e a vigente anterior a
+-- 'superseded'.
+CREATE TABLE proposition.versions (
+    id                uuid PRIMARY KEY,
+    proposition_id    uuid NOT NULL REFERENCES proposition.propositions (id) ON DELETE CASCADE,
+    seq               integer NOT NULL CHECK (seq > 0),
+    label             text NOT NULL CHECK (label <> '' AND char_length(label) <= 120),
+    -- Vazio só quando a fonte não deu o link na Importação.
+    official_text_url text NOT NULL DEFAULT '',
+    state             text NOT NULL CHECK (state IN ('pending', 'current', 'superseded')),
+    -- NULL quando veio da Importação. Sem chave estrangeira para
+    -- team.users, como na Auditoria.
+    created_by        uuid,
+    created_at        timestamptz NOT NULL
+);
+CREATE UNIQUE INDEX versions_seq_key ON proposition.versions (proposition_id, seq);
+-- No máximo uma em análise e uma vigente por Proposição: é o banco que
+-- garante, mesmo com duas aprovações ou criações concorrentes.
+CREATE UNIQUE INDEX versions_one_pending_key ON proposition.versions (proposition_id) WHERE state = 'pending';
+CREATE UNIQUE INDEX versions_one_current_key ON proposition.versions (proposition_id) WHERE state = 'current';
+
+-- Tema: lista fechada mantida pelo Admin. Desativado some da escolha, mas
+-- continua nas Versões que já o usam (por isso nunca é apagado).
+CREATE TABLE proposition.topics (
+    id         uuid PRIMARY KEY,
+    name       text NOT NULL CHECK (name <> '' AND char_length(name) <= 60),
+    active     boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL
+);
+CREATE UNIQUE INDEX topics_name_key ON proposition.topics (lower(name));
+
+-- Conteúdo editorial de uma Versão (1:1): Resumo, Resumo curto e Temas.
+-- Nada daqui sai para o Leitor enquanto a Versão não for a vigente.
+CREATE TABLE proposition.version_contents (
+    version_id         uuid PRIMARY KEY REFERENCES proposition.versions (id) ON DELETE CASCADE,
+    summary            text NOT NULL DEFAULT '' CHECK (char_length(summary) <= 5000),
+    short_summary      text NOT NULL DEFAULT '' CHECK (char_length(short_summary) <= 280),
+    -- Sem chave estrangeira em array; o caso de uso confere que existem.
+    topic_ids          uuid[] NOT NULL DEFAULT '{}' CHECK (cardinality(topic_ids) <= 3),
+    -- Copiado da Versão anterior: precisa ser confirmado ou reescrito.
+    needs_confirmation boolean NOT NULL DEFAULT false,
+    -- Autoria editorial: todo mundo que já gravou ou confirmou este
+    -- conteúdo. É a base dos quatro olhos.
+    authors            uuid[] NOT NULL DEFAULT '{}',
+    -- Trava otimista: sobe a cada gravação; quem grava com um valor velho
+    -- leva 409 em vez de apagar o trabalho de outra pessoa.
+    revision           integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
+    updated_by         uuid,
+    updated_at         timestamptz NOT NULL
+);
+
 -- progress: a Tramitação, um evento por linha, de todas as Casas.
 CREATE TABLE progress.entries (
     id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -162,8 +217,42 @@ CREATE TABLE progress.entries (
 CREATE UNIQUE INDEX entries_source_key ON progress.entries (proposition_id, chamber, external_key);
 CREATE INDEX entries_timeline_idx ON progress.entries (proposition_id, at, chamber, external_key);
 
+-- review: aprovações (marcar pronto) de Versões. Uma por Versão.
+-- four_eyes = false é o Admin aprovando o próprio trabalho: fica a
+-- Segunda revisão pendente até outro Revisor confirmar.
+CREATE TABLE review.approvals (
+    version_id       uuid PRIMARY KEY REFERENCES proposition.versions (id) ON DELETE CASCADE,
+    proposition_id   uuid NOT NULL REFERENCES proposition.propositions (id) ON DELETE CASCADE,
+    approved_by      uuid NOT NULL,
+    approved_at      timestamptz NOT NULL,
+    four_eyes        boolean NOT NULL,
+    second_review_by uuid,
+    second_review_at timestamptz,
+    CONSTRAINT approvals_second_review CHECK (
+        (second_review_by IS NULL) = (second_review_at IS NULL)
+        AND (NOT four_eyes OR second_review_by IS NULL)
+        AND (second_review_by IS NULL OR second_review_by <> approved_by)
+    )
+);
+CREATE INDEX approvals_proposition_idx ON review.approvals (proposition_id, approved_at);
+CREATE INDEX approvals_pending_second_idx ON review.approvals (approved_at)
+    WHERE NOT four_eyes AND second_review_by IS NULL;
+
+-- queue: a Posse, uma por Proposição. Expira com 3 dias sem atividade; a
+-- linha velha fica até alguém assumir de novo (expirada conta como livre).
+CREATE TABLE queue.claims (
+    proposition_id   uuid PRIMARY KEY REFERENCES proposition.propositions (id) ON DELETE CASCADE,
+    -- Sem chave estrangeira para team.users: a conta pode ser desativada e
+    -- a posse dela é ignorada (vale como livre).
+    user_id          uuid NOT NULL,
+    claimed_at       timestamptz NOT NULL,
+    last_activity_at timestamptz NOT NULL
+);
+
 -- +goose Down
 DROP SCHEMA IF EXISTS river CASCADE;
+DROP SCHEMA IF EXISTS queue CASCADE;
+DROP SCHEMA IF EXISTS review CASCADE;
 DROP SCHEMA IF EXISTS progress CASCADE;
 DROP SCHEMA IF EXISTS proposition CASCADE;
 DROP SCHEMA IF EXISTS audit CASCADE;
