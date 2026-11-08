@@ -205,7 +205,8 @@ pode filtrar a Fila por Esfera.
 
 **Posse**:
 Um Editor ou Revisor **assume** um item da Fila; enquanto tiver a posse, só
-ele edita Resumo e Comentários daquela Proposição (os outros leem). A posse expira após
+ele edita Resumo e Comentários daquela Proposição (os outros leem). Quem edita uma
+Proposição sem dono assume a posse ao gravar. A posse expira após
 **3 dias sem atividade**, e Revisor ou Admin podem liberá-la. Aprovar (marcar
 pronto) não exige posse. O nome de quem tem a posse é visível só para a equipe.
 _Evitar_: Lock, trava, reserva

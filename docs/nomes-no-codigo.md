@@ -33,6 +33,7 @@ Esta tabela é a tradução oficial — não invente outra.
 | Dispositivo | `Provision` |
 | Estruturação | `Structuring` |
 | Documento integral | `OfficialText` (link) |
+| Ementa (oficial, da fonte) | `OfficialSummary` |
 | Documento comentado | `AnnotatedText` |
 | Comentário | `Comment` |
 | Nota interna | `InternalNote` |
