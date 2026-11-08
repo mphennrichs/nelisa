@@ -9,11 +9,11 @@ import type { components } from "@/lib/api/schema";
 import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FormError } from "@/lib/team/ui";
 import { charCount, fmtDateTime } from "@/lib/labels";
+import CommentedTree from "./CommentedTree";
 
 type Detail = components["schemas"]["TeamPropositionDetail"];
 type Version = components["schemas"]["PropositionVersion"];
 type St = components["schemas"]["TeamStructuring"];
-type Provision = components["schemas"]["TeamProvision"];
 type Warning = components["schemas"]["StructuringWarning"];
 
 // Limite do contrato (openapi: ReprocessStructuringRequest).
@@ -77,7 +77,7 @@ export default function Structuring({ p, reload }: { p: Detail; reload: () => Pr
             {cs.provisions.length === 0 ? (
               <p className="text-stone-700">Sem Documento comentado: o texto não foi estruturado nesta Versão.</p>
             ) : (
-              <ProvisionTree provisions={cs.provisions} />
+              <CommentedTree provisions={cs.provisions} comments={p.current_comments} people={p.people} />
             )}
           </div>
         </details>
@@ -251,8 +251,9 @@ function PendingStructuring({
 
       {st.state === "confirmed" && (
         <p className="text-sm text-stone-700">
-          Confirmada por {who(st.confirmed_by)} em {fmtDateTime(st.confirmed_at)}. Corrigir o texto agora volta a Estruturação
-          para &ldquo;a conferir&rdquo;.
+          Confirmada por {who(st.confirmed_by)} em {fmtDateTime(st.confirmed_at)}. Comente os Dispositivos na árvore abaixo.
+          Corrigir o texto volta a Estruturação para &ldquo;a conferir&rdquo; (Dispositivos comentados precisam continuar no
+          texto).
         </p>
       )}
 
@@ -381,9 +382,21 @@ function PendingStructuring({
 
         {st.provisions.length > 0 && (
           <div className="space-y-2">
-            <h3 className="font-semibold">Dispositivos ({st.provisions.length})</h3>
+            <h3 className="font-semibold">
+              Dispositivos ({st.provisions.length}){p.pending_comments.length > 0 && ` · ${p.pending_comments.length} Comentários`}
+            </h3>
+            {st.state !== "confirmed" && st.provisions.length > 0 && (
+              <p className="text-sm text-stone-600">Os Comentários abrem depois que a Estruturação for confirmada.</p>
+            )}
             <div className={editing && canEdit ? "max-h-[40rem] overflow-y-auto rounded-md border border-stone-200 p-3" : ""}>
-              <ProvisionTree provisions={st.provisions} />
+              <CommentedTree
+                provisions={st.provisions}
+                comments={p.pending_comments}
+                canComment={p.can_comment && !editing}
+                versionPath={`/api/team/propositions/${encodeURIComponent(p.id)}/versions/${encodeURIComponent(version.id)}`}
+                people={p.people}
+                reload={reload}
+              />
             </div>
           </div>
         )}
@@ -394,33 +407,4 @@ function PendingStructuring({
 
 function truncate(s: string, n: number) {
   return s.length > n ? `${s.slice(0, n)}…` : s;
-}
-
-const KIND_STYLE: Partial<Record<Provision["kind"], string>> = {
-  heading: "pt-3 font-semibold uppercase tracking-wide text-stone-700",
-  ementa: "italic",
-  justification: "border-t border-stone-200 pt-3",
-};
-
-// A árvore como o leitor vai ler: recuo por nível, rótulo antes do texto.
-export function ProvisionTree({ provisions }: { provisions: Provision[] }) {
-  return (
-    <ol className="space-y-2">
-      {provisions.map((pr) => (
-        <li
-          key={pr.address}
-          id={`d-${pr.address}`}
-          className={`[overflow-wrap:anywhere] ${KIND_STYLE[pr.kind] ?? ""}`}
-          style={{ paddingLeft: `${Math.min(pr.depth, 4) * 1.25}rem` }}
-        >
-          {pr.kind !== "heading" && (
-            <span className="mr-2 inline-block rounded bg-stone-100 px-1.5 py-0.5 text-xs font-medium not-italic text-stone-700">
-              {pr.label}
-            </span>
-          )}
-          <span className="whitespace-pre-line leading-relaxed">{pr.text}</span>
-        </li>
-      ))}
-    </ol>
-  );
 }
