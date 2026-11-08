@@ -35,9 +35,19 @@ func fakeAuth(next http.Handler) http.Handler {
 
 func newServer(w *fakes.World) http.Handler {
 	clk := &clock.Fixed{T: t0}
+	d := app.CorrectionDeps{
+		Fixes: w.Fixes(), Errata: w.Errata(), Content: w.Corrections(), Claims: w.ClaimGate(),
+		Tx: w.Tx(), Audit: w.Audit(), Clock: clk,
+	}
 	h := httpapi.New(httpapi.UseCases{
-		Approve:      app.NewApprove(w.Approvals(), w.Editorial(), w.Claims(), w.Tx(), w.Audit(), clk),
-		SecondReview: app.NewSecondReview(w.Approvals(), w.Editorial(), w.Tx(), w.Audit(), clk),
+		Approve:         app.NewApprove(w.Approvals(), w.Editorial(), w.Claims(), w.Tx(), w.Audit(), clk),
+		SecondReview:    app.NewSecondReview(w.Approvals(), w.Editorial(), w.Tx(), w.Audit(), clk),
+		ApplyMinorFix:   app.NewApplyMinorFix(d),
+		CheckMinorFix:   app.NewCheckMinorFix(d),
+		ProposeErratum:  app.NewProposeErratum(d),
+		ApproveErratum:  app.NewApproveErratum(d),
+		RejectErratum:   app.NewRejectErratum(d),
+		WithdrawErratum: app.NewWithdrawErratum(d),
 	}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	r := chi.NewRouter()
 	r.Route("/api/team", func(r chi.Router) {
@@ -52,7 +62,11 @@ func do(h http.Handler, path, actor string) *httptest.ResponseRecorder {
 }
 
 func doBody(h http.Handler, path, actor, body string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", path, strings.NewReader(body))
+	return doMethod(h, "POST", path, actor, body)
+}
+
+func doMethod(h http.Handler, method, path, actor, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(method, path, strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	if actor != "" {
 		r.Header.Set("X-Test-Actor", actor)

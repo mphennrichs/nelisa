@@ -1,5 +1,7 @@
-// Package httpapi é o adaptador HTTP do módulo review: aprovar a Versão em
-// análise e confirmar a segunda revisão, sob /api/team (Revisor ou acima).
+// Package httpapi é o adaptador HTTP do módulo review, sob /api/team:
+// aprovar a Versão em análise e confirmar a segunda revisão (Revisor ou
+// acima); Correção menor e Errata (propor e retirar: Editor ou acima;
+// conferir, aprovar e recusar: Revisor ou acima).
 package httpapi
 
 import (
@@ -19,8 +21,14 @@ import (
 
 // UseCases reúne os casos de uso que o HTTP dirige.
 type UseCases struct {
-	Approve      *app.Approve
-	SecondReview *app.SecondReview
+	Approve         *app.Approve
+	SecondReview    *app.SecondReview
+	ApplyMinorFix   *app.ApplyMinorFix
+	CheckMinorFix   *app.CheckMinorFix
+	ProposeErratum  *app.ProposeErratum
+	ApproveErratum  *app.ApproveErratum
+	RejectErratum   *app.RejectErratum
+	WithdrawErratum *app.WithdrawErratum
 }
 
 // Handlers são os handlers HTTP do módulo.
@@ -34,12 +42,39 @@ func New(uc UseCases, logger *slog.Logger) *Handlers { return &Handlers{uc: uc, 
 // RegisterTeam monta as rotas em r (o roteador de /api/team, já atrás da
 // autenticação).
 func (h *Handlers) RegisterTeam(r chi.Router) {
+	const errata = "/propositions/{id}/versions/{versionId}/errata"
 	r.Group(func(r chi.Router) {
 		// Recusa cedo; os casos de uso conferem de novo.
+		r.Use(auth.RequireRole(auth.RoleEditor))
+		r.Put("/propositions/{id}/versions/{versionId}/minor-fix", h.minorFix)
+		r.Post(errata, h.proposeErratum)
+		r.Post(errata+"/{erratumId}/withdraw", h.withdrawErratum)
+	})
+	r.Group(func(r chi.Router) {
 		r.Use(auth.RequireRole(auth.RoleReviewer))
 		r.Post("/propositions/{id}/versions/{versionId}/approve", h.approve)
 		r.Post("/propositions/{id}/versions/{versionId}/second-review", h.secondReview)
+		r.Post("/propositions/{id}/minor-fixes/{fixId}/check", h.checkMinorFix)
+		r.Post(errata+"/{erratumId}/approve", h.approveErratum)
+		r.Post(errata+"/{erratumId}/reject", h.rejectErratum)
 	})
+}
+
+func ts(t time.Time) string { return t.UTC().Format(time.RFC3339) }
+
+func tsPtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := ts(*t)
+	return &s
+}
+
+func optStr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 type approvalDTO struct {
@@ -52,15 +87,10 @@ type approvalDTO struct {
 }
 
 func toDTO(a domain.Approval) approvalDTO {
-	out := approvalDTO{
-		VersionID: a.VersionID, ApprovedAt: a.ApprovedAt.UTC().Format(time.RFC3339), FourEyes: a.FourEyes,
-		PendingSecondReview: a.PendingSecondReview(), ReviewBadge: a.Badge(),
+	return approvalDTO{
+		VersionID: a.VersionID, ApprovedAt: ts(a.ApprovedAt), FourEyes: a.FourEyes,
+		PendingSecondReview: a.PendingSecondReview(), ReviewBadge: a.Badge(), SecondReviewAt: tsPtr(a.SecondReviewAt),
 	}
-	if a.SecondReviewAt != nil {
-		s := a.SecondReviewAt.UTC().Format(time.RFC3339)
-		out.SecondReviewAt = &s
-	}
-	return out
 }
 
 func (h *Handlers) approve(w http.ResponseWriter, r *http.Request) {
@@ -112,15 +142,40 @@ func errMappings() []errMapping {
 		{app.ErrVersionNotFound, http.StatusNotFound, "version_not_found", "Versão não encontrada."},
 		{app.ErrVersionNotPending, http.StatusConflict, "version_not_pending", "Esta Versão não está mais em análise."},
 		{domain.ErrNoPendingVersion, http.StatusConflict, "version_not_pending", "Esta Versão não está mais em análise."},
-		{domain.ErrStaleContent, http.StatusConflict, "stale_content", "O conteúdo mudou desde que você o leu. Recarregue e confira antes de aprovar."},
+		{domain.ErrStaleContent, http.StatusConflict, "stale_content", "O conteúdo mudou desde que você o leu. Recarregue e confira antes de continuar."},
 		{domain.ErrAlreadyApproved, http.StatusConflict, "version_not_pending", "Esta Versão já foi aprovada."},
 		{domain.ErrNotInReview, http.StatusConflict, "invalid_review_transition", "Envie a Proposição para revisão antes de aprovar."},
 		{domain.ErrNoSecondReviewPending, http.StatusConflict, "no_second_review_pending", "Não há segunda revisão pendente para esta Versão."},
 		{domain.ErrApprovalNotFound, http.StatusConflict, "no_second_review_pending", "Não há segunda revisão pendente para esta Versão."},
+		{domain.ErrVersionNotCurrent, http.StatusConflict, "version_not_current", "Só a Versão vigente recebe Correção menor ou Errata."},
+		{domain.ErrNotReady, http.StatusConflict, "not_ready", "Correção menor e Errata são só para Proposição pronta (sem Versão em análise)."},
+		{domain.ErrErratumPending, http.StatusConflict, "erratum_pending", "Há uma Errata pendente nesta Versão: decida-a antes de corrigir o texto de novo."},
+		{domain.ErrNoChanges, http.StatusConflict, "no_changes", "O texto enviado é igual ao publicado: não há o que corrigir."},
+		{domain.ErrInvalidErratumNote, http.StatusBadRequest, "invalid_erratum_note", "Preencha \"Dizia\" e \"O correto é\" (até 500 caracteres cada)."},
+		{domain.ErrInvalidReason, http.StatusBadRequest, "invalid_reason", "Informe o motivo da recusa (até 1.000 caracteres)."},
+		{domain.ErrMinorFixNotFound, http.StatusNotFound, "minor_fix_not_found", "Correção menor não encontrada."},
+		{domain.ErrMinorFixChecked, http.StatusConflict, "minor_fix_checked", "Esta Correção menor já foi conferida."},
+		{domain.ErrErratumNotFound, http.StatusNotFound, "erratum_not_found", "Errata não encontrada."},
+		{domain.ErrErratumNotPending, http.StatusConflict, "erratum_not_pending", "Esta Errata já foi decidida ou retirada."},
+		{domain.ErrNotErratumProposer, http.StatusForbidden, "forbidden", "Só quem propôs a Errata pode retirá-la."},
 	}
 }
 
 func writeErr(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err error) {
+	var taken *app.ClaimTakenError
+	if errors.As(err, &taken) {
+		holder := taken.HolderName
+		if holder == "" {
+			holder = "Outra pessoa"
+		}
+		httpx.WriteError(w, http.StatusConflict, "claim_taken", holder+" está com a posse desta Proposição.")
+		return
+	}
+	var invalid *app.InvalidContentError
+	if errors.As(err, &invalid) {
+		httpx.WriteError(w, http.StatusBadRequest, invalid.Code, invalid.Message)
+		return
+	}
 	var incomplete *domain.ContentIncompleteError
 	if errors.As(err, &incomplete) {
 		msgs := make([]string, 0, len(incomplete.Missing))

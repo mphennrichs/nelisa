@@ -45,7 +45,9 @@ func (e *env) approve() *app.Approve {
 func (e *env) second() *app.SecondReview {
 	return app.NewSecondReview(e.w.Approvals(), e.w.Editorial(), e.w.Tx(), e.w.Audit(), e.clk)
 }
-func (e *env) reports() *app.Reports { return app.NewReports(e.w.Approvals(), e.w.Editorial()) }
+func (e *env) reports() *app.Reports {
+	return app.NewReports(e.w.Approvals(), e.w.Fixes(), e.w.Errata(), e.w.Editorial(), e.w.Corrections())
+}
 
 var in = app.ApproveInput{PropositionID: "p1", VersionID: "v1"}
 

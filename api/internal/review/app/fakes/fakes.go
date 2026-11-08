@@ -11,6 +11,7 @@ import (
 	"maps"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/mphennrichs/nelisa/api/internal/review/app"
@@ -36,6 +37,8 @@ type Version struct {
 	Revision int
 	Authors  []string
 	Missing  []domain.Blocker
+	// Content é o conteúdo (Correção menor e Errata mexem nele).
+	Content domain.Snapshot
 }
 
 // Proposition é o que o fake sabe da Proposição.
@@ -52,8 +55,12 @@ type World struct {
 	versions  map[string]Version
 	props     map[string]Proposition
 	claims    map[string]string
+	fixes     map[string]domain.MinorFix
+	errata    map[string]domain.Erratum
 	events    []RecordedEvent
 	inTx      bool
+	// Names dá o nome de quem tem a Posse (para o 409 claim_taken).
+	Names map[string]string
 
 	// AuditErr, se definido, faz toda gravação de Auditoria falhar.
 	AuditErr error
@@ -63,14 +70,42 @@ func NewWorld() *World {
 	return &World{
 		approvals: map[string]domain.Approval{}, versions: map[string]Version{},
 		props: map[string]Proposition{}, claims: map[string]string{},
+		fixes: map[string]domain.MinorFix{}, errata: map[string]domain.Erratum{}, Names: map[string]string{},
 	}
 }
 
-func (w *World) Approvals() app.ApprovalRepo { return approvals{w} }
-func (w *World) Editorial() app.Editorial    { return editorial{w} }
-func (w *World) Claims() app.Claims          { return claims{w} }
-func (w *World) Tx() app.TxRunner            { return tx{w} }
-func (w *World) Audit() app.AuditRecorder    { return audit{w} }
+func (w *World) Approvals() app.ApprovalRepo  { return approvals{w} }
+func (w *World) Editorial() app.Editorial     { return editorial{w} }
+func (w *World) Claims() app.Claims           { return claims{w} }
+func (w *World) Tx() app.TxRunner             { return tx{w} }
+func (w *World) Audit() app.AuditRecorder     { return audit{w} }
+func (w *World) Fixes() app.MinorFixRepo      { return fixes{w} }
+func (w *World) Errata() app.ErratumRepo      { return errata{w} }
+func (w *World) Corrections() app.Corrections { return corrections{w} }
+func (w *World) ClaimGate() app.ClaimGate     { return claims{w} }
+
+// PutMinorFix e PutErratum montam o cenário.
+func (w *World) PutMinorFix(f domain.MinorFix) { w.mu.Lock(); defer w.mu.Unlock(); w.fixes[f.ID] = f }
+func (w *World) PutErratum(e domain.Erratum)   { w.mu.Lock(); defer w.mu.Unlock(); w.errata[e.ID] = e }
+func (w *World) MinorFix(id string) (domain.MinorFix, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	f, ok := w.fixes[id]
+	return f, ok
+}
+func (w *World) Erratum(id string) (domain.Erratum, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	e, ok := w.errata[id]
+	return e, ok
+}
+func (w *World) MinorFixes() []domain.MinorFix {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	out := slices.Collect(maps.Values(w.fixes))
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
 
 // PutProposition, PutVersion, PutApproval e SetClaim montam o cenário.
 func (w *World) PutProposition(p Proposition) { w.mu.Lock(); defer w.mu.Unlock(); w.props[p.ID] = p }
@@ -122,6 +157,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 		return fn(ctx)
 	}
 	approvals, versions, props, claims := maps.Clone(w.approvals), maps.Clone(w.versions), maps.Clone(w.props), maps.Clone(w.claims)
+	fixes, errata := maps.Clone(w.fixes), maps.Clone(w.errata)
 	events := slices.Clone(w.events)
 	w.inTx = true
 	w.mu.Unlock()
@@ -133,6 +169,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	w.inTx = false
 	if err != nil {
 		w.approvals, w.versions, w.props, w.claims, w.events = approvals, versions, props, claims, events
+		w.fixes, w.errata = fixes, errata
 	}
 	return err
 }
@@ -314,4 +351,236 @@ func (c claims) Release(_ context.Context, propositionID string) error {
 	defer c.w.mu.Unlock()
 	delete(c.w.claims, propositionID)
 	return nil
+}
+
+func (c claims) TouchForEdit(_ context.Context, propositionID, userID string) error {
+	c.w.mu.Lock()
+	defer c.w.mu.Unlock()
+	if holder, ok := c.w.claims[propositionID]; ok && holder != userID {
+		return &app.ClaimTakenError{HolderName: c.w.Names[holder]}
+	}
+	c.w.claims[propositionID] = userID
+	return nil
+}
+
+// --- Correções menores ---
+
+type fixes struct{ w *World }
+
+func (r fixes) Create(_ context.Context, f domain.MinorFix) error {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	r.w.fixes[f.ID] = f
+	return nil
+}
+
+func (r fixes) FindForUpdate(_ context.Context, id string) (domain.MinorFix, error) {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	f, ok := r.w.fixes[id]
+	if !ok {
+		return domain.MinorFix{}, domain.ErrMinorFixNotFound
+	}
+	return f, nil
+}
+
+func (r fixes) SetChecked(_ context.Context, f domain.MinorFix) error {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	cur, ok := r.w.fixes[f.ID]
+	if !ok || !cur.Unchecked() {
+		return domain.ErrMinorFixChecked
+	}
+	cur.CheckedBy, cur.CheckedAt = f.CheckedBy, f.CheckedAt
+	r.w.fixes[f.ID] = cur
+	return nil
+}
+
+func (r fixes) list(keep func(domain.MinorFix) bool) []domain.MinorFix {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	var out []domain.MinorFix
+	for _, f := range r.w.fixes {
+		if f.Unchecked() && keep(f) {
+			out = append(out, f)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
+	return out
+}
+
+func (r fixes) ListUncheckedByProposition(_ context.Context, id string) ([]domain.MinorFix, error) {
+	return r.list(func(f domain.MinorFix) bool { return f.PropositionID == id }), nil
+}
+
+func (r fixes) ListUnchecked(context.Context) ([]domain.MinorFix, error) {
+	return r.list(func(domain.MinorFix) bool { return true }), nil
+}
+
+// --- Erratas ---
+
+type errata struct{ w *World }
+
+func (r errata) Create(_ context.Context, e domain.Erratum) error {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	for _, o := range r.w.errata {
+		if o.VersionID == e.VersionID && o.Pending() {
+			return domain.ErrErratumPending
+		}
+	}
+	r.w.errata[e.ID] = e
+	return nil
+}
+
+func (r errata) FindForUpdate(_ context.Context, id string) (domain.Erratum, error) {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	e, ok := r.w.errata[id]
+	if !ok {
+		return domain.Erratum{}, domain.ErrErratumNotFound
+	}
+	return e, nil
+}
+
+func (r errata) Decide(_ context.Context, e domain.Erratum) error {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	cur, ok := r.w.errata[e.ID]
+	if !ok || !cur.Pending() {
+		return domain.ErrErratumNotPending
+	}
+	r.w.errata[e.ID] = e
+	return nil
+}
+
+func (r errata) HasPending(_ context.Context, versionID string) (bool, error) {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	for _, e := range r.w.errata {
+		if e.VersionID == versionID && e.Pending() {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r errata) list(keep func(domain.Erratum) bool, newestFirst bool) []domain.Erratum {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	var out []domain.Erratum
+	for _, e := range r.w.errata {
+		if keep(e) {
+			out = append(out, e)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if newestFirst {
+			return out[i].CreatedAt.After(out[j].CreatedAt)
+		}
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
+	})
+	return out
+}
+
+func (r errata) ListByProposition(_ context.Context, id string) ([]domain.Erratum, error) {
+	return r.list(func(e domain.Erratum) bool { return e.PropositionID == id }, true), nil
+}
+
+func (r errata) ListPending(context.Context) ([]domain.Erratum, error) {
+	return r.list(domain.Erratum.Pending, false), nil
+}
+
+func (r errata) ListApprovedByVersions(_ context.Context, ids []string) ([]domain.Erratum, error) {
+	return r.list(func(e domain.Erratum) bool {
+		return e.State == domain.ErratumApproved && slices.Contains(ids, e.VersionID)
+	}, true), nil
+}
+
+// --- conteúdo vigente (o que o módulo proposition faria) ---
+
+type corrections struct{ w *World }
+
+func (c corrections) target(p Proposition, v Version) domain.Target {
+	return domain.Target{
+		PropositionID: p.ID, Name: p.Name, Ready: p.State == "ready", VersionID: v.ID, Seq: v.Seq,
+		Content: v.Content, Revision: v.Revision,
+	}
+}
+
+func (c corrections) Current(_ context.Context, propositionID string) (*domain.Target, error) {
+	c.w.mu.Lock()
+	defer c.w.mu.Unlock()
+	p, ok := c.w.props[propositionID]
+	if !ok {
+		return nil, app.ErrPropositionNotFound
+	}
+	v, ok := editorial(c).find(propositionID, "current")
+	if !ok {
+		return nil, nil
+	}
+	t := c.target(p, v)
+	return &t, nil
+}
+
+func (c corrections) LockCurrent(_ context.Context, propositionID, versionID string) (domain.Target, error) {
+	c.w.mu.Lock()
+	defer c.w.mu.Unlock()
+	p, ok := c.w.props[propositionID]
+	if !ok {
+		return domain.Target{}, app.ErrPropositionNotFound
+	}
+	v, ok := c.w.versions[versionID]
+	if !ok || v.PropositionID != propositionID {
+		return domain.Target{}, app.ErrVersionNotFound
+	}
+	if v.State != "current" {
+		return domain.Target{}, domain.ErrVersionNotCurrent
+	}
+	return c.target(p, v), nil
+}
+
+// CheckContent imita as validações do conteúdo publicado: Resumo e Resumo
+// curto não vazios e de 1 a 3 Temas.
+func (c corrections) CheckContent(_ context.Context, s domain.Snapshot, _ []string) (domain.Snapshot, error) {
+	s.Summary, s.ShortSummary = strings.TrimSpace(s.Summary), strings.TrimSpace(s.ShortSummary)
+	if s.Summary == "" || s.ShortSummary == "" || len(s.TopicIDs) == 0 || len(s.TopicIDs) > 3 {
+		return domain.Snapshot{}, &app.InvalidContentError{Code: "published_content_incomplete", Message: "incompleto"}
+	}
+	return s, nil
+}
+
+func (c corrections) Rewrite(_ context.Context, propositionID, versionID string, s domain.Snapshot, authorID string, revision int) (app.Rewrite, error) {
+	c.w.mu.Lock()
+	defer c.w.mu.Unlock()
+	v, ok := c.w.versions[versionID]
+	if !ok || v.PropositionID != propositionID {
+		return app.Rewrite{}, app.ErrVersionNotFound
+	}
+	if v.State != "current" {
+		return app.Rewrite{}, domain.ErrVersionNotCurrent
+	}
+	if v.Revision != revision {
+		return app.Rewrite{}, domain.ErrStaleContent
+	}
+	var fields []string
+	if v.Content.Summary != s.Summary {
+		fields = append(fields, "summary")
+	}
+	if v.Content.ShortSummary != s.ShortSummary {
+		fields = append(fields, "short_summary")
+	}
+	if !slices.Equal(v.Content.TopicIDs, s.TopicIDs) {
+		fields = append(fields, "topic_ids")
+	}
+	if len(fields) == 0 {
+		return app.Rewrite{Content: v.Content, Revision: v.Revision}, nil
+	}
+	v.Content = s
+	v.Revision++
+	if !slices.Contains(v.Authors, authorID) {
+		v.Authors = append(slices.Clone(v.Authors), authorID)
+	}
+	c.w.versions[versionID] = v
+	return app.Rewrite{Fields: fields, Content: s, Revision: v.Revision}, nil
 }
