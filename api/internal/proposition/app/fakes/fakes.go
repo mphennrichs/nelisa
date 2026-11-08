@@ -40,6 +40,8 @@ type World struct {
 	// Statuses e Badges são o que o módulo review responderia.
 	Statuses map[string]app.ReviewStatus
 	Badges   map[string]int
+	// Errata são as Erratas aprovadas que o módulo review mandaria.
+	Errata []domain.PublicErratum
 	// Names são os nomes da equipe (módulo team).
 	Names map[string]string
 

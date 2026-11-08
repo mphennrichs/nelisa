@@ -90,9 +90,23 @@ type PendingSecondReview struct {
 	ApprovedAt    time.Time
 }
 
-// SecondReviews é o módulo review, ligado no main.
-type SecondReviews interface {
+// PendingCorrection é uma Correção menor a conferir (motivo
+// minor_fix_check) ou uma Errata pendente (motivo erratum).
+type PendingCorrection struct {
+	PropositionID string
+	VersionID     string
+	Reason        domain.Reason
+	// Since: quando a correção foi feita ou a Errata proposta.
+	Since time.Time
+}
+
+// ReviewWork é o trabalho de revisão que o módulo review conhece, ligado
+// no main.
+type ReviewWork interface {
 	PendingSecondReviews(ctx context.Context) ([]PendingSecondReview, error)
+	// PendingCorrections lista Correções menores a conferir e Erratas
+	// pendentes.
+	PendingCorrections(ctx context.Context) ([]PendingCorrection, error)
 }
 
 // TxRunner abre uma transação levada no contexto.

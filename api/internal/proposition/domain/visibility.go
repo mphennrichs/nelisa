@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"sort"
+	"time"
+)
 
 // Regra de visibilidade da parte pública (CONTEXT.md, "Revisão" e
 // "Versão vigente / em análise"):
@@ -8,6 +11,9 @@ import "time"
 //   - sem Versão vigente, aparece como "em análise", só com o que não é
 //     produzido pelo Nelisa (dados oficiais, Tramitação, fontes);
 //   - com Versão vigente, ganha Resumo, Resumo curto, Temas e Selo dela;
+//   - com Versão vigente, também as notas das Erratas aprovadas dela
+//     (data, "dizia", "o correto é"), nunca pendentes, recusadas ou
+//     retiradas, nem nomes;
 //   - com vigente e uma Versão em análise, também o aviso "há texto novo em
 //     análise" com o rótulo e o link oficial da Versão nova, e nada mais
 //     dela.
@@ -79,6 +85,18 @@ type PublicProposition struct {
 	ReviewBadge int
 	// PendingVersion é o aviso de texto novo em análise (só com vigente).
 	PendingVersion *PublicPendingVersion
+	// Errata são as notas das Erratas aprovadas da Versão vigente, da mais
+	// nova para a mais antiga. Sem nomes: nem quem propôs nem quem aprovou.
+	Errata []PublicErratum
+}
+
+// PublicErratum é a nota pública de uma Errata aprovada: "Em <data>:
+// dizia X; o correto é Y". É tudo o que o Leitor sabe dela.
+type PublicErratum struct {
+	VersionID  string
+	ApprovedAt time.Time
+	Said       string
+	Correct    string
 }
 
 // PublicPendingVersion é tudo o que o Leitor sabe da Versão em análise: o
@@ -97,6 +115,9 @@ type Editorial struct {
 	Contents []Content
 	Topics   map[string]Topic
 	Badges   map[string]int
+	// Errata são as Erratas aprovadas conhecidas (o módulo review só manda
+	// aprovadas); a regra só usa as da Versão vigente.
+	Errata []PublicErratum
 }
 
 // PublicView aplica a regra de visibilidade. ok é false para o que o
@@ -113,7 +134,7 @@ func PublicView(p Proposition, links []SourceLink, principal *Proposition, attac
 		OfficialSummary: p.OfficialSummary, PresentedAt: p.PresentedAt, OfficialTextURL: p.OfficialTextURL,
 		Authors: append([]string(nil), p.Authors...), Status: p.Status, Superseded: p.Superseded,
 		UnderReview: true, UpdatedAt: p.UpdatedAt,
-		Sources: []PublicSource{}, Attached: []PublicRef{}, Topics: []string{},
+		Sources: []PublicSource{}, Attached: []PublicRef{}, Topics: []string{}, Errata: []PublicErratum{},
 	}
 	applyEditorial(&out, p, ed)
 	switch {
@@ -187,4 +208,12 @@ func applyEditorial(out *PublicProposition, p Proposition, ed Editorial) {
 	if pending != nil {
 		out.PendingVersion = &PublicPendingVersion{Label: pending.Label, OfficialTextURL: pending.OfficialTextURL}
 	}
+	// Só as da vigente: quando uma Versão nova vira vigente, as Erratas da
+	// anterior saem junto com o conteúdo dela.
+	for _, e := range ed.Errata {
+		if e.VersionID == current.ID {
+			out.Errata = append(out.Errata, e)
+		}
+	}
+	sort.SliceStable(out.Errata, func(i, j int) bool { return out.Errata[i].ApprovedAt.After(out.Errata[j].ApprovedAt) })
 }

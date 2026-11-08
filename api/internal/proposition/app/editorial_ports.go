@@ -95,6 +95,63 @@ type ReviewStatus struct {
 	ApprovalBreaksFourEyes bool
 	CanSecondReview        bool
 	Current                *ApprovalInfo
+
+	// CanMinorFix e CanProposeErratum: a Versão vigente aceita Correção
+	// menor e Errata agora (Proposição pronta, sem Errata pendente). A
+	// Correção menor também exige a Posse livre, que quem monta a tela
+	// confere (o review não a conhece).
+	CanMinorFix       bool
+	CanProposeErratum bool
+	// MinorFixes são as Correções menores a conferir.
+	MinorFixes []MinorFixInfo
+	// PendingErratum é a Errata pendente da Versão vigente.
+	PendingErratum *ErratumInfo
+	// Errata é o histórico: as outras Erratas, da mais nova para a mais
+	// antiga.
+	Errata []ErratumInfo
+}
+
+// ContentSnapshot é o conteúdo inteiro (antes/depois de uma Correção
+// menor, proposto de uma Errata).
+type ContentSnapshot struct {
+	Summary      string
+	ShortSummary string
+	TopicIDs     []string
+}
+
+// MinorFixInfo é uma Correção menor a conferir, para a equipe.
+type MinorFixInfo struct {
+	ID        string
+	VersionID string
+	Fields    []string
+	Before    ContentSnapshot
+	After     ContentSnapshot
+	CreatedBy string
+	CreatedAt time.Time
+	// CanCheck: o Ator pode conferir (Revisor ou Admin que não a fez).
+	CanCheck bool
+}
+
+// ErratumInfo é uma Errata, para a equipe, com as decisões do Ator.
+type ErratumInfo struct {
+	ID           string
+	VersionID    string
+	Proposed     ContentSnapshot
+	Said         string
+	Correct      string
+	BaseRevision int
+	// State: pending, approved, rejected ou withdrawn.
+	State     string
+	CreatedBy string
+	CreatedAt time.Time
+	DecidedBy string
+	DecidedAt *time.Time
+	// Reason é o motivo interno da recusa.
+	Reason string
+	// Stale: o conteúdo vigente mudou desde a proposta.
+	Stale       bool
+	CanDecide   bool
+	CanWithdraw bool
 }
 
 // ApprovalInfo é a aprovação de uma Versão, como a equipe a vê.
@@ -118,8 +175,12 @@ type Reviews interface {
 	Status(ctx context.Context, propositionID string) (ReviewStatus, error)
 }
 
-// BadgeReader dá o Selo à camada pública (módulo review, ligado no main).
-type BadgeReader interface {
+// PublicReviews dá à camada pública o Selo e as notas das Erratas
+// aprovadas (módulo review, ligado no main).
+type PublicReviews interface {
+	// ApprovedErrata devolve as Erratas aprovadas das Versões pedidas.
+	// Nada de pendente, recusada ou retirada, nem nomes.
+	ApprovedErrata(ctx context.Context, versionIDs []string) ([]domain.PublicErratum, error)
 	// Badges devolve o Selo (1 ou 2) de cada Versão aprovada entre as
 	// pedidas; Versão sem aprovação fica de fora.
 	Badges(ctx context.Context, versionIDs []string) (map[string]int, error)

@@ -27,6 +27,7 @@ tags:
   - name: fontes
   - name: proposições
   - name: ciclo editorial
+  - name: correção e errata
   - name: fila
   - name: público
 paths:
@@ -744,6 +745,270 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/minor-fix:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    put:
+      tags: [correção e errata]
+      summary: Aplica uma Correção menor ao conteúdo da Versão vigente (Editor ou acima)
+      description: |
+        Correção que não muda o sentido (digitação, formatação, link). Só na
+        Versão vigente de uma Proposição pronta. Exige a Posse (assume se
+        livre; 409 `claim_taken` se de outra pessoa), o `revision` lido
+        (409 `stale_content`) e nenhuma Errata pendente na Versão (409
+        `erratum_pending`). Mesmas validações do conteúdo, e o conteúdo
+        publicado não pode ficar sem Resumo, Resumo curto ou Temas. Entra na
+        hora: a Proposição segue pronta e o Leitor vê o texto corrigido sem
+        aviso; quem corrigiu entra na Autoria; a correção fica "a conferir"
+        na Fila (`minor_fix_check`). Auditoria `content.minor_fix` (Versão,
+        campos; nunca o texto), na mesma transação.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateContentRequest" }
+      responses:
+        "200":
+          description: Correção aplicada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MinorFix" }
+        "400":
+          description: |
+            `revision_required`, `summary_too_long`, `short_summary_too_long`,
+            `too_many_topics`, `duplicate_topic`, `topic_not_found`,
+            `topic_inactive` ou `published_content_incomplete`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found` ou `version_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: |
+            `claim_taken`, `stale_content`, `erratum_pending`, `no_changes`
+            (o texto é igual ao publicado), `version_not_current` (Versão em
+            análise ou substituída) ou `not_ready` (Proposição não pronta).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/minor-fixes/{fixId}/check:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - name: fixId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [correção e errata]
+      summary: Confere uma Correção menor (Revisor ou Admin que não a fez)
+      description: |
+        Tira a correção da Fila. Quem a fez não confere (403 `four_eyes`),
+        nem o Admin. Não há "rejeitar": quem discorda faz outra Correção
+        menor ou propõe uma Errata. Auditoria `review.minor_fix_check`.
+      responses:
+        "200":
+          description: Conferida
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MinorFix" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`forbidden` (Editor) ou `four_eyes`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`minor_fix_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`minor_fix_checked`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/errata:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [correção e errata]
+      summary: Propõe uma Errata para a Versão vigente (Editor ou acima)
+      description: |
+        Correção que muda o sentido. Leva o conteúdo completo como fica
+        depois da Errata (mesmas validações do conteúdo) e a nota pública
+        (`said`, `correct`). Não exige Posse. No máximo uma pendente por
+        Versão (409 `erratum_pending`). Enquanto pendente nada muda para o
+        Leitor. Auditoria `review.erratum_propose`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProposeErratumRequest" }
+      responses:
+        "201":
+          description: Errata proposta (pendente)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Erratum" }
+        "400":
+          description: |
+            `revision_required`, `invalid_erratum_note` e as mesmas do
+            conteúdo da Correção menor.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found` ou `version_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`erratum_pending`, `stale_content`, `no_changes`, `version_not_current` ou `not_ready`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/errata/{erratumId}/approve:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+      - $ref: "#/components/parameters/ErratumID"
+    post:
+      tags: [correção e errata]
+      summary: Aprova a Errata (Revisor ou Admin que não a propôs)
+      description: |
+        Quatro olhos sem exceção: quem propôs não aprova, nem o Admin (403
+        `four_eyes`). O corpo leva a `revision` do conteúdo vigente que quem
+        aprova leu; ela e a atual têm de ser a de quando a Errata foi
+        proposta (`base_revision`), senão 409 `stale_content` e a Errata
+        precisa ser refeita. Na mesma transação: o conteúdo vigente vira o
+        da Errata (revision sobe, quem propôs entra na Autoria), a Errata
+        fica `approved` e a Auditoria registra (`review.erratum_approve`).
+        A nota passa a aparecer na página pública.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [revision]
+              properties:
+                revision: { type: integer, description: revision do conteúdo vigente que quem aprova leu }
+      responses:
+        "200":
+          description: Aprovada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Erratum" }
+        "400":
+          description: "`revision_required` ou as do conteúdo (um Tema escolhido foi desativado no meio do caminho)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`forbidden` (Editor) ou `four_eyes`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `erratum_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`stale_content`, `erratum_not_pending`, `version_not_current` ou `not_ready`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/errata/{erratumId}/reject:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+      - $ref: "#/components/parameters/ErratumID"
+    post:
+      tags: [correção e errata]
+      summary: Recusa a Errata com motivo interno (Revisor ou Admin que não a propôs)
+      description: |
+        Nada muda no conteúdo; o motivo fica só para a equipe. Auditoria
+        `review.erratum_reject`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { type: string, maxLength: 1000 }
+      responses:
+        "200":
+          description: Recusada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Erratum" }
+        "400":
+          description: "`invalid_reason`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`forbidden` (Editor) ou `four_eyes`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`erratum_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`erratum_not_pending`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/errata/{erratumId}/withdraw:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+      - $ref: "#/components/parameters/ErratumID"
+    post:
+      tags: [correção e errata]
+      summary: Retira a Errata pendente (só quem a propôs)
+      description: Nada muda no conteúdo. Auditoria `review.erratum_withdraw`.
+      responses:
+        "200":
+          description: Retirada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Erratum" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: "`forbidden` (não é quem propôs)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`erratum_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`erratum_not_pending`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/team/propositions/{id}/claim:
     parameters:
       - $ref: "#/components/parameters/PropositionID"
@@ -783,9 +1048,12 @@ paths:
       tags: [fila]
       summary: Fila de revisão (Editor ou acima)
       description: |
-        Proposições `in_review` com Versão em análise (`reason: review`) e
+        Proposições `in_review` com Versão em análise (`reason: review`),
         Proposições `ready` com Segunda revisão pendente
-        (`reason: second_review`). Ordem: Esfera (federal > estadual >
+        (`reason: second_review`), com Correção menor a conferir
+        (`reason: minor_fix_check`, um item por Proposição, desde a mais
+        antiga) e com Errata pendente (`reason: erratum`); estes três só
+        da Versão vigente. Ordem: Esfera (federal > estadual >
         municipal), depois votação mais próxima (ainda sem dado: todas "sem
         votação"), depois mais antigo na fila primeiro.
       parameters:
@@ -978,6 +1246,11 @@ components:
       schema: { type: string, format: uuid }
     VersionID:
       name: versionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ErratumID:
+      name: erratumId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -1331,11 +1604,26 @@ components:
       allOf:
         - $ref: "#/components/schemas/PublicProposition"
         - type: object
-          required: [timeline]
+          required: [timeline, errata]
           properties:
             timeline:
               type: array
               items: { $ref: "#/components/schemas/TimelineEntry" }
+            errata:
+              type: array
+              items: { $ref: "#/components/schemas/PublicErratum" }
+              description: |
+                Erratas aprovadas da Versão vigente, da mais nova para a mais
+                antiga. Pendentes, recusadas e retiradas nunca saem; nem quem
+                propôs ou decidiu.
+    PublicErratum:
+      type: object
+      additionalProperties: false
+      required: [approved_at, said, correct]
+      properties:
+        approved_at: { type: string, format: date-time }
+        said: { type: string, maxLength: 500, description: '"Dizia X"' }
+        correct: { type: string, maxLength: 500, description: '"O correto é Y"' }
     Sphere:
       type: string
       enum: [federal, state, municipal]
@@ -1445,7 +1733,7 @@ components:
         message: { type: string, description: Texto para a tela }
     TeamEditorial:
       type: object
-      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, people]
+      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, can_minor_fix, can_propose_erratum, minor_fixes, pending_erratum, errata, people]
       properties:
         versions:
           type: array
@@ -1480,10 +1768,110 @@ components:
           description: Por que quem pergunta não pode aprovar agora (vazio se pode)
         approval_breaks_four_eyes: { type: boolean, description: "Admin autor: se aprovar, fica a Segunda revisão pendente" }
         can_second_review: { type: boolean }
+        can_minor_fix:
+          type: boolean
+          description: "Pode aplicar Correção menor na vigente: Proposição pronta, sem Errata pendente, Posse livre ou sua"
+        can_propose_erratum: { type: boolean, description: "Pode propor Errata: Proposição pronta, sem Errata pendente" }
+        minor_fixes:
+          type: array
+          items: { $ref: "#/components/schemas/TeamMinorFix" }
+          description: Correções menores a conferir, da mais antiga para a mais nova
+        pending_erratum:
+          oneOf:
+            - $ref: "#/components/schemas/TeamErratum"
+            - type: "null"
+          description: Errata pendente da Versão vigente
+        errata:
+          type: array
+          items: { $ref: "#/components/schemas/TeamErratum" }
+          description: Histórico das outras Erratas, da mais nova para a mais antiga
         people:
           type: object
           additionalProperties: { type: string }
-          description: Nomes da equipe por id (Autoria, Posse, aprovação)
+          description: Nomes da equipe por id (Autoria, Posse, aprovação, correções)
+    ContentSnapshot:
+      type: object
+      required: [summary, short_summary, topic_ids]
+      properties:
+        summary: { type: string }
+        short_summary: { type: string }
+        topic_ids:
+          type: array
+          items: { type: string, format: uuid }
+    MinorFixField:
+      type: string
+      enum: [summary, short_summary, topic_ids]
+    MinorFix:
+      type: object
+      required: [id, version_id, fields, before, after, created_by, created_at, checked_by, checked_at]
+      properties:
+        id: { type: string, format: uuid }
+        version_id: { type: string, format: uuid }
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/MinorFixField" }
+        before: { $ref: "#/components/schemas/ContentSnapshot" }
+        after: { $ref: "#/components/schemas/ContentSnapshot" }
+        created_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        checked_by: { type: [string, "null"], format: uuid }
+        checked_at: { type: [string, "null"], format: date-time }
+    TeamMinorFix:
+      type: object
+      required: [id, version_id, fields, before, after, created_by, created_at, can_check_minor_fix]
+      properties:
+        id: { type: string, format: uuid }
+        version_id: { type: string, format: uuid }
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/MinorFixField" }
+        before: { $ref: "#/components/schemas/ContentSnapshot" }
+        after: { $ref: "#/components/schemas/ContentSnapshot" }
+        created_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        can_check_minor_fix: { type: boolean, description: "Quem pergunta pode conferir (Revisor ou Admin que não a fez)" }
+    ErratumState:
+      type: string
+      enum: [pending, approved, rejected, withdrawn]
+    Erratum:
+      type: object
+      required: [id, version_id, proposed, said, correct, base_revision, state, created_by, created_at, decided_by, decided_at, reason]
+      properties:
+        id: { type: string, format: uuid }
+        version_id: { type: string, format: uuid }
+        proposed: { $ref: "#/components/schemas/ContentSnapshot" }
+        said: { type: string, maxLength: 500 }
+        correct: { type: string, maxLength: 500 }
+        base_revision: { type: integer, description: revision do conteúdo vigente quando foi proposta }
+        state: { $ref: "#/components/schemas/ErratumState" }
+        created_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        decided_by: { type: [string, "null"], format: uuid }
+        decided_at: { type: [string, "null"], format: date-time }
+        reason: { type: string, description: 'Motivo interno da recusa ("" nos outros estados)' }
+    TeamErratum:
+      allOf:
+        - $ref: "#/components/schemas/Erratum"
+        - type: object
+          required: [stale, can_decide_erratum, can_withdraw_erratum]
+          properties:
+            stale: { type: boolean, description: "O conteúdo vigente mudou desde a proposta: aprovar dá 409" }
+            can_decide_erratum: { type: boolean, description: "Quem pergunta pode aprovar ou recusar (Revisor ou Admin que não a propôs)" }
+            can_withdraw_erratum: { type: boolean, description: Quem pergunta pode retirar (quem propôs) }
+    ProposeErratumRequest:
+      type: object
+      additionalProperties: false
+      required: [said, correct, revision]
+      properties:
+        summary: { type: string, maxLength: 5000 }
+        short_summary: { type: string, maxLength: 280 }
+        topic_ids:
+          type: array
+          maxItems: 3
+          items: { type: string, format: uuid }
+        said: { type: string, maxLength: 500, description: '"Dizia X" (nota pública)' }
+        correct: { type: string, maxLength: 500, description: '"O correto é Y" (nota pública)' }
+        revision: { type: integer, description: O revision lido do conteúdo vigente }
     Approval:
       type: object
       required: [version_id, approved_at, four_eyes, second_review_at, pending_second_review, review_badge]
@@ -1502,7 +1890,7 @@ components:
         name: { type: string }
         slug: { type: string }
         sphere: { $ref: "#/components/schemas/Sphere" }
-        reason: { type: string, enum: [review, second_review] }
+        reason: { type: string, enum: [review, second_review, minor_fix_check, erratum] }
         version:
           type: object
           required: [id, seq, label]

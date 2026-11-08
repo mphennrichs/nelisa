@@ -63,6 +63,20 @@ func (p propReviews) Status(ctx context.Context, propositionID string) (propapp.
 	for _, b := range s.Assessment.Blockers {
 		out.Blockers = append(out.Blockers, propapp.ReviewBlocker{Code: b.Code, Message: b.Message})
 	}
+	out.CanMinorFix, out.CanProposeErratum = s.CanMinorFix, s.CanProposeErratum
+	for _, f := range s.MinorFixes {
+		out.MinorFixes = append(out.MinorFixes, propapp.MinorFixInfo{
+			ID: f.ID, VersionID: f.VersionID, Fields: f.Fields, Before: toPropSnapshot(f.Before), After: toPropSnapshot(f.After),
+			CreatedBy: f.CreatedBy, CreatedAt: f.CreatedAt, CanCheck: f.CanCheck,
+		})
+	}
+	if e := s.PendingErratum; e != nil {
+		info := toErratumInfo(*e)
+		out.PendingErratum = &info
+	}
+	for _, e := range s.Errata {
+		out.Errata = append(out.Errata, toErratumInfo(e))
+	}
 	if a := s.Current; a != nil {
 		out.Current = &propapp.ApprovalInfo{
 			VersionID: a.VersionID, ApprovedBy: a.ApprovedBy, ApprovedAt: a.ApprovedAt, FourEyes: a.FourEyes,
@@ -73,8 +87,39 @@ func (p propReviews) Status(ctx context.Context, propositionID string) (propapp.
 	return out, nil
 }
 
+func toPropSnapshot(s reviewdomain.Snapshot) propapp.ContentSnapshot {
+	return propapp.ContentSnapshot{Summary: s.Summary, ShortSummary: s.ShortSummary, TopicIDs: s.TopicIDs}
+}
+
+func toErratumInfo(e reviewapp.ErratumView) propapp.ErratumInfo {
+	return propapp.ErratumInfo{
+		ID: e.ID, VersionID: e.VersionID, Proposed: toPropSnapshot(e.Proposed), Said: e.Said, Correct: e.Correct,
+		BaseRevision: e.BaseRevision, State: string(e.State), CreatedBy: e.CreatedBy, CreatedAt: e.CreatedAt,
+		DecidedBy: e.DecidedBy, DecidedAt: e.DecidedAt, Reason: e.Reason,
+		Stale: e.Stale, CanDecide: e.CanDecide, CanWithdraw: e.CanWithdraw,
+	}
+}
+
 func (p propReviews) Badges(ctx context.Context, versionIDs []string) (map[string]int, error) {
 	return p.r.Badges(ctx, versionIDs)
+}
+
+// ApprovedErrata leva à camada pública só a data e a nota das Erratas
+// aprovadas: nem quem propôs, nem quem aprovou, nem o motivo. O filtro de
+// estado se repete aqui de propósito (defesa em profundidade).
+func (p propReviews) ApprovedErrata(ctx context.Context, versionIDs []string) ([]propdomain.PublicErratum, error) {
+	es, err := p.r.ApprovedErrata(ctx, versionIDs)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]propdomain.PublicErratum, 0, len(es))
+	for _, e := range es {
+		if e.State != reviewdomain.ErratumApproved || e.DecidedAt == nil {
+			continue
+		}
+		out = append(out, propdomain.PublicErratum{VersionID: e.VersionID, ApprovedAt: *e.DecidedAt, Said: e.Said, Correct: e.Correct})
+	}
+	return out, nil
 }
 
 // --- Nomes da equipe ---
@@ -191,6 +236,107 @@ func (c reviewClaims) Release(ctx context.Context, propositionID string) error {
 	return c.g.Release(ctx, propositionID)
 }
 
+func (c reviewClaims) TouchForEdit(ctx context.Context, propositionID, userID string) error {
+	err := c.g.TouchForEdit(ctx, propositionID, userID)
+	var taken *queuedomain.ClaimTakenError
+	if errors.As(err, &taken) {
+		return &reviewapp.ClaimTakenError{HolderName: taken.HolderName}
+	}
+	if errors.Is(err, queueapp.ErrPropositionNotFound) {
+		return errors.Join(reviewapp.ErrPropositionNotFound, err)
+	}
+	return err
+}
+
+// --- Conteúdo vigente para a Correção menor e a Errata ---
+
+type reviewCorrections struct{ e *propapp.Editorial }
+
+// invalidContent traduz as validações do conteúdo (proposition) nos
+// códigos que a equipe já conhece da gravação do conteúdo.
+var invalidContent = []struct {
+	err           error
+	code, message string
+}{
+	{propdomain.ErrSummaryTooLong, "summary_too_long", "O Resumo pode ter até 5.000 caracteres."},
+	{propdomain.ErrShortSummaryTooLong, "short_summary_too_long", "O Resumo curto pode ter até 280 caracteres."},
+	{propdomain.ErrTooManyTopics, "too_many_topics", "Escolha no máximo 3 Temas."},
+	{propdomain.ErrDuplicateTopic, "duplicate_topic", "Tema repetido."},
+	{propdomain.ErrTopicNotFound, "topic_not_found", "Tema não encontrado."},
+	{propdomain.ErrTopicInactive, "topic_inactive", "Este Tema foi desativado e não pode ser escolhido."},
+	{propdomain.ErrPublishedContentIncomplete, "published_content_incomplete", "O conteúdo publicado precisa de Resumo, Resumo curto e de 1 a 3 Temas."},
+}
+
+func correctionErr(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, propdomain.ErrPropositionNotFound):
+		return errors.Join(reviewapp.ErrPropositionNotFound, err)
+	case errors.Is(err, propdomain.ErrVersionNotFound):
+		return errors.Join(reviewapp.ErrVersionNotFound, err)
+	case errors.Is(err, propdomain.ErrVersionNotCurrent):
+		return errors.Join(reviewdomain.ErrVersionNotCurrent, err)
+	case errors.Is(err, propdomain.ErrStaleContent):
+		return errors.Join(reviewdomain.ErrStaleContent, err)
+	}
+	for _, m := range invalidContent {
+		if errors.Is(err, m.err) {
+			return &reviewapp.InvalidContentError{Code: m.code, Message: m.message}
+		}
+	}
+	return err
+}
+
+func toTarget(s propapp.CurrentSubject) reviewdomain.Target {
+	return reviewdomain.Target{
+		PropositionID: s.PropositionID, Name: s.Name, Ready: s.Ready, VersionID: s.Version.ID, Seq: s.Version.Seq,
+		Content:  reviewdomain.Snapshot{Summary: s.Content.Summary, ShortSummary: s.Content.ShortSummary, TopicIDs: s.Content.TopicIDs},
+		Revision: s.Content.Revision,
+	}
+}
+
+func toEdit(s reviewdomain.Snapshot) propdomain.ContentEdit {
+	return propdomain.ContentEdit{Summary: s.Summary, ShortSummary: s.ShortSummary, TopicIDs: s.TopicIDs}
+}
+
+func (r reviewCorrections) Current(ctx context.Context, propositionID string) (*reviewdomain.Target, error) {
+	s, err := r.e.Current(ctx, propositionID)
+	if err != nil || s == nil {
+		return nil, correctionErr(err)
+	}
+	t := toTarget(*s)
+	return &t, nil
+}
+
+func (r reviewCorrections) LockCurrent(ctx context.Context, propositionID, versionID string) (reviewdomain.Target, error) {
+	s, err := r.e.LockCurrent(ctx, propositionID, versionID)
+	if err != nil {
+		return reviewdomain.Target{}, correctionErr(err)
+	}
+	return toTarget(s), nil
+}
+
+func (r reviewCorrections) CheckContent(ctx context.Context, proposed reviewdomain.Snapshot, previous []string) (reviewdomain.Snapshot, error) {
+	n, err := r.e.CheckCurrentEdit(ctx, toEdit(proposed), previous)
+	if err != nil {
+		return reviewdomain.Snapshot{}, correctionErr(err)
+	}
+	return reviewdomain.Snapshot{Summary: n.Summary, ShortSummary: n.ShortSummary, TopicIDs: n.TopicIDs}, nil
+}
+
+func (r reviewCorrections) Rewrite(ctx context.Context, propositionID, versionID string, proposed reviewdomain.Snapshot, authorID string, revision int) (reviewapp.Rewrite, error) {
+	c, fields, err := r.e.RewriteCurrent(ctx, propositionID, versionID, toEdit(proposed), authorID, revision)
+	if err != nil {
+		return reviewapp.Rewrite{}, correctionErr(err)
+	}
+	return reviewapp.Rewrite{
+		Fields:   fields,
+		Content:  reviewdomain.Snapshot{Summary: c.Summary, ShortSummary: c.ShortSummary, TopicIDs: c.TopicIDs},
+		Revision: c.Revision,
+	}, nil
+}
+
 // --- Proposições e Revisão para a Fila ---
 
 type queueProps struct{ e *propapp.Editorial }
@@ -236,9 +382,9 @@ func (q queueProps) Describe(ctx context.Context, ids []string) ([]queueapp.Prop
 	return toQueueProps(bs), nil
 }
 
-type queueSecondReviews struct{ r *reviewapp.Reports }
+type queueReviewWork struct{ r *reviewapp.Reports }
 
-func (q queueSecondReviews) PendingSecondReviews(ctx context.Context) ([]queueapp.PendingSecondReview, error) {
+func (q queueReviewWork) PendingSecondReviews(ctx context.Context) ([]queueapp.PendingSecondReview, error) {
 	as, err := q.r.PendingSecondReviews(ctx)
 	if err != nil {
 		return nil, err
@@ -246,6 +392,25 @@ func (q queueSecondReviews) PendingSecondReviews(ctx context.Context) ([]queueap
 	out := make([]queueapp.PendingSecondReview, 0, len(as))
 	for _, a := range as {
 		out = append(out, queueapp.PendingSecondReview{PropositionID: a.PropositionID, VersionID: a.VersionID, ApprovedAt: a.ApprovedAt})
+	}
+	return out, nil
+}
+
+func (q queueReviewWork) PendingCorrections(ctx context.Context) ([]queueapp.PendingCorrection, error) {
+	fixes, err := q.r.UncheckedMinorFixes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	errata, err := q.r.PendingErrata(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]queueapp.PendingCorrection, 0, len(fixes)+len(errata))
+	for _, f := range fixes {
+		out = append(out, queueapp.PendingCorrection{PropositionID: f.PropositionID, VersionID: f.VersionID, Reason: queuedomain.ReasonMinorFixCheck, Since: f.CreatedAt})
+	}
+	for _, e := range errata {
+		out = append(out, queueapp.PendingCorrection{PropositionID: e.PropositionID, VersionID: e.VersionID, Reason: queuedomain.ReasonErratum, Since: e.CreatedAt})
 	}
 	return out, nil
 }

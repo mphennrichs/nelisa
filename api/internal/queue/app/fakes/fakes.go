@@ -40,6 +40,7 @@ type World struct {
 	InReview      []app.Proposition
 	Described     map[string]app.Proposition
 	SecondReviews []app.PendingSecondReview
+	Corrections   []app.PendingCorrection
 	// AuditErr, se definido, faz toda gravação de Auditoria falhar.
 	AuditErr error
 }
@@ -48,12 +49,12 @@ func NewWorld() *World {
 	return &World{claims: map[string]domain.Claim{}, People: map[string]app.Person{}, Described: map[string]app.Proposition{}}
 }
 
-func (w *World) Claims() app.ClaimRepo      { return claims{w} }
-func (w *World) Directory() app.People      { return people{w} }
-func (w *World) Props() app.Propositions    { return props{w} }
-func (w *World) Reviews() app.SecondReviews { return reviews{w} }
-func (w *World) Tx() app.TxRunner           { return tx{w} }
-func (w *World) Audit() app.AuditRecorder   { return audit{w} }
+func (w *World) Claims() app.ClaimRepo    { return claims{w} }
+func (w *World) Directory() app.People    { return people{w} }
+func (w *World) Props() app.Propositions  { return props{w} }
+func (w *World) Reviews() app.ReviewWork  { return reviews{w} }
+func (w *World) Tx() app.TxRunner         { return tx{w} }
+func (w *World) Audit() app.AuditRecorder { return audit{w} }
 func (w *World) PutClaim(c domain.Claim) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -205,4 +206,10 @@ func (r reviews) PendingSecondReviews(context.Context) ([]app.PendingSecondRevie
 	r.w.mu.Lock()
 	defer r.w.mu.Unlock()
 	return slices.Clone(r.w.SecondReviews), nil
+}
+
+func (r reviews) PendingCorrections(context.Context) ([]app.PendingCorrection, error) {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	return slices.Clone(r.w.Corrections), nil
 }

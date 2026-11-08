@@ -22,7 +22,7 @@ func (w *World) People() app.People        { return people{w} }
 // Reviews é o que o módulo review oferece ao proposition.
 type Reviews interface {
 	app.Reviews
-	app.BadgeReader
+	app.PublicReviews
 }
 
 // Repos são os repositórios do ciclo editorial.
@@ -288,6 +288,18 @@ func (r reviews) Badges(_ context.Context, ids []string) (map[string]int, error)
 	for _, id := range ids {
 		if b, ok := r.w.Badges[id]; ok {
 			out[id] = b
+		}
+	}
+	return out, nil
+}
+
+func (r reviews) ApprovedErrata(_ context.Context, ids []string) ([]domain.PublicErratum, error) {
+	r.w.mu.Lock()
+	defer r.w.mu.Unlock()
+	var out []domain.PublicErratum
+	for _, e := range r.w.Errata {
+		if slices.Contains(ids, e.VersionID) {
+			out = append(out, e)
 		}
 	}
 	return out, nil

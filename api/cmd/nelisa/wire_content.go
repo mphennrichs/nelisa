@@ -58,6 +58,8 @@ type contentPorts struct {
 	topics    propapp.TopicRepo
 	links     propapp.LinkRepo
 	approvals reviewapp.ApprovalRepo
+	fixes     reviewapp.MinorFixRepo
+	errata    reviewapp.ErratumRepo
 	claims    queueapp.ClaimRepo
 	// users é o cadastro da equipe, só para nomes e conta ativa
 	// (teamapp.Directory).
@@ -77,6 +79,8 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 		topics:    propstore.NewTopics(pool),
 		links:     propstore.NewLinks(pool),
 		approvals: reviewstore.New(pool),
+		fixes:     reviewstore.NewMinorFixes(pool),
+		errata:    reviewstore.NewErrata(pool),
 		claims:    queuestore.New(pool),
 		users:     teamstore.NewUsers(pool),
 		entries:   progressstore.New(pool),
@@ -113,7 +117,12 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 	directory := teamapp.NewDirectory(p.users)
 	editorial := propapp.NewEditorial(repos, clk)
 	gate := queueapp.NewGate(p.claims, queuePeople{d: directory}, clk)
-	reports := reviewapp.NewReports(p.approvals, reviewEditorial{e: editorial})
+	rc := reviewCorrections{e: editorial}
+	reports := reviewapp.NewReports(p.approvals, p.fixes, p.errata, reviewEditorial{e: editorial}, rc)
+	corrections := reviewapp.CorrectionDeps{
+		Fixes: p.fixes, Errata: p.errata, Content: rc, Claims: reviewClaims{g: gate},
+		Tx: p.tx, Audit: reviewAudit{record: p.audit}, Clock: clk,
+	}
 	pc := propClaims{g: gate}
 	pr := propReviews{r: reports}
 	re := reviewEditorial{e: editorial}
@@ -137,11 +146,20 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 		review: reviewhttp.UseCases{
 			Approve:      reviewapp.NewApprove(p.approvals, re, reviewClaims{g: gate}, p.tx, reviewAudit{record: p.audit}, clk),
 			SecondReview: reviewapp.NewSecondReview(p.approvals, re, p.tx, reviewAudit{record: p.audit}, clk),
+			// Correção menor e Errata: o review orquestra (regras,
+			// Auditoria, transação); o conteúdo continua gravado pelo
+			// proposition, pela porta Corrections.
+			ApplyMinorFix:   reviewapp.NewApplyMinorFix(corrections),
+			CheckMinorFix:   reviewapp.NewCheckMinorFix(corrections),
+			ProposeErratum:  reviewapp.NewProposeErratum(corrections),
+			ApproveErratum:  reviewapp.NewApproveErratum(corrections),
+			RejectErratum:   reviewapp.NewRejectErratum(corrections),
+			WithdrawErratum: reviewapp.NewWithdrawErratum(corrections),
 		},
 		queue: queuehttp.UseCases{
 			Claim:     queueapp.NewClaim(p.claims, queueProps{e: editorial}, qp, p.tx, clk),
 			Release:   queueapp.NewRelease(p.claims, qp, p.tx, queueAudit{record: p.audit}, clk),
-			ListQueue: queueapp.NewListQueue(queueProps{e: editorial}, queueSecondReviews{r: reports}, p.claims, qp, clk),
+			ListQueue: queueapp.NewListQueue(queueProps{e: editorial}, queueReviewWork{r: reports}, p.claims, qp, clk),
 		},
 		ingest: ingesthttp.UseCases{
 			SearchSources: ingestapp.NewSearchSources(p.sources, ic),

@@ -167,11 +167,17 @@ importam o `team`.
   quatro olhos, Selo) e `queue` (Posse, Fila) não se importam.
   `cmd/nelisa/wire_editorial.go` liga as portas: o `proposition` pede a
   Posse (`Claims`) ao `queue` e a situação da Revisão e o Selo
-  (`Reviews`, `BadgeReader`) ao `review`; o `review` pede a Versão em
-  análise e a promoção (`Editorial`) ao `proposition` e a soltura da
-  Posse ao `queue`; o `queue` pede Proposições ao `proposition`,
-  Segundas revisões pendentes ao `review` e nomes/conta ativa ao `team`
-  (`team/app.Directory`).
+  (`Reviews`, `PublicReviews`, que também leva as notas das Erratas
+  aprovadas) ao `review`; o `review` pede a Versão em análise e a
+  promoção (`Editorial`) e o conteúdo vigente (`Corrections`) ao
+  `proposition`, e a Posse (`Claims`, `ClaimGate`) ao `queue`; o
+  `queue` pede Proposições ao `proposition`, Segundas revisões,
+  Correções menores a conferir e Erratas pendentes ao `review`
+  (`ReviewWork`) e nomes/conta ativa ao `team` (`team/app.Directory`).
+- Correção menor e Errata (`MinorFix`, `Erratum`) moram no `review`,
+  que orquestra (regras, transação, Auditoria); quem grava o conteúdo
+  vigente continua sendo o `proposition`, chamado pela porta
+  `Corrections` dentro da mesma transação.
 - Posse de conta desativada vale como livre: quem checa (o `queue`)
   ignora, em vez de a desativação soltar as posses.
 - A regra pública lê só o conteúdo da Versão vigente com aprovação

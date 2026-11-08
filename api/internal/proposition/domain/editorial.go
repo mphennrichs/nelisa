@@ -33,6 +33,13 @@ var (
 	ErrInvalidTopicName    = errors.New("proposition: nome de tema inválido (obrigatório, até 60 caracteres)")
 	ErrTopicNameTaken      = errors.New("proposition: já existe um tema com esse nome")
 	ErrVersionNotPending   = errors.New("proposition: a versão não está em análise")
+	// ErrVersionNotCurrent: Correção menor e Errata só mexem na Versão
+	// vigente.
+	ErrVersionNotCurrent = errors.New("proposition: a versão não é a vigente")
+	// ErrPublishedContentIncomplete: o conteúdo da Versão vigente já foi
+	// publicado completo; uma correção não pode deixá-lo sem Resumo,
+	// Resumo curto ou Temas.
+	ErrPublishedContentIncomplete = errors.New("proposition: o conteúdo publicado precisa de Resumo, Resumo curto e 1 a 3 Temas")
 )
 
 // Limites do conteúdo editorial. Nunca cortamos: texto acima do limite é
@@ -162,6 +169,16 @@ func (e ContentEdit) Normalize() (ContentEdit, error) {
 		out.TopicIDs = append(out.TopicIDs, id)
 	}
 	return out, nil
+}
+
+// CheckPublishable confere uma edição já normalizada do conteúdo que o
+// Leitor vê (Correção menor, Errata): Resumo, Resumo curto e 1 a 3 Temas,
+// como na aprovação. Se os Temas estão ativos é CheckTopicChoice.
+func (e ContentEdit) CheckPublishable() error {
+	if e.Summary == "" || e.ShortSummary == "" || len(e.TopicIDs) == 0 || len(e.TopicIDs) > MaxTopics {
+		return ErrPublishedContentIncomplete
+	}
+	return nil
 }
 
 // Apply grava a edição de editorID. Devolve os campos que mudaram (para a

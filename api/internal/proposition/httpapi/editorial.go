@@ -83,7 +83,62 @@ type editorialDTO struct {
 	ApproveBlockers        []blockerDTO      `json:"approve_blockers"`
 	ApprovalBreaksFourEyes bool              `json:"approval_breaks_four_eyes"`
 	CanSecondReview        bool              `json:"can_second_review"`
+	CanMinorFix            bool              `json:"can_minor_fix"`
+	CanProposeErratum      bool              `json:"can_propose_erratum"`
+	MinorFixes             []minorFixDTO     `json:"minor_fixes"`
+	PendingErratum         *erratumDTO       `json:"pending_erratum"`
+	Errata                 []erratumDTO      `json:"errata"`
 	People                 map[string]string `json:"people"`
+}
+
+type snapshotDTO struct {
+	Summary      string   `json:"summary"`
+	ShortSummary string   `json:"short_summary"`
+	TopicIDs     []string `json:"topic_ids"`
+}
+
+// minorFixDTO é uma Correção menor a conferir, com o antes e o depois.
+type minorFixDTO struct {
+	ID               string      `json:"id"`
+	VersionID        string      `json:"version_id"`
+	Fields           []string    `json:"fields"`
+	Before           snapshotDTO `json:"before"`
+	After            snapshotDTO `json:"after"`
+	CreatedBy        string      `json:"created_by"`
+	CreatedAt        string      `json:"created_at"`
+	CanCheckMinorFix bool        `json:"can_check_minor_fix"`
+}
+
+// erratumDTO é uma Errata para a equipe (o Leitor só vê data e nota).
+type erratumDTO struct {
+	ID                 string      `json:"id"`
+	VersionID          string      `json:"version_id"`
+	Proposed           snapshotDTO `json:"proposed"`
+	Said               string      `json:"said"`
+	Correct            string      `json:"correct"`
+	BaseRevision       int         `json:"base_revision"`
+	State              string      `json:"state"`
+	CreatedBy          string      `json:"created_by"`
+	CreatedAt          string      `json:"created_at"`
+	DecidedBy          *string     `json:"decided_by"`
+	DecidedAt          *string     `json:"decided_at"`
+	Reason             string      `json:"reason"`
+	Stale              bool        `json:"stale"`
+	CanDecideErratum   bool        `json:"can_decide_erratum"`
+	CanWithdrawErratum bool        `json:"can_withdraw_erratum"`
+}
+
+func toSnapshotDTO(s app.ContentSnapshot) snapshotDTO {
+	return snapshotDTO{Summary: s.Summary, ShortSummary: s.ShortSummary, TopicIDs: nonNil(s.TopicIDs)}
+}
+
+func toErratumDTO(e app.ErratumInfo) erratumDTO {
+	return erratumDTO{
+		ID: e.ID, VersionID: e.VersionID, Proposed: toSnapshotDTO(e.Proposed), Said: e.Said, Correct: e.Correct,
+		BaseRevision: e.BaseRevision, State: e.State, CreatedBy: e.CreatedBy, CreatedAt: ts(e.CreatedAt),
+		DecidedBy: strPtr(e.DecidedBy), DecidedAt: tsPtr(e.DecidedAt), Reason: e.Reason, Stale: e.Stale,
+		CanDecideErratum: e.CanDecide, CanWithdrawErratum: e.CanWithdraw,
+	}
 }
 
 func toVersionDTO(v domain.Version) versionDTO {
@@ -116,7 +171,22 @@ func toEditorialDTO(ed app.TeamEditorial, actor string) editorialDTO {
 		CanEdit: ed.CanEdit, CanCreateVersion: ed.CanCreateVersion,
 		CanApprove: ed.Review.CanApprove, ApproveBlockers: make([]blockerDTO, 0, len(ed.Review.Blockers)),
 		ApprovalBreaksFourEyes: ed.Review.ApprovalBreaksFourEyes, CanSecondReview: ed.Review.CanSecondReview,
+		CanMinorFix: ed.CanMinorFix, CanProposeErratum: ed.Review.CanProposeErratum,
+		MinorFixes: make([]minorFixDTO, 0, len(ed.Review.MinorFixes)), Errata: make([]erratumDTO, 0, len(ed.Review.Errata)),
 		People: ed.People,
+	}
+	for _, f := range ed.Review.MinorFixes {
+		out.MinorFixes = append(out.MinorFixes, minorFixDTO{
+			ID: f.ID, VersionID: f.VersionID, Fields: nonNil(f.Fields), Before: toSnapshotDTO(f.Before), After: toSnapshotDTO(f.After),
+			CreatedBy: f.CreatedBy, CreatedAt: ts(f.CreatedAt), CanCheckMinorFix: f.CanCheck,
+		})
+	}
+	if e := ed.Review.PendingErratum; e != nil {
+		d := toErratumDTO(*e)
+		out.PendingErratum = &d
+	}
+	for _, e := range ed.Review.Errata {
+		out.Errata = append(out.Errata, toErratumDTO(e))
 	}
 	if out.People == nil {
 		out.People = map[string]string{}

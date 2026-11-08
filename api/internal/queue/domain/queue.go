@@ -103,6 +103,10 @@ type Reason string
 const (
 	ReasonReview       Reason = "review"
 	ReasonSecondReview Reason = "second_review"
+	// ReasonMinorFixCheck: Correção menor a conferir.
+	ReasonMinorFixCheck Reason = "minor_fix_check"
+	// ReasonErratum: Errata pendente.
+	ReasonErratum Reason = "erratum"
 )
 
 // Item é uma entrada da Fila.

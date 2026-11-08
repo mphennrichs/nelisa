@@ -312,6 +312,15 @@ type publicPendingVersionDTO struct {
 type publicPropositionDetailDTO struct {
 	publicPropositionDTO
 	Timeline []timelineDTO `json:"timeline"`
+	// Errata: as notas das Erratas aprovadas da Versão vigente. Sem
+	// nomes, sem estado, sem motivo: só data e nota.
+	Errata []publicErratumDTO `json:"errata"`
+}
+
+type publicErratumDTO struct {
+	ApprovedAt string `json:"approved_at"`
+	Said       string `json:"said"`
+	Correct    string `json:"correct"`
 }
 
 func toPublicRef(r domain.PublicRef) publicRefDTO {
@@ -347,6 +356,14 @@ func toPublicDTO(p domain.PublicProposition) publicPropositionDTO {
 	return out
 }
 
+func toPublicErrataDTO(es []domain.PublicErratum) []publicErratumDTO {
+	out := make([]publicErratumDTO, 0, len(es))
+	for _, e := range es {
+		out = append(out, publicErratumDTO{ApprovedAt: ts(e.ApprovedAt), Said: e.Said, Correct: e.Correct})
+	}
+	return out
+}
+
 // publicCache: curto, para a prévia de link e o SSR aguentarem pico sem
 // segurar por muito tempo uma Tramitação nova.
 const publicCache = "public, max-age=60"
@@ -375,6 +392,7 @@ func (h *Handlers) getPublic(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, publicPropositionDetailDTO{
 		publicPropositionDTO: toPublicDTO(d.PublicProposition),
 		Timeline:             toTimelineDTO(d.Timeline),
+		Errata:               toPublicErrataDTO(d.Errata),
 	})
 }
 

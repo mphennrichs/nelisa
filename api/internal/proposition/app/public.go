@@ -24,7 +24,7 @@ type PublicPropositionDetail struct {
 // publicEditorial junta o ciclo editorial de várias Proposições para a
 // regra de visibilidade. Só lê o conteúdo das Versões vigentes: o da Versão
 // em análise nem sai do banco. A regra (domain.PublicView) confere de novo.
-func publicEditorial(ctx context.Context, repos EditorialRepos, badges BadgeReader, propositionIDs []string) (domain.Editorial, error) {
+func publicEditorial(ctx context.Context, repos EditorialRepos, badges PublicReviews, propositionIDs []string, withErrata bool) (domain.Editorial, error) {
 	ed := domain.Editorial{}
 	if len(propositionIDs) == 0 {
 		return ed, nil
@@ -49,6 +49,12 @@ func publicEditorial(ctx context.Context, repos EditorialRepos, badges BadgeRead
 	if ed.Badges, err = badges.Badges(ctx, currentIDs); err != nil {
 		return ed, err
 	}
+	if withErrata {
+		// Só na página: a lista não mostra as notas.
+		if ed.Errata, err = badges.ApprovedErrata(ctx, currentIDs); err != nil {
+			return ed, err
+		}
+	}
 	topics, err := repos.Topics.List(ctx)
 	if err != nil {
 		return ed, err
@@ -61,10 +67,10 @@ func publicEditorial(ctx context.Context, repos EditorialRepos, badges BadgeRead
 type ListPublicPropositions struct {
 	repos  EditorialRepos
 	links  LinkRepo
-	badges BadgeReader
+	badges PublicReviews
 }
 
-func NewListPublicPropositions(repos EditorialRepos, links LinkRepo, badges BadgeReader) *ListPublicPropositions {
+func NewListPublicPropositions(repos EditorialRepos, links LinkRepo, badges PublicReviews) *ListPublicPropositions {
 	return &ListPublicPropositions{repos: repos, links: links, badges: badges}
 }
 
@@ -88,7 +94,7 @@ func (uc *ListPublicPropositions) Execute(ctx context.Context) ([]domain.PublicP
 			byProp[l.PropositionID] = append(byProp[l.PropositionID], l)
 		}
 	}
-	ed, err := publicEditorial(ctx, uc.repos, uc.badges, ids)
+	ed, err := publicEditorial(ctx, uc.repos, uc.badges, ids, false)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +113,10 @@ type GetPublicProposition struct {
 	repos    EditorialRepos
 	links    LinkRepo
 	timeline TimelineReader
-	badges   BadgeReader
+	badges   PublicReviews
 }
 
-func NewGetPublicProposition(repos EditorialRepos, links LinkRepo, timeline TimelineReader, badges BadgeReader) *GetPublicProposition {
+func NewGetPublicProposition(repos EditorialRepos, links LinkRepo, timeline TimelineReader, badges PublicReviews) *GetPublicProposition {
 	return &GetPublicProposition{repos: repos, links: links, timeline: timeline, badges: badges}
 }
 
@@ -131,7 +137,7 @@ func (uc *GetPublicProposition) Execute(ctx context.Context, slug string) (Publi
 	if err != nil && !errors.Is(err, domain.ErrPropositionNotFound) {
 		return PublicPropositionDetail{}, err
 	}
-	ed, err := publicEditorial(ctx, uc.repos, uc.badges, []string{p.ID})
+	ed, err := publicEditorial(ctx, uc.repos, uc.badges, []string{p.ID}, true)
 	if err != nil {
 		return PublicPropositionDetail{}, err
 	}

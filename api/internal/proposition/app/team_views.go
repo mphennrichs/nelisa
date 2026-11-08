@@ -82,6 +82,9 @@ type TeamEditorial struct {
 	People           map[string]string
 	CanEdit          bool
 	CanCreateVersion bool
+	// CanMinorFix: o review permite (pronta, sem Errata pendente) e a
+	// Posse está livre ou é do Ator.
+	CanMinorFix bool
 }
 
 // GetProposition mostra uma Proposição à equipe, com Vínculos, Tramitação,
@@ -168,6 +171,7 @@ func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID 
 	free := ed.Claim == nil || ed.Claim.UserID == actorID
 	ed.CanEdit = pending != nil && free
 	ed.CanCreateVersion = pending == nil && free
+	ed.CanMinorFix = ed.Review.CanMinorFix && free
 
 	var who []string
 	for _, c := range ed.Contents {
@@ -188,6 +192,19 @@ func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID 
 		who = append(who, a.ApprovedBy)
 		if a.SecondReviewBy != "" {
 			who = append(who, a.SecondReviewBy)
+		}
+	}
+	for _, f := range ed.Review.MinorFixes {
+		who = append(who, f.CreatedBy)
+	}
+	errata := ed.Review.Errata
+	if e := ed.Review.PendingErratum; e != nil {
+		errata = append([]ErratumInfo{*e}, errata...)
+	}
+	for _, e := range errata {
+		who = append(who, e.CreatedBy)
+		if e.DecidedBy != "" {
+			who = append(who, e.DecidedBy)
 		}
 	}
 	ed.People = map[string]string{}

@@ -25,17 +25,19 @@ type QueueItem struct {
 	Missing []Missing
 }
 
-// ListQueue monta a Fila: Proposições "em revisão" com Versão em análise
-// e Proposições prontas com Segunda revisão pendente, sempre por Esfera.
+// ListQueue monta a Fila, sempre por Esfera: Proposições "em revisão" com
+// Versão em análise, Proposições prontas com Segunda revisão pendente, com
+// Correção menor a conferir (um item por Proposição, desde a mais antiga)
+// e com Errata pendente.
 type ListQueue struct {
 	props   Propositions
-	reviews SecondReviews
+	reviews ReviewWork
 	claims  ClaimRepo
 	people  People
 	clock   clock.Clock
 }
 
-func NewListQueue(props Propositions, reviews SecondReviews, claims ClaimRepo, people People, clk clock.Clock) *ListQueue {
+func NewListQueue(props Propositions, reviews ReviewWork, claims ClaimRepo, people People, clk clock.Clock) *ListQueue {
 	return &ListQueue{props: props, reviews: reviews, claims: claims, people: people, clock: clk}
 }
 
@@ -72,9 +74,18 @@ func (uc *ListQueue) Execute(ctx context.Context, in ListQueueInput) ([]QueueIte
 	if err != nil {
 		return nil, err
 	}
-	if len(pending) > 0 {
-		ids := make([]string, 0, len(pending))
-		for _, s := range pending {
+	work := make([]PendingCorrection, 0, len(pending))
+	for _, s := range pending {
+		work = append(work, PendingCorrection{PropositionID: s.PropositionID, VersionID: s.VersionID, Reason: domain.ReasonSecondReview, Since: s.ApprovedAt})
+	}
+	corrections, err := uc.reviews.PendingCorrections(ctx)
+	if err != nil {
+		return nil, err
+	}
+	work = append(work, corrections...)
+	if len(work) > 0 {
+		ids := make([]string, 0, len(work))
+		for _, s := range work {
 			ids = append(ids, s.PropositionID)
 		}
 		described, err := uc.props.Describe(ctx, ids)
@@ -85,15 +96,26 @@ func (uc *ListQueue) Execute(ctx context.Context, in ListQueueInput) ([]QueueIte
 		for _, p := range described {
 			byID[p.ID] = p
 		}
-		for _, s := range pending {
+		// Um item por Proposição e motivo: três Correções a conferir na
+		// mesma Proposição são um trabalho só, desde a mais antiga.
+		seen := map[string]int{}
+		for _, s := range work {
 			p, ok := byID[s.PropositionID]
-			// Só a aprovação da Versão vigente de uma Proposição pronta:
-			// de uma Versão já substituída o Leitor não vê mais nada.
+			// Só o que é da Versão vigente de uma Proposição pronta: de uma
+			// Versão já substituída o Leitor não vê mais nada.
 			if !ok || !p.Ready || p.Current == nil || p.Current.ID != s.VersionID || !keep(p) {
 				continue
 			}
+			key := p.ID + "/" + string(s.Reason)
+			if i, dup := seen[key]; dup {
+				if s.Since.Before(items[i].Since) {
+					items[i].Since = s.Since
+				}
+				continue
+			}
+			seen[key] = len(items)
 			items = append(items, QueueItem{
-				Item: domain.Item{PropositionID: p.ID, Sphere: p.Sphere, Reason: domain.ReasonSecondReview, Since: s.ApprovedAt},
+				Item: domain.Item{PropositionID: p.ID, Sphere: p.Sphere, Reason: s.Reason, Since: s.Since},
 				Name: p.Name, Slug: p.Slug, Version: *p.Current, Missing: []Missing{},
 			})
 		}
