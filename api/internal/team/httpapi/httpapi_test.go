@@ -51,7 +51,8 @@ func newServer(t *testing.T, secure bool, secret string) *server {
 		CreateUser:     app.NewCreateUser(w.Users(), h, w.Tx(), w.Audit(), clk),
 		ResetPassword:  app.NewResetPassword(w.Users(), w.Tokens(), h, w.Tx(), w.Audit(), clk),
 		UpdateRole:     app.NewUpdateRole(w.Users(), w.Tx(), w.Audit()),
-		DeleteUser:     app.NewDeleteUser(w.Users(), w.Tx(), w.Audit()),
+		DeactivateUser: app.NewDeactivateUser(w.Users(), w.Tokens(), w.Tx(), w.Audit(), clk),
+		ReactivateUser: app.NewReactivateUser(w.Users(), w.Tx(), w.Audit()),
 		ListUsers:      app.NewListUsers(w.Users()),
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -365,17 +366,27 @@ func TestAdminManagesUsers(t *testing.T) {
 	wantError(t, s.do(req{method: "POST", path: "/api/team/users/" + id + "/password", bearer: tok, body: `{"password":"curta"}`}),
 		http.StatusBadRequest, "password_too_short")
 
-	wantError(t, s.do(req{method: "DELETE", path: "/api/team/users/admin", bearer: tok}), http.StatusConflict, "cannot_delete_self")
-	if w := s.do(req{method: "DELETE", path: "/api/team/users/" + id, bearer: tok}); w.Code != http.StatusNoContent {
-		t.Fatalf("delete: %d %s", w.Code, w.Body)
+	wantError(t, s.do(req{method: "POST", path: "/api/team/users/admin/deactivate", bearer: tok}), http.StatusConflict, "cannot_deactivate_self")
+	w = s.do(req{method: "POST", path: "/api/team/users/" + id + "/deactivate", bearer: tok})
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"active":false`) || !strings.Contains(w.Body.String(), `"deactivated_at":"`) {
+		t.Fatalf("deactivate: %d %s", w.Code, w.Body)
 	}
-	wantError(t, s.do(req{method: "DELETE", path: "/api/team/users/" + id, bearer: tok}), http.StatusNotFound, "user_not_found")
+	wantError(t, s.do(req{method: "POST", path: "/api/team/auth/login", body: `{"email":"bia@nelisa.org","password":"outra-temporaria"}`}),
+		http.StatusForbidden, "account_deactivated")
+	wantError(t, s.do(req{method: "POST", path: "/api/team/users/nope/deactivate", bearer: tok}), http.StatusNotFound, "user_not_found")
+	if w := s.do(req{method: "DELETE", path: "/api/team/users/" + id, bearer: tok}); w.Code != http.StatusMethodNotAllowed && w.Code != http.StatusNotFound {
+		t.Errorf("DELETE must not exist anymore: %d", w.Code)
+	}
+	w = s.do(req{method: "POST", path: "/api/team/users/" + id + "/reactivate", bearer: tok})
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"active":true`) || !strings.Contains(w.Body.String(), `"deactivated_at":null`) {
+		t.Fatalf("reactivate: %d %s", w.Code, w.Body)
+	}
 
 	var actions []string
 	for _, e := range s.w.Events() {
 		actions = append(actions, e.Action)
 	}
-	want := []string{app.ActionUserCreate, app.ActionUserRoleChange, app.ActionUserPasswordReset, app.ActionUserDelete}
+	want := []string{app.ActionUserCreate, app.ActionUserRoleChange, app.ActionUserPasswordReset, app.ActionUserDeactivate, app.ActionUserReactivate}
 	if strings.Join(actions, ",") != strings.Join(want, ",") {
 		t.Errorf("audit actions = %v, want %v", actions, want)
 	}

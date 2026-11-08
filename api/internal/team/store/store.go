@@ -112,10 +112,12 @@ func (s *Users) UpdateRole(ctx context.Context, id string, role domain.Role) (do
 	return userOrNotFound(row, err)
 }
 
-func (s *Users) Delete(ctx context.Context, id string) error {
-	n, err := s.q(ctx).DeleteUser(ctx, id)
+func (s *Users) UpdateDeactivation(ctx context.Context, u domain.User) error {
+	n, err := s.q(ctx).UpdateDeactivation(ctx, dbgen.UpdateDeactivationParams{
+		ID: u.ID, DeactivatedAt: u.DeactivatedAt, SessionsValidAfter: u.SessionsValidAfter,
+	})
 	if err != nil {
-		return notFoundOr(err, "excluindo usuário")
+		return notFoundOr(err, "gravando desativação")
 	}
 	if n == 0 {
 		return domain.ErrUserNotFound
@@ -149,6 +151,10 @@ func toUser(r dbgen.TeamUser) domain.User {
 	if r.SessionsValidAfter != nil {
 		t := r.SessionsValidAfter.UTC()
 		u.SessionsValidAfter = &t
+	}
+	if r.DeactivatedAt != nil {
+		t := r.DeactivatedAt.UTC()
+		u.DeactivatedAt = &t
 	}
 	return u
 }

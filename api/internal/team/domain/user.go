@@ -21,8 +21,8 @@ var (
 	ErrPasswordTooLong  = errors.New("team: senha com mais de 72 bytes")
 	// ErrLastAdmin: a mudança deixaria o Nelisa sem nenhum Admin, e só o
 	// Admin cadastra pessoas.
-	ErrLastAdmin        = errors.New("team: precisa sobrar ao menos um Admin")
-	ErrCannotDeleteSelf = errors.New("team: ninguém exclui a própria conta")
+	ErrLastAdmin            = errors.New("team: precisa sobrar ao menos um Admin")
+	ErrCannotDeactivateSelf = errors.New("team: ninguém desativa a própria conta")
 	// ErrCredentialsChanged: a senha mudou entre a leitura e a gravação.
 	ErrCredentialsChanged = errors.New("team: a senha mudou nesse meio-tempo; tente de novo")
 )
@@ -57,7 +57,8 @@ func ParseRole(s string) (Role, error) {
 	return "", ErrInvalidRole
 }
 
-// CanManageUsers: só o Admin cadastra, troca role, reseta senha e exclui.
+// CanManageUsers: só o Admin cadastra, troca role, reseta senha, desativa e
+// reativa.
 func CanManageUsers(r Role) bool { return r == RoleAdmin }
 
 var emailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
@@ -77,7 +78,11 @@ type User struct {
 	// SessionsValidAfter: tokens emitidos antes deste instante são
 	// recusados, então trocar ou resetar a senha encerra todas as sessões.
 	SessionsValidAfter *time.Time
-	CreatedAt          time.Time
+	// DeactivatedAt: a conta foi desativada pelo Admin. Ninguém é excluído,
+	// porque Auditoria, Autoria e aprovações continuam apontando para a
+	// pessoa. nil = ativa.
+	DeactivatedAt *time.Time
+	CreatedAt     time.Time
 }
 
 // NewUser valida e monta um usuário. passwordHash já vem do hasher;
@@ -128,13 +133,35 @@ func (u *User) ResetPassword(hash string, now time.Time) {
 	u.endSessions(now)
 }
 
+// Active diz se a pessoa pode entrar e usar uma sessão.
+func (u User) Active() bool { return u.DeactivatedAt == nil }
+
+// Deactivate bloqueia o login e encerra todas as sessões. Desativar quem já
+// está desativado não muda nada.
+func (u *User) Deactivate(now time.Time) {
+	if !u.Active() {
+		return
+	}
+	u.endSessions(now)
+	t := *u.SessionsValidAfter
+	u.DeactivatedAt = &t
+}
+
+// Reactivate devolve o acesso. As sessões de antes da desativação seguem
+// mortas: a pessoa entra de novo com a senha.
+func (u *User) Reactivate() { u.DeactivatedAt = nil }
+
 // endSessions trunca em milissegundos, a precisão do token de acesso.
 func (u *User) endSessions(now time.Time) {
 	t := now.UTC().Truncate(time.Millisecond)
 	u.SessionsValidAfter = &t
 }
 
-// SessionValid diz se um token emitido em issuedAt ainda vale.
+// SessionValid diz se um token emitido em issuedAt ainda vale. Conta
+// desativada não tem sessão válida.
 func (u User) SessionValid(issuedAt time.Time) bool {
+	if !u.Active() {
+		return false
+	}
 	return u.SessionsValidAfter == nil || !issuedAt.Before(*u.SessionsValidAfter)
 }

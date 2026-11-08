@@ -68,7 +68,8 @@ func (uc *Refresh) Execute(ctx context.Context, in RefreshInput) (Session, error
 	if err != nil {
 		return Session{}, fmt.Errorf("buscando usuário: %w", err)
 	}
-	// Um token de antes de uma troca ou reset de senha está morto mesmo
+	// Um token de antes de uma troca ou reset de senha, ou de conta
+	// desativada, está morto mesmo
 	// que uma renovação concorrente o tenha lido antes da limpeza.
 	if !user.SessionValid(token.CreatedAt) {
 		return Session{}, domain.ErrRefreshTokenInvalid

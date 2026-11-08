@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, ROLE_LABEL, useTeamSession, type Role, type User } from "@/lib/team/session";
 import { FormError, RequireTeam } from "@/lib/team/ui";
+import { fmtDate } from "@/lib/labels";
 
 const ROLES: Role[] = ["editor", "reviewer", "admin"];
 
@@ -13,6 +14,9 @@ function UsersAdmin({ me }: { me: User }) {
   const [formError, setFormError] = useState<string>();
   const [rowError, setRowError] = useState<string>();
   const [pending, setPending] = useState(false);
+  // id de quem está com a desativação aberta para confirmar
+  const [confirming, setConfirming] = useState<string>();
+  const [busy, setBusy] = useState<string>();
 
   const load = useCallback(async () => {
     try {
@@ -66,6 +70,21 @@ function UsersAdmin({ me }: { me: User }) {
     }
   }
 
+  async function setActive(u: User, active: boolean) {
+    setRowError(undefined);
+    setBusy(u.id);
+    try {
+      await api(`/api/team/users/${encodeURIComponent(u.id)}/${active ? "reactivate" : "deactivate"}`, { method: "POST" });
+      setConfirming(undefined);
+      await load();
+    } catch (err) {
+      setRowError(err instanceof ApiError ? err.message : "Não foi possível mudar o acesso.");
+      await load();
+    } finally {
+      setBusy(undefined);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">Usuários da equipe</h1>
@@ -77,13 +96,18 @@ function UsersAdmin({ me }: { me: User }) {
         {users && (
           <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
             {users.map((u) => (
-              <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <li key={u.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${u.active ? "" : "bg-stone-50"}`}>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">
+                  <p className={`font-medium ${u.active ? "" : "text-stone-600"}`}>
                     {u.name} {u.id === me.id && <span className="text-sm font-normal text-stone-600">(você)</span>}
                   </p>
                   <p className="text-sm text-stone-600 [overflow-wrap:anywhere]">{u.email}</p>
-                  {u.must_change_password && <p className="text-sm text-amber-900">Senha temporária</p>}
+                  {!u.active && (
+                    <p className="text-sm font-medium text-stone-700">
+                      Desativada{u.deactivated_at ? ` em ${fmtDate(u.deactivated_at)}` : ""}: não entra no sistema
+                    </p>
+                  )}
+                  {u.active && u.must_change_password && <p className="text-sm text-amber-900">Senha temporária</p>}
                 </div>
                 <label className="sr-only" htmlFor={`role-${u.id}`}>Role de {u.name}</label>
                 <select
@@ -97,6 +121,29 @@ function UsersAdmin({ me }: { me: User }) {
                     <option key={r} value={r}>{ROLE_LABEL[r]}</option>
                   ))}
                 </select>
+                {u.id !== me.id && u.active && confirming !== u.id && (
+                  <button type="button" onClick={() => setConfirming(u.id)} className="btn-ghost min-h-10">
+                    Desativar
+                  </button>
+                )}
+                {u.id !== me.id && !u.active && (
+                  <button type="button" disabled={busy === u.id} onClick={() => setActive(u, true)} className="btn min-h-10">
+                    {busy === u.id ? "Reativando…" : "Reativar"}
+                  </button>
+                )}
+                {confirming === u.id && (
+                  <div role="group" aria-label={`Confirmar desativação de ${u.name}`} className="flex w-full flex-wrap items-center gap-3 rounded-md border border-stone-300 bg-stone-50 p-3">
+                    <p className="flex-1 text-sm">
+                      {u.name} perde o acesso agora e sai de todas as sessões. O histórico fica. Dá para reativar depois.
+                    </p>
+                    <button type="button" disabled={busy === u.id} onClick={() => setActive(u, false)} className="btn min-h-10 bg-red-800 hover:bg-red-900">
+                      {busy === u.id ? "Desativando…" : "Desativar acesso"}
+                    </button>
+                    <button type="button" onClick={() => setConfirming(undefined)} className="btn-ghost min-h-10">
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

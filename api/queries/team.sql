@@ -9,22 +9,23 @@ SELECT pg_advisory_xact_lock(7364526100001);
 SELECT count(*) FROM team.users;
 
 -- name: CountAdmins :one
-SELECT count(*) FROM team.users WHERE role = 'admin';
+-- Só Admins ativos: um Admin desativado não administra nada.
+SELECT count(*) FROM team.users WHERE role = 'admin' AND deactivated_at IS NULL;
 
 -- name: CreateUser :exec
 INSERT INTO team.users (id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: GetUserByID :one
-SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 FROM team.users WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 FROM team.users WHERE lower(email) = lower(sqlc.arg(email));
 
 -- name: ListUsers :many
-SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 FROM team.users ORDER BY created_at, id;
 
 -- name: UpdatePassword :execrows
@@ -38,10 +39,14 @@ WHERE id = sqlc.arg(id) AND password_hash = sqlc.arg(prev_hash);
 
 -- name: UpdateRole :one
 UPDATE team.users SET role = $2 WHERE id = $1
-RETURNING id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at;
+RETURNING id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at;
 
--- name: DeleteUser :execrows
-DELETE FROM team.users WHERE id = $1;
+-- name: UpdateDeactivation :execrows
+-- Desativar ou reativar: a conta nunca é apagada.
+UPDATE team.users
+SET deactivated_at = sqlc.arg(deactivated_at),
+    sessions_valid_after = sqlc.arg(sessions_valid_after)
+WHERE id = sqlc.arg(id);
 
 -- name: CreateRefreshToken :exec
 INSERT INTO team.refresh_tokens (id, user_id, token_hash, created_at, expires_at, revoked_at)

@@ -19,6 +19,7 @@ type UserRepo interface {
 	// e as mudanças de quem é Admin.
 	LockUsers(ctx context.Context) error
 	Count(ctx context.Context) (int, error)
+	// CountAdmins conta só os Admins ativos.
 	CountAdmins(ctx context.Context) (int, error)
 	Create(ctx context.Context, u domain.User) error
 	FindByID(ctx context.Context, id string) (domain.User, error)
@@ -28,7 +29,9 @@ type UserRepo interface {
 	// u, só se o hash guardado ainda for prevHash.
 	UpdatePassword(ctx context.Context, u domain.User, prevHash string) error
 	UpdateRole(ctx context.Context, id string, role domain.Role) (domain.User, error)
-	Delete(ctx context.Context, id string) error
+	// UpdateDeactivation grava DeactivatedAt e SessionsValidAfter de u.
+	// Não existe exclusão de usuário.
+	UpdateDeactivation(ctx context.Context, u domain.User) error
 }
 
 // RefreshTokenRepo persiste sessões. FindByHash devolve
@@ -84,7 +87,8 @@ const (
 	ActionUserCreate        = "user.create"
 	ActionUserPasswordReset = "user.password_reset"
 	ActionUserRoleChange    = "user.role_change"
-	ActionUserDelete        = "user.delete"
+	ActionUserDeactivate    = "user.deactivate"
+	ActionUserReactivate    = "user.reactivate"
 
 	targetUser = "user"
 )

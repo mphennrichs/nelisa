@@ -69,7 +69,7 @@ func TestUsersCreateAndFind(t *testing.T) {
 	}
 }
 
-func TestUsersCountListRoleDelete(t *testing.T) {
+func TestUsersCountListRoleDeactivate(t *testing.T) {
 	pool, _ := testdb.New(t)
 	users := store.NewUsers(pool)
 	tokens := store.NewRefreshTokens(pool)
@@ -99,14 +99,29 @@ func TestUsersCountListRoleDelete(t *testing.T) {
 	if err := tokens.Create(ctx, domain.NewRefreshToken(id3, id2, "hash-b", t0)); err != nil {
 		t.Fatal(err)
 	}
-	if err := users.Delete(ctx, id2); err != nil {
+	if n, _ := users.CountAdmins(ctx); n != 2 {
+		t.Errorf("admins = %d", n)
+	}
+	u.Deactivate(t0.Add(time.Hour))
+	if err := users.UpdateDeactivation(ctx, u); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tokens.FindByHash(ctx, "hash-b"); !errors.Is(err, domain.ErrRefreshTokenInvalid) {
-		t.Errorf("sessions must be deleted with the user: %v", err)
+	got, err := users.FindByID(ctx, id2)
+	if err != nil || got.Active() || !got.DeactivatedAt.Equal(*u.DeactivatedAt) || !got.SessionsValidAfter.Equal(*u.SessionsValidAfter) {
+		t.Fatalf("deactivated = %+v, %v", got, err)
 	}
-	if err := users.Delete(ctx, id2); !errors.Is(err, domain.ErrUserNotFound) {
-		t.Errorf("delete twice: %v", err)
+	if n, _ := users.CountAdmins(ctx); n != 1 {
+		t.Errorf("a deactivated admin must not count: %d", n)
+	}
+	got.Reactivate()
+	if err := users.UpdateDeactivation(ctx, got); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := users.FindByID(ctx, id2); !got.Active() {
+		t.Error("reactivate not saved")
+	}
+	if err := users.UpdateDeactivation(ctx, domain.User{ID: id3}); !errors.Is(err, domain.ErrUserNotFound) {
+		t.Errorf("unknown: %v", err)
 	}
 }
 

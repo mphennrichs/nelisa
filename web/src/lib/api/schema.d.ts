@@ -177,6 +177,15 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
+                /** @description `account_deactivated`: senha certa, mas a conta foi desativada */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
                 429: components["responses"]["TooManyRequests"];
             };
         };
@@ -454,43 +463,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /**
-         * Exclui alguém (só Admin)
-         * @description A conta e as sessões são apagadas; a Auditoria guarda o histórico
-         *     (`user.delete`). Ninguém exclui a si mesmo nem o último Admin.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: components["parameters"]["UserID"];
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Excluído */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                401: components["responses"]["Unauthorized"];
-                403: components["responses"]["Forbidden"];
-                404: components["responses"]["UserNotFound"];
-                /** @description `cannot_delete_self` ou `last_admin` */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         /**
@@ -537,6 +510,113 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/team/users/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["UserID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Desativa alguém (só Admin)
+         * @description Ninguém é excluído: a conta fica, porque Auditoria, Autoria e
+         *     aprovações apontam para ela. O login passa a ser recusado
+         *     (`account_deactivated`) e todas as sessões acabam na hora.
+         *     Desativar quem já está desativado não muda nada. Registrado na
+         *     Auditoria (`user.deactivate`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["UserID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Usuário desativado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["UserNotFound"];
+                /** @description `cannot_deactivate_self` ou `last_admin` (último Admin ativo) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/users/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["UserID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reativa alguém (só Admin)
+         * @description A pessoa volta a entrar com a senha que tinha; sessões de antes da
+         *     desativação seguem encerradas. Registrado na Auditoria
+         *     (`user.reactivate`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["UserID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Usuário ativo */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["UserNotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/team/users/{id}/password": {
@@ -1148,6 +1228,13 @@ export interface components {
             role: components["schemas"]["Role"];
             /** @description Senha definida pelo Admin (temporária). A troca obrigatória ainda não é aplicada. */
             must_change_password: boolean;
+            /** @description Falso quando o Admin desativou a conta. */
+            active: boolean;
+            /**
+             * Format: date-time
+             * @description Quando a conta foi desativada; null se ativa.
+             */
+            deactivated_at: string | null;
             /** Format: date-time */
             created_at: string;
         };

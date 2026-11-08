@@ -86,5 +86,6 @@ type TeamUser struct {
 	Role               string
 	MustChangePassword bool
 	SessionsValidAfter *time.Time
+	DeactivatedAt      *time.Time
 	CreatedAt          time.Time
 }

@@ -99,6 +99,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: "`account_deactivated`: senha certa, mas a conta foi desativada"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
   /api/team/auth/refresh:
     post:
@@ -246,22 +251,51 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
-    delete:
+  /api/team/users/{id}/deactivate:
+    parameters:
+      - $ref: "#/components/parameters/UserID"
+    post:
       tags: [equipe]
-      summary: Exclui alguém (só Admin)
+      summary: Desativa alguém (só Admin)
       description: |
-        A conta e as sessões são apagadas; a Auditoria guarda o histórico
-        (`user.delete`). Ninguém exclui a si mesmo nem o último Admin.
+        Ninguém é excluído: a conta fica, porque Auditoria, Autoria e
+        aprovações apontam para ela. O login passa a ser recusado
+        (`account_deactivated`) e todas as sessões acabam na hora.
+        Desativar quem já está desativado não muda nada. Registrado na
+        Auditoria (`user.deactivate`).
       responses:
-        "204": { description: Excluído }
+        "200":
+          description: Usuário desativado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/UserNotFound" }
         "409":
-          description: "`cannot_delete_self` ou `last_admin`"
+          description: "`cannot_deactivate_self` ou `last_admin` (último Admin ativo)"
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+  /api/team/users/{id}/reactivate:
+    parameters:
+      - $ref: "#/components/parameters/UserID"
+    post:
+      tags: [equipe]
+      summary: Reativa alguém (só Admin)
+      description: |
+        A pessoa volta a entrar com a senha que tinha; sessões de antes da
+        desativação seguem encerradas. Registrado na Auditoria
+        (`user.reactivate`).
+      responses:
+        "200":
+          description: Usuário ativo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
   /api/team/users/{id}/password:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -634,7 +668,7 @@ components:
       description: Editor ⊂ Revisor (reviewer) ⊂ Admin.
     User:
       type: object
-      required: [id, name, email, role, must_change_password, created_at]
+      required: [id, name, email, role, must_change_password, active, deactivated_at, created_at]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -643,6 +677,13 @@ components:
         must_change_password:
           type: boolean
           description: Senha definida pelo Admin (temporária). A troca obrigatória ainda não é aplicada.
+        active:
+          type: boolean
+          description: Falso quando o Admin desativou a conta.
+        deactivated_at:
+          type: [string, "null"]
+          format: date-time
+          description: Quando a conta foi desativada; null se ativa.
         created_at: { type: string, format: date-time }
     Session:
       type: object

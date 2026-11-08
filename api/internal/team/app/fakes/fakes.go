@@ -138,7 +138,7 @@ func (r users) CountAdmins(context.Context) (int, error) {
 	defer r.w.mu.Unlock()
 	n := 0
 	for _, u := range r.w.users {
-		if u.Role == domain.RoleAdmin {
+		if u.Role == domain.RoleAdmin && u.Active() {
 			n++
 		}
 	}
@@ -218,18 +218,15 @@ func (r users) UpdateRole(_ context.Context, id string, role domain.Role) (domai
 	return u, nil
 }
 
-func (r users) Delete(_ context.Context, id string) error {
+func (r users) UpdateDeactivation(_ context.Context, u domain.User) error {
 	r.w.mu.Lock()
 	defer r.w.mu.Unlock()
-	if _, ok := r.w.users[id]; !ok {
+	cur, ok := r.w.users[u.ID]
+	if !ok {
 		return domain.ErrUserNotFound
 	}
-	delete(r.w.users, id)
-	for k, t := range r.w.tokens {
-		if t.UserID == id {
-			delete(r.w.tokens, k)
-		}
-	}
+	cur.DeactivatedAt, cur.SessionsValidAfter = u.DeactivatedAt, u.SessionsValidAfter
+	r.w.users[u.ID] = cur
 	return nil
 }
 

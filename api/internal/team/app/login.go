@@ -49,5 +49,8 @@ func (uc *Login) Execute(ctx context.Context, in LoginInput) (Session, error) {
 	if !uc.hasher.Verify(in.Password, user.PasswordHash) {
 		return Session{}, ErrInvalidCredentials
 	}
+	if !user.Active() {
+		return Session{}, ErrAccountDeactivated
+	}
 	return uc.sessions.open(ctx, user)
 }

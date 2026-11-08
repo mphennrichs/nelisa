@@ -90,8 +90,8 @@ func TestTeamEndToEndWithAudit(t *testing.T) {
 	if w := do("GET", "/api/team/me", "", editorTok, nil); w.Code != http.StatusUnauthorized {
 		t.Fatalf("token from before the reset: %d %s", w.Code, w.Body)
 	}
-	if w := do("DELETE", "/api/team/users/"+created.ID, "", adminTok, nil); w.Code != http.StatusNoContent {
-		t.Fatalf("delete: %d %s", w.Code, w.Body)
+	if w := do("POST", "/api/team/users/"+created.ID+"/deactivate", "", adminTok, nil); w.Code != http.StatusOK {
+		t.Fatalf("deactivate: %d %s", w.Code, w.Body)
 	}
 
 	events, err := auditstore.New(pool).ListByTarget(context.Background(), "user", created.ID)
@@ -105,7 +105,7 @@ func TestTeamEndToEndWithAudit(t *testing.T) {
 		}
 		actions = append(actions, e.Action)
 	}
-	want := []string{teamapp.ActionUserCreate, teamapp.ActionUserRoleChange, teamapp.ActionUserPasswordReset, teamapp.ActionUserDelete}
+	want := []string{teamapp.ActionUserCreate, teamapp.ActionUserRoleChange, teamapp.ActionUserPasswordReset, teamapp.ActionUserDeactivate}
 	if strings.Join(actions, ",") != strings.Join(want, ",") {
 		t.Errorf("audit = %v, want %v", actions, want)
 	}

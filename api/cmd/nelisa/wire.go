@@ -73,7 +73,8 @@ func newTeamModule(cfg config.Config, p teamPorts, clk clock.Clock, logger *slog
 		CreateUser:     teamapp.NewCreateUser(p.users, p.hasher, p.tx, p.audit, clk),
 		ResetPassword:  teamapp.NewResetPassword(p.users, p.tokens, p.hasher, p.tx, p.audit, clk),
 		UpdateRole:     teamapp.NewUpdateRole(p.users, p.tx, p.audit),
-		DeleteUser:     teamapp.NewDeleteUser(p.users, p.tx, p.audit),
+		DeactivateUser: teamapp.NewDeactivateUser(p.users, p.tokens, p.tx, p.audit, clk),
+		ReactivateUser: teamapp.NewReactivateUser(p.users, p.tx, p.audit),
 		ListUsers:      teamapp.NewListUsers(p.users),
 	}
 	resolver := clientip.New(cfg.TrustedProxies)

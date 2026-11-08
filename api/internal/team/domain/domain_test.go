@@ -89,6 +89,36 @@ func TestPasswordChangesEndSessions(t *testing.T) {
 	}
 }
 
+func TestDeactivationBlocksSessionsUntilReactivated(t *testing.T) {
+	u, _ := NewUser("id", "Ana", "a@b.org", "h", RoleEditor, false, t0)
+	if !u.Active() {
+		t.Fatal("new user must be active")
+	}
+	at := t0.Add(time.Hour)
+	u.Deactivate(at)
+	if u.Active() || u.DeactivatedAt == nil {
+		t.Fatalf("deactivate: %+v", u)
+	}
+	if u.SessionValid(at.Add(time.Hour)) {
+		t.Error("a deactivated account has no valid session, not even a new one")
+	}
+	first := *u.DeactivatedAt
+	u.Deactivate(at.Add(time.Hour))
+	if !u.DeactivatedAt.Equal(first) {
+		t.Error("deactivating twice must keep the first date")
+	}
+	u.Reactivate()
+	if !u.Active() {
+		t.Fatal("reactivate")
+	}
+	if u.SessionValid(at.Add(-time.Second)) {
+		t.Error("sessions from before the deactivation stay dead after reactivating")
+	}
+	if !u.SessionValid(at.Add(2 * time.Hour)) {
+		t.Error("a new session after reactivating must be valid")
+	}
+}
+
 func TestRefreshTokenLifetime(t *testing.T) {
 	tok := NewRefreshToken("t", "u", "h", t0)
 	if tok.IsExpired(t0.Add(RefreshTokenTTL-time.Second)) || !tok.IsExpired(t0.Add(RefreshTokenTTL)) {

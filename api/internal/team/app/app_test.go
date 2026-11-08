@@ -66,8 +66,11 @@ func (e *env) changePassword() *app.ChangePassword {
 func (e *env) updateRole() *app.UpdateRole {
 	return app.NewUpdateRole(e.w.Users(), e.w.Tx(), e.w.Audit())
 }
-func (e *env) deleteUser() *app.DeleteUser {
-	return app.NewDeleteUser(e.w.Users(), e.w.Tx(), e.w.Audit())
+func (e *env) deactivateUser() *app.DeactivateUser {
+	return app.NewDeactivateUser(e.w.Users(), e.w.Tokens(), e.w.Tx(), e.w.Audit(), e.clk)
+}
+func (e *env) reactivateUser() *app.ReactivateUser {
+	return app.NewReactivateUser(e.w.Users(), e.w.Tx(), e.w.Audit())
 }
 func (e *env) authenticate() *app.Authenticate {
 	return app.NewAuthenticate(e.access, e.w.Users())
@@ -371,7 +374,10 @@ func TestOnlyAdminManagesUsers(t *testing.T) {
 			check(t, "reset", e.resetPassword().Execute(ctx, app.ResetPasswordInput{UserID: "u-editor", NewPassword: "senha-nova-1"}), want)
 			_, err = e.updateRole().Execute(ctx, app.UpdateRoleInput{UserID: "u-editor", Role: "admin"})
 			check(t, "update role (own role, for the editor)", err, want)
-			check(t, "delete", e.deleteUser().Execute(ctx, app.DeleteUserInput{UserID: "u-editor"}), want)
+			_, err = e.deactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "u-editor"})
+			check(t, "deactivate", err, want)
+			_, err = e.reactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "u-editor"})
+			check(t, "reactivate", err, want)
 			_, err = app.NewListUsers(e.w.Users()).Execute(ctx, app.ListUsersInput{})
 			check(t, "list", err, want)
 
@@ -522,40 +528,100 @@ func TestUpdateRoleNeverLeavesNoAdmin(t *testing.T) {
 	}
 }
 
-// --- admin: delete ---
+// --- admin: desativar e reativar ---
 
-func TestDeleteUser(t *testing.T) {
+func TestDeactivateUserKeepsAccountAndEndsAccess(t *testing.T) {
 	e := newEnv()
 	e.user(t, "admin", "admin@nelisa.org", "senha-certa", domain.RoleAdmin)
 	e.user(t, "u1", "ana@nelisa.org", "senha-certa", domain.RoleEditor)
-	_, _ = e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"})
-	ctx := as("admin", domain.RoleAdmin)
-
-	check(t, "self", e.deleteUser().Execute(ctx, app.DeleteUserInput{UserID: "admin"}), domain.ErrCannotDeleteSelf)
-	check(t, "unknown", e.deleteUser().Execute(ctx, app.DeleteUserInput{UserID: "nope"}), domain.ErrUserNotFound)
-
-	if err := e.deleteUser().Execute(ctx, app.DeleteUserInput{UserID: "u1"}); err != nil {
+	sess, err := e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.w.Users().FindByID(context.Background(), "u1"); !errors.Is(err, domain.ErrUserNotFound) {
-		t.Error("user not deleted")
+	ctx := as("admin", domain.RoleAdmin)
+
+	_, err = e.deactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "admin"})
+	check(t, "self", err, domain.ErrCannotDeactivateSelf)
+	_, err = e.deactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "nope"})
+	check(t, "unknown", err, domain.ErrUserNotFound)
+
+	e.clk.Advance(time.Second)
+	u, err := e.deactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "u1"})
+	if err != nil || u.Active() {
+		t.Fatalf("deactivate: %+v, %v", u, err)
+	}
+	if _, err := e.w.Users().FindByID(context.Background(), "u1"); err != nil {
+		t.Fatal("the account must stay")
 	}
 	if len(e.w.TokensOf("u1")) != 0 {
-		t.Error("sessions must go with the user")
+		t.Error("refresh tokens must be gone")
+	}
+	_, err = e.authenticate().Execute(context.Background(), app.AuthenticateInput{AccessToken: sess.AccessToken})
+	check(t, "old access token", err, app.ErrSessionExpired)
+	_, err = e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"})
+	check(t, "login", err, app.ErrAccountDeactivated)
+	_, err = e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "errada-123"})
+	check(t, "login with wrong password does not reveal the state", err, app.ErrInvalidCredentials)
+
+	// de novo: nada muda, nada é auditado
+	if _, err := e.deactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "u1"}); err != nil {
+		t.Fatal(err)
 	}
 	ev := e.w.Events()
-	if len(ev) != 1 || ev[0].Action != app.ActionUserDelete || ev[0].TargetID != "u1" || !ev[0].InTx {
+	if len(ev) != 1 || ev[0].Action != app.ActionUserDeactivate || ev[0].TargetID != "u1" || !ev[0].InTx {
+		t.Fatalf("events = %+v", ev)
+	}
+
+	u, err = e.reactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "u1"})
+	if err != nil || !u.Active() {
+		t.Fatalf("reactivate: %+v, %v", u, err)
+	}
+	if _, err := e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"}); err != nil {
+		t.Fatalf("login after reactivating: %v", err)
+	}
+	_, err = e.authenticate().Execute(context.Background(), app.AuthenticateInput{AccessToken: sess.AccessToken})
+	check(t, "token from before the deactivation stays dead", err, app.ErrSessionExpired)
+	if ev := e.w.Events(); len(ev) != 2 || ev[1].Action != app.ActionUserReactivate {
 		t.Fatalf("events = %+v", ev)
 	}
 }
 
-func TestDeleteUserRollsBackWhenAuditFails(t *testing.T) {
+func TestDeactivateUserRefreshIsRefused(t *testing.T) {
+	e := newEnv()
+	e.user(t, "admin", "admin@nelisa.org", "senha-certa", domain.RoleAdmin)
+	e.user(t, "u1", "ana@nelisa.org", "senha-certa", domain.RoleEditor)
+	sess, _ := e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"})
+	if _, err := e.deactivateUser().Execute(as("admin", domain.RoleAdmin), app.SetUserActiveInput{UserID: "u1"}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := app.NewRefresh(e.w.Tokens(), e.w.Users(), e.sessions, e.clk).Execute(context.Background(), app.RefreshInput{RefreshToken: sess.RefreshToken})
+	check(t, "refresh", err, domain.ErrRefreshTokenInvalid)
+}
+
+func TestDeactivateLastActiveAdminIsRefused(t *testing.T) {
+	e := newEnv()
+	e.user(t, "a1", "a1@nelisa.org", "senha-certa", domain.RoleAdmin)
+	e.user(t, "a2", "a2@nelisa.org", "senha-certa", domain.RoleAdmin)
+	if _, err := e.deactivateUser().Execute(as("a1", domain.RoleAdmin), app.SetUserActiveInput{UserID: "a2"}); err != nil {
+		t.Fatal(err)
+	}
+	// a2 desativado não conta: rebaixar a1 deixaria o Nelisa sem Admin ativo
+	_, err := e.updateRole().Execute(as("a1", domain.RoleAdmin), app.UpdateRoleInput{UserID: "a1", Role: "editor"})
+	check(t, "demote the only active admin", err, domain.ErrLastAdmin)
+}
+
+func TestDeactivateUserRollsBackWhenAuditFails(t *testing.T) {
 	e := newEnv()
 	e.user(t, "u1", "ana@nelisa.org", "senha-certa", domain.RoleEditor)
+	_, _ = e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"})
 	e.w.AuditErr = fakes.ErrBoom
-	check(t, "delete", e.deleteUser().Execute(as("admin", domain.RoleAdmin), app.DeleteUserInput{UserID: "u1"}), fakes.ErrBoom)
-	if _, err := e.w.Users().FindByID(context.Background(), "u1"); err != nil {
-		t.Fatal("user deleted without its audit event")
+	_, err := e.deactivateUser().Execute(as("admin", domain.RoleAdmin), app.SetUserActiveInput{UserID: "u1"})
+	check(t, "deactivate", err, fakes.ErrBoom)
+	if u, _ := e.w.Users().FindByID(context.Background(), "u1"); !u.Active() {
+		t.Error("deactivated without its audit event")
+	}
+	if len(e.w.TokensOf("u1")) != 1 {
+		t.Error("sessions removed without the audit event")
 	}
 }
 

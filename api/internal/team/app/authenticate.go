@@ -15,7 +15,7 @@ type AuthenticateInput struct {
 
 // Authenticate valida o token de acesso e devolve o Ator. O token só prova
 // quem é a pessoa; a role e o corte de sessão vêm do cadastro a cada
-// requisição, então excluir, rebaixar ou resetar a senha de alguém vale na
+// requisição, então desativar, rebaixar ou resetar a senha de alguém vale na
 // hora, e não quando o token expirar.
 type Authenticate struct {
 	access AccessTokens

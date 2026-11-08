@@ -17,6 +17,9 @@ var (
 	ErrForbidden = errors.New("team: sem permissão")
 	// ErrInvalidCredentials não diz se o e-mail existe.
 	ErrInvalidCredentials = errors.New("team: e-mail ou senha incorretos")
+	// ErrAccountDeactivated só aparece com a senha certa, então não revela
+	// a quem não a sabe que o e-mail existe.
+	ErrAccountDeactivated = errors.New("team: conta desativada")
 	// ErrBootstrapDisabled: BOOTSTRAP_TOKEN não configurado.
 	ErrBootstrapDisabled     = errors.New("team: bootstrap desligado")
 	ErrBootstrapTokenInvalid = errors.New("team: token de bootstrap incorreto")

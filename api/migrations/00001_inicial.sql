@@ -28,6 +28,9 @@ CREATE TABLE team.users (
     -- Tokens emitidos antes deste instante são recusados: troca ou reset de
     -- senha encerra todas as sessões. NULL = sem corte.
     sessions_valid_after timestamptz,
+    -- Desativada pelo Admin: não entra nem renova sessão, mas a conta fica,
+    -- porque Auditoria, Autoria e aprovações apontam para ela. NULL = ativa.
+    deactivated_at       timestamptz,
     created_at           timestamptz NOT NULL
 );
 -- E-mail único sem diferenciar maiúsculas: "Ana@x.org" e "ana@x.org" são a

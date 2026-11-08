@@ -11,9 +11,10 @@ import (
 )
 
 const countAdmins = `-- name: CountAdmins :one
-SELECT count(*) FROM team.users WHERE role = 'admin'
+SELECT count(*) FROM team.users WHERE role = 'admin' AND deactivated_at IS NULL
 `
 
+// Só Admins ativos: um Admin desativado não administra nada.
 func (q *Queries) CountAdmins(ctx context.Context) (int64, error) {
 	row := q.db.QueryRow(ctx, countAdmins)
 	var count int64
@@ -106,18 +107,6 @@ func (q *Queries) DeleteRefreshTokensForUser(ctx context.Context, userID string)
 	return err
 }
 
-const deleteUser = `-- name: DeleteUser :execrows
-DELETE FROM team.users WHERE id = $1
-`
-
-func (q *Queries) DeleteUser(ctx context.Context, id string) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteUser, id)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const getRefreshTokenByHash = `-- name: GetRefreshTokenByHash :one
 SELECT id, user_id, token_hash, created_at, expires_at, revoked_at
 FROM team.refresh_tokens WHERE token_hash = $1
@@ -138,7 +127,7 @@ func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 FROM team.users WHERE lower(email) = lower($1)
 `
 
@@ -153,13 +142,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (TeamUser, e
 		&i.Role,
 		&i.MustChangePassword,
 		&i.SessionsValidAfter,
+		&i.DeactivatedAt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 FROM team.users WHERE id = $1
 `
 
@@ -174,13 +164,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (TeamUser, error) 
 		&i.Role,
 		&i.MustChangePassword,
 		&i.SessionsValidAfter,
+		&i.DeactivatedAt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+SELECT id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 FROM team.users ORDER BY created_at, id
 `
 
@@ -201,6 +192,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]TeamUser, error) {
 			&i.Role,
 			&i.MustChangePassword,
 			&i.SessionsValidAfter,
+			&i.DeactivatedAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -254,6 +246,28 @@ func (q *Queries) RevokeRefreshToken(ctx context.Context, arg RevokeRefreshToken
 	return result.RowsAffected(), nil
 }
 
+const updateDeactivation = `-- name: UpdateDeactivation :execrows
+UPDATE team.users
+SET deactivated_at = $1,
+    sessions_valid_after = $2
+WHERE id = $3
+`
+
+type UpdateDeactivationParams struct {
+	DeactivatedAt      *time.Time
+	SessionsValidAfter *time.Time
+	ID                 string
+}
+
+// Desativar ou reativar: a conta nunca é apagada.
+func (q *Queries) UpdateDeactivation(ctx context.Context, arg UpdateDeactivationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateDeactivation, arg.DeactivatedAt, arg.SessionsValidAfter, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const updatePassword = `-- name: UpdatePassword :execrows
 UPDATE team.users
 SET password_hash = $1,
@@ -288,7 +302,7 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 
 const updateRole = `-- name: UpdateRole :one
 UPDATE team.users SET role = $2 WHERE id = $1
-RETURNING id, name, email, password_hash, role, must_change_password, sessions_valid_after, created_at
+RETURNING id, name, email, password_hash, role, must_change_password, sessions_valid_after, deactivated_at, created_at
 `
 
 type UpdateRoleParams struct {
@@ -307,6 +321,7 @@ func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (TeamUse
 		&i.Role,
 		&i.MustChangePassword,
 		&i.SessionsValidAfter,
+		&i.DeactivatedAt,
 		&i.CreatedAt,
 	)
 	return i, err

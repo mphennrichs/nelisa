@@ -45,7 +45,8 @@ type UseCases struct {
 	CreateUser     *app.CreateUser
 	ResetPassword  *app.ResetPassword
 	UpdateRole     *app.UpdateRole
-	DeleteUser     *app.DeleteUser
+	DeactivateUser *app.DeactivateUser
+	ReactivateUser *app.ReactivateUser
 	ListUsers      *app.ListUsers
 }
 
@@ -97,7 +98,8 @@ func (h *Handlers) RegisterAuthenticated(r chi.Router) {
 		r.Post("/", h.createUser)
 		r.Patch("/{id}", h.updateRole)
 		r.Post("/{id}/password", h.resetPassword)
-		r.Delete("/{id}", h.deleteUser)
+		r.Post("/{id}/deactivate", h.deactivateUser)
+		r.Post("/{id}/reactivate", h.reactivateUser)
 	})
 }
 
@@ -131,19 +133,27 @@ type sessionDTO struct {
 }
 
 type userDTO struct {
-	ID                 string `json:"id"`
-	Name               string `json:"name"`
-	Email              string `json:"email"`
-	Role               string `json:"role"`
-	MustChangePassword bool   `json:"must_change_password"`
-	CreatedAt          string `json:"created_at"`
+	ID                 string  `json:"id"`
+	Name               string  `json:"name"`
+	Email              string  `json:"email"`
+	Role               string  `json:"role"`
+	MustChangePassword bool    `json:"must_change_password"`
+	Active             bool    `json:"active"`
+	DeactivatedAt      *string `json:"deactivated_at"`
+	CreatedAt          string  `json:"created_at"`
 }
 
 func toUserDTO(u domain.User) userDTO {
-	return userDTO{
+	d := userDTO{
 		ID: u.ID, Name: u.Name, Email: u.Email, Role: string(u.Role),
-		MustChangePassword: u.MustChangePassword, CreatedAt: u.CreatedAt.UTC().Format(time.RFC3339),
+		MustChangePassword: u.MustChangePassword, Active: u.Active(),
+		CreatedAt: u.CreatedAt.UTC().Format(time.RFC3339),
 	}
+	if u.DeactivatedAt != nil {
+		at := u.DeactivatedAt.UTC().Format(time.RFC3339)
+		d.DeactivatedAt = &at
+	}
+	return d
 }
 
 // writeSession põe o refresh token no cookie e o token de acesso no corpo:
@@ -331,12 +341,22 @@ func (h *Handlers) resetPassword(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handlers) deleteUser(w http.ResponseWriter, r *http.Request) {
-	if err := h.uc.DeleteUser.Execute(r.Context(), app.DeleteUserInput{UserID: chi.URLParam(r, "id")}); err != nil {
+func (h *Handlers) deactivateUser(w http.ResponseWriter, r *http.Request) {
+	u, err := h.uc.DeactivateUser.Execute(r.Context(), app.SetUserActiveInput{UserID: chi.URLParam(r, "id")})
+	if err != nil {
 		writeErr(w, r, h.logger, err)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	httpx.WriteJSON(w, http.StatusOK, toUserDTO(u))
+}
+
+func (h *Handlers) reactivateUser(w http.ResponseWriter, r *http.Request) {
+	u, err := h.uc.ReactivateUser.Execute(r.Context(), app.SetUserActiveInput{UserID: chi.URLParam(r, "id")})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, toUserDTO(u))
 }
 
 // --- erros ---
@@ -356,6 +376,7 @@ func errMappings() []errMapping {
 		{app.ErrSessionExpired, http.StatusUnauthorized, "session_expired", "Sua sessão foi encerrada. Faça login de novo."},
 		{app.ErrForbidden, http.StatusForbidden, "forbidden", "Você não tem permissão para isso."},
 		{app.ErrInvalidCredentials, http.StatusUnauthorized, "invalid_credentials", "E-mail ou senha incorretos."},
+		{app.ErrAccountDeactivated, http.StatusForbidden, "account_deactivated", "Sua conta está desativada. Fale com um Admin."},
 		{app.ErrBootstrapDisabled, http.StatusForbidden, "bootstrap_disabled", "O cadastro inicial está desligado."},
 		{app.ErrBootstrapTokenInvalid, http.StatusForbidden, "bootstrap_token_invalid", "Token de cadastro inicial incorreto."},
 		{app.ErrAlreadyBootstrapped, http.StatusConflict, "already_bootstrapped", "O cadastro inicial já foi feito."},
@@ -367,7 +388,7 @@ func errMappings() []errMapping {
 		{domain.ErrPasswordTooShort, http.StatusBadRequest, "password_too_short", "A senha precisa de pelo menos 8 caracteres."},
 		{domain.ErrPasswordTooLong, http.StatusBadRequest, "password_too_long", "A senha pode ter no máximo 72 bytes."},
 		{domain.ErrLastAdmin, http.StatusConflict, "last_admin", "Precisa sobrar ao menos um Admin."},
-		{domain.ErrCannotDeleteSelf, http.StatusConflict, "cannot_delete_self", "Você não pode excluir a própria conta."},
+		{domain.ErrCannotDeactivateSelf, http.StatusConflict, "cannot_deactivate_self", "Você não pode desativar a própria conta."},
 		{domain.ErrCredentialsChanged, http.StatusConflict, "credentials_changed", "A senha mudou nesse meio-tempo. Tente de novo."},
 	}
 }
