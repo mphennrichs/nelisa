@@ -26,6 +26,9 @@ var (
 	ErrNotReviewer = errors.New("review: só revisor ou admin pode revisar")
 	// ErrNoPendingVersion: não há Versão em análise para aprovar.
 	ErrNoPendingVersion = errors.New("review: não há versão em análise")
+	// ErrStaleContent: o conteúdo mudou depois que o Revisor o leu; ele
+	// precisa reler antes de aprovar.
+	ErrStaleContent = errors.New("review: o conteúdo mudou desde que você o leu")
 	// ErrAlreadyApproved: a Versão já tem aprovação.
 	ErrAlreadyApproved = errors.New("review: versão já aprovada")
 )
@@ -104,7 +107,10 @@ func (a Assessment) CanApprove() bool { return len(a.Blockers) == 0 }
 func Assess(c Candidate, who Approver) Assessment {
 	var out Assessment
 	if !who.CanReview {
+		// Sem a role, o resto não importa: listar quatro olhos e conteúdo
+		// só confundiria quem nunca vai poder aprovar.
 		out.Blockers = append(out.Blockers, Blocker{BlockerRole, blockerMessageRole})
+		return out
 	}
 	if !c.HasPending {
 		out.Blockers = append(out.Blockers, Blocker{BlockerNoPending, blockerMessageNone})

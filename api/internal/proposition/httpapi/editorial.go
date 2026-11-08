@@ -51,6 +51,7 @@ type teamClaimDTO struct {
 	LastActivityAt string `json:"last_activity_at"`
 	ExpiresAt      string `json:"expires_at"`
 	Mine           bool   `json:"mine"`
+	CanRelease     bool   `json:"can_release"`
 }
 
 type approvalInfoDTO struct {
@@ -144,6 +145,7 @@ func toEditorialDTO(ed app.TeamEditorial, actor string) editorialDTO {
 		out.Claim = &teamClaimDTO{
 			HolderID: c.UserID, HolderName: c.HolderName, ClaimedAt: ts(c.ClaimedAt),
 			LastActivityAt: ts(c.LastActivityAt), ExpiresAt: ts(c.ExpiresAt), Mine: c.UserID == actor,
+			CanRelease: c.CanRelease,
 		}
 	}
 	if a := ed.Review.Current; a != nil {

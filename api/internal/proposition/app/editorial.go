@@ -28,6 +28,7 @@ type ApprovalSubject struct {
 	Name          string
 	ReviewState   domain.ReviewState
 	Version       domain.Version
+	Revision      int
 	Authors       []string
 	Missing       []domain.Missing
 }
@@ -42,7 +43,7 @@ func (e *Editorial) subject(ctx context.Context, p domain.Proposition, v domain.
 		return ApprovalSubject{}, err
 	}
 	return ApprovalSubject{
-		PropositionID: p.ID, Name: p.Name(), ReviewState: p.ReviewState, Version: v,
+		PropositionID: p.ID, Name: p.Name(), ReviewState: p.ReviewState, Version: v, Revision: c.Revision,
 		Authors: append([]string(nil), c.Authors...), Missing: c.MissingForApproval(domain.TopicsByID(topics)),
 	}, nil
 }

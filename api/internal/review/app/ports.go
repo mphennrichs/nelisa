@@ -47,8 +47,10 @@ type Subject struct {
 	InReview      bool
 	VersionID     string
 	VersionSeq    int
-	Authors       []string
-	Missing       []domain.Blocker
+	// Revision do conteúdo: aprovar exige ter lido esta.
+	Revision int
+	Authors  []string
+	Missing  []domain.Blocker
 }
 
 // VersionInfo é uma Versão aprovada e a Autoria do conteúdo dela.

@@ -672,6 +672,20 @@ paths:
         transação: a Versão vira a vigente, a anterior é substituída, a
         Proposição fica `ready`, a Posse é solta e a Auditoria registra
         (`review.approve`). Falha em qualquer passo desfaz tudo.
+
+        O corpo leva a `revision` do conteúdo que o Revisor leu: se alguém
+        gravou depois, a aprovação é recusada (409 `stale_content`), para
+        ninguém aprovar texto que não viu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [revision]
+              properties:
+                revision: { type: integer, description: "revision do conteúdo em análise que quem aprova leu" }
       responses:
         "200":
           description: Aprovada
@@ -692,6 +706,7 @@ paths:
         "409":
           description: |
             `content_incomplete` (a mensagem lista o que falta),
+            `stale_content` (o conteúdo mudou desde a leitura),
             `version_not_pending` ou `invalid_review_transition` (rascunho).
           content:
             application/json:
@@ -1402,9 +1417,10 @@ components:
       allOf:
         - $ref: "#/components/schemas/Claim"
         - type: object
-          required: [mine]
+          required: [mine, can_release]
           properties:
             mine: { type: boolean, description: A Posse é de quem pergunta }
+            can_release: { type: boolean, description: "Quem pergunta pode soltar esta Posse (a própria, ou Revisor/Admin)" }
     ApprovalInfo:
       type: object
       required: [version_id, approved_by, approved_at, four_eyes, second_review_by, second_review_at, pending_second_review]

@@ -109,7 +109,7 @@ func (uc *Release) Execute(ctx context.Context, in ReleaseInput) error {
 			return err
 		}
 		othersValid := valid != nil && valid.UserID != a.UserID
-		if othersValid && !a.Role.AtLeast(auth.RoleReviewer) {
+		if valid != nil && !domain.CanRelease(valid.UserID, a.UserID, a.Role.AtLeast(auth.RoleReviewer)) {
 			return domain.ErrNotHolder
 		}
 		if err := uc.claims.Delete(ctx, in.PropositionID); err != nil {
@@ -156,4 +156,14 @@ func (g *Gate) Release(ctx context.Context, propositionID string) error {
 		return err
 	}
 	return g.claims.Delete(ctx, propositionID)
+}
+
+// CanReleaseFor diz se o Ator do contexto pode soltar a Posse de holderID.
+// O detalhe da Proposição usa isso para o front não repetir a regra.
+func CanReleaseFor(ctx context.Context, holderID string) bool {
+	a, err := actor(ctx)
+	if err != nil {
+		return false
+	}
+	return domain.CanRelease(holderID, a.UserID, a.Role.AtLeast(auth.RoleReviewer))
 }

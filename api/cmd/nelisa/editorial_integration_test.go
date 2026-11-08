@@ -165,6 +165,14 @@ func (a *editorialApp) topic(name string) string {
 	return tp.ID
 }
 
+// revBody é o corpo da aprovação: a revision do conteúdo em análise que
+// quem aprova acabou de ler.
+func (a *editorialApp) revBody(pid string) string {
+	a.t.Helper()
+	_, rev := a.pending(pid)
+	return fmt.Sprintf(`{"revision":%d}`, rev)
+}
+
 func contentBody(summary, short string, topics []string, rev int) string {
 	b, _ := json.Marshal(map[string]any{"summary": summary, "short_summary": short, "topic_ids": topics, "revision": rev})
 	return string(b)
@@ -206,9 +214,9 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	// Segunda pessoa grava com Posse alheia: 409.
 	a.expectErr(a.do("PUT", content, "rita", contentBody("Outro", "Outro", []string{trabalho}, 1)), 409, "claim_taken", "rita with edu's claim")
 	// Editor (não Revisor) tenta aprovar: 403.
-	a.expectErr(a.do("POST", approve, "edu", ""), 403, "forbidden", "editor approves")
+	a.expectErr(a.do("POST", approve, "edu", a.revBody(pid)), 403, "forbidden", "editor approves")
 	// Conteúdo incompleto (sem Temas): 409.
-	a.expectErr(a.do("POST", approve, "rui", ""), 409, "content_incomplete", "incomplete")
+	a.expectErr(a.do("POST", approve, "rui", a.revBody(pid)), 409, "content_incomplete", "incomplete")
 	a.must(a.do("PUT", content, "edu", contentBody("Reduz a jornada de trabalho.", "Jornada menor.", []string{trabalho}, 1)), 200, "edu completes")
 	// Gravação com revision velho: 409 e nada muda.
 	a.expectErr(a.do("PUT", content, "edu", contentBody("POR CIMA", "POR CIMA", []string{saude}, 1)), 409, "stale_content", "stale")
@@ -227,7 +235,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	if d := a.detail(pid, "rita"); d.CanApprove || len(d.ApproveBlockers) != 1 || d.ApproveBlockers[0].Code != "four_eyes" {
 		t.Errorf("rita blockers: %+v", d)
 	}
-	a.expectErr(a.do("POST", approve, "rita", ""), 403, "four_eyes", "author approves")
+	a.expectErr(a.do("POST", approve, "rita", a.revBody(pid)), 403, "four_eyes", "author approves")
 
 	// Antes da aprovação, o público só vê dados oficiais.
 	if body := a.public(); strings.Contains(body, "Reduz a jornada de trabalho semanal") || !strings.Contains(body, `"under_review":true`) {
@@ -238,7 +246,11 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	if d := a.detail(pid, "rui"); !d.CanApprove {
 		t.Fatalf("rui cannot approve: %+v", d)
 	}
-	a.must(a.do("POST", approve, "rui", ""), 200, "rui approves")
+	// Aprovar com a revision de antes da última gravação: 409, nada muda.
+	_, cur := a.pending(pid)
+	a.expectErr(a.do("POST", approve, "rui", fmt.Sprintf(`{"revision":%d}`, cur-1)), 409, "stale_content", "approve stale revision")
+	a.expectErr(a.do("POST", approve, "rui", `{}`), 400, "revision_required", "approve without revision")
+	a.must(a.do("POST", approve, "rui", a.revBody(pid)), 200, "rui approves")
 	if d := a.detail(pid, "edu"); d.ReviewState != "ready" || d.Claim != nil || d.ReviewBadge == nil || *d.ReviewBadge != 2 {
 		t.Fatalf("after approval: %+v", d)
 	}
@@ -261,7 +273,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	}
 	approve2 := base + "/versions/" + v2 + "/approve"
 	// Conteúdo trazido sem confirmar: 409.
-	a.expectErr(a.do("POST", approve2, "rui", ""), 409, "content_incomplete", "needs confirmation")
+	a.expectErr(a.do("POST", approve2, "rui", a.revBody(pid)), 409, "content_incomplete", "needs confirmation")
 	a.must(a.do("PUT", base+"/versions/"+v2+"/content", "edu", contentBody("SEGREDO-RESUMO-NOVO", "SEGREDO-CURTO-NOVO", []string{trabalho, saude}, rev2)), 200, "edu edits v2")
 	// Nada da Versão em análise aparece no público, nem com uma vigente.
 	body = a.public()
@@ -282,7 +294,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	a.must(a.do("DELETE", base+"/claim", "ana", ""), 204, "admin releases edu's claim")
 	_, rev2 = a.pending(pid)
 	a.must(a.do("POST", base+"/versions/"+v2+"/content/confirm", "ana", fmt.Sprintf(`{"revision":%d}`, rev2)), 200, "ana confirms")
-	w = a.must(a.do("POST", approve2, "ana", ""), 200, "admin self-approves")
+	w = a.must(a.do("POST", approve2, "ana", a.revBody(pid)), 200, "admin self-approves")
 	if !strings.Contains(w.Body.String(), `"four_eyes":false`) || !strings.Contains(w.Body.String(), `"review_badge":1`) {
 		t.Fatalf("admin approval: %s", w.Body)
 	}
@@ -341,7 +353,7 @@ func TestApprovalRollsBackWhenAuditFails(t *testing.T) {
 	base := "/api/team/propositions/" + pid
 	a.must(a.do("PUT", base+"/versions/"+v1+"/content", "edu", contentBody("Resumo", "Curto", []string{trabalho}, rev)), 200, "edu saves")
 
-	a.expectErr(a.do("POST", base+"/versions/"+v1+"/approve", "rui", ""), 500, "internal", "approve with failing audit")
+	a.expectErr(a.do("POST", base+"/versions/"+v1+"/approve", "rui", a.revBody(pid)), 500, "internal", "approve with failing audit")
 	d := a.detail(pid, "edu")
 	if d.ReviewState != "in_review" || d.Claim == nil || d.Claim.HolderName != "Edu" || d.ReviewBadge != nil {
 		t.Fatalf("approval not rolled back: %+v", d)

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { components } from "@/lib/api/schema";
-import { ApiError, useTeamSession, type User } from "@/lib/team/session";
+import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FormError, RequireTeam } from "@/lib/team/ui";
 import { REVIEW_STATE_LABEL, chamberLabel, fmtDate, fmtDateTime, officialText, chamberIn } from "@/lib/labels";
 import Editorial from "./Editorial";
@@ -14,7 +14,7 @@ type Link_ = components["schemas"]["SourceLink"];
 
 const TIMELINE_PAGE = 20;
 
-function PropositionDetail({ id, me }: { id: string; me: User }) {
+function PropositionDetail({ id }: { id: string }) {
   const { api } = useTeamSession();
   const [p, setP] = useState<Detail>();
   const [error, setError] = useState<string>();
@@ -107,7 +107,7 @@ function PropositionDetail({ id, me }: { id: string; me: User }) {
         )}
       </section>
 
-      <Editorial p={p} me={me} reload={load} />
+      <Editorial p={p} reload={load} />
 
       <section aria-labelledby="vinculos" className="card space-y-3">
         <h2 id="vinculos" className="text-lg font-semibold">Vínculos de fonte</h2>
@@ -175,5 +175,5 @@ function PropositionDetail({ id, me }: { id: string; me: User }) {
 
 export default function Page() {
   const { id } = useParams<{ id: string }>();
-  return <RequireTeam>{(me) => <PropositionDetail id={id} me={me} />}</RequireTeam>;
+  return <RequireTeam>{() => <PropositionDetail id={id} />}</RequireTeam>;
 }

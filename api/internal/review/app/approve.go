@@ -10,6 +10,9 @@ import (
 type ApproveInput struct {
 	PropositionID string
 	VersionID     string
+	// Revision do conteúdo que o Revisor leu. Se mudou, a aprovação é
+	// recusada: ninguém aprova texto que não viu.
+	Revision int
 }
 
 // Approve marca a Versão em análise como pronta. Revisor ou Admin, sem
@@ -44,6 +47,9 @@ func (uc *Approve) Execute(ctx context.Context, in ApproveInput) (domain.Approva
 		assessment := domain.Assess(candidate(&s), who)
 		if err := assessment.Err(); err != nil {
 			return err
+		}
+		if s.Revision != in.Revision {
+			return domain.ErrStaleContent
 		}
 		a := domain.NewApproval(s.PropositionID, s.VersionID, assessment, who.UserID, uc.clock.Now())
 		if err := uc.approvals.Create(ctx, a); err != nil {

@@ -144,3 +144,9 @@ func Sort[T any](items []T, key func(T) Item) {
 		return a.Reason < b.Reason
 	})
 }
+
+// CanRelease diz quem solta uma Posse válida: quem a tem, ou Revisor e
+// Admin (de qualquer pessoa).
+func CanRelease(holderID, actorID string, actorIsReviewer bool) bool {
+	return holderID == actorID || actorIsReviewer
+}

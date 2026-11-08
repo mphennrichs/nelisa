@@ -108,6 +108,24 @@ func TestIncompleteOrUnconfirmedContentIsRefused(t *testing.T) {
 	}
 }
 
+func TestApprovalOfContentChangedSinceReadIsRefused(t *testing.T) {
+	e := newEnv()
+	e.w.PutVersion(fakes.Version{ID: "v1", PropositionID: "p1", Seq: 1, State: "pending", Revision: 3, Authors: []string{"ana"}})
+	stale := in
+	stale.Revision = 2
+	if _, err := e.approve().Execute(rev, stale); !errors.Is(err, domain.ErrStaleContent) {
+		t.Fatalf("stale: %v", err)
+	}
+	if p := e.w.Proposition("p1"); p.State != "in_review" {
+		t.Fatalf("approved content the reviewer never saw: %+v", p)
+	}
+	fresh := in
+	fresh.Revision = 3
+	if _, err := e.approve().Execute(rev, fresh); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDraftIsNotApproved(t *testing.T) {
 	e := newEnv()
 	e.w.PutProposition(fakes.Proposition{ID: "p1", State: "draft"})
@@ -192,7 +210,7 @@ func TestStatusDecidesForTheActor(t *testing.T) {
 		t.Errorf("reviewer: %+v %v", s, err)
 	}
 	s, _ = r.Status(ana, "p1")
-	if s.Assessment.CanApprove() || len(s.Assessment.Blockers) != 2 { // role + quatro olhos
+	if s.Assessment.CanApprove() || len(s.Assessment.Blockers) != 1 || s.Assessment.Blockers[0].Code != "role" { // sem a role, só ela
 		t.Errorf("author editor: %+v", s.Assessment)
 	}
 	e.w.PutVersion(fakes.Version{ID: "v1", PropositionID: "p1", Seq: 1, State: "pending", Authors: []string{"adm"}})

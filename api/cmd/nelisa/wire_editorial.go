@@ -43,6 +43,7 @@ func (c propClaims) Current(ctx context.Context, propositionID string) (*propapp
 	return &propapp.ClaimInfo{
 		UserID: v.UserID, HolderName: v.HolderName, ClaimedAt: v.ClaimedAt,
 		LastActivityAt: v.LastActivityAt, ExpiresAt: v.ExpiresAt(),
+		CanRelease: queueapp.CanReleaseFor(ctx, v.UserID),
 	}, nil
 }
 
@@ -130,7 +131,7 @@ func reviewErr(err error) error {
 func toSubject(s propapp.ApprovalSubject) reviewapp.Subject {
 	out := reviewapp.Subject{
 		PropositionID: s.PropositionID, Name: s.Name, InReview: s.ReviewState == propdomain.ReviewInReview,
-		VersionID: s.Version.ID, VersionSeq: s.Version.Seq, Authors: s.Authors,
+		VersionID: s.Version.ID, VersionSeq: s.Version.Seq, Revision: s.Revision, Authors: s.Authors,
 	}
 	for _, m := range s.Missing {
 		out.Missing = append(out.Missing, reviewdomain.Blocker{Code: m.Code, Message: m.Message})

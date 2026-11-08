@@ -64,8 +64,18 @@ func toDTO(a domain.Approval) approvalDTO {
 }
 
 func (h *Handlers) approve(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Revision *int `json:"revision"`
+	}
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.Revision == nil {
+		httpx.WriteError(w, http.StatusBadRequest, "revision_required", "Informe a revision do conteúdo que você leu.")
+		return
+	}
 	a, err := h.uc.Approve.Execute(r.Context(), app.ApproveInput{
-		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"),
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"), Revision: *req.Revision,
 	})
 	if err != nil {
 		writeErr(w, r, h.logger, err)
@@ -102,6 +112,7 @@ func errMappings() []errMapping {
 		{app.ErrVersionNotFound, http.StatusNotFound, "version_not_found", "Versão não encontrada."},
 		{app.ErrVersionNotPending, http.StatusConflict, "version_not_pending", "Esta Versão não está mais em análise."},
 		{domain.ErrNoPendingVersion, http.StatusConflict, "version_not_pending", "Esta Versão não está mais em análise."},
+		{domain.ErrStaleContent, http.StatusConflict, "stale_content", "O conteúdo mudou desde que você o leu. Recarregue e confira antes de aprovar."},
 		{domain.ErrAlreadyApproved, http.StatusConflict, "version_not_pending", "Esta Versão já foi aprovada."},
 		{domain.ErrNotInReview, http.StatusConflict, "invalid_review_transition", "Envie a Proposição para revisão antes de aprovar."},
 		{domain.ErrNoSecondReviewPending, http.StatusConflict, "no_second_review_pending", "Não há segunda revisão pendente para esta Versão."},

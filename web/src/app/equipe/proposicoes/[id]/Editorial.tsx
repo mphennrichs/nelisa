@@ -5,7 +5,7 @@
 // (can_*, approve_blockers); aqui só mostramos e chamamos.
 import { useEffect, useState } from "react";
 import type { components } from "@/lib/api/schema";
-import { ApiError, useTeamSession, type User } from "@/lib/team/session";
+import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FieldError, FormError } from "@/lib/team/ui";
 import { VERSION_STATE_LABEL, charCount, fmtDateTime, paragraphs, reviewBadgeLabel } from "@/lib/labels";
 
@@ -52,7 +52,7 @@ function names(ids: string[], people: Record<string, string>) {
   return ids.map((id) => people[id] ?? "pessoa removida").join(", ");
 }
 
-export default function Editorial({ p, me, reload }: { p: Detail; me: User; reload: () => Promise<Detail | undefined> }) {
+export default function Editorial({ p, reload }: { p: Detail; reload: () => Promise<Detail | undefined> }) {
   const { api } = useTeamSession();
   const [feedback, setFeedback] = useState<Feedback>();
   const [busy, setBusy] = useState<string>();
@@ -243,8 +243,8 @@ export default function Editorial({ p, me, reload }: { p: Detail; me: User; relo
                 {busy === "release" ? "Soltando…" : "Soltar Posse"}
               </button>
             )}
-            {/* Revisor e Admin soltam a Posse de qualquer um (a API confere). */}
-            {claim && !claim.mine && me.role !== "editor" && !confirmRelease && (
+            {/* Quem pode soltar a Posse alheia é a API que diz (can_release). */}
+            {claim && !claim.mine && claim.can_release && !confirmRelease && (
               <button type="button" className="btn-ghost min-h-11 px-4" onClick={() => setConfirmRelease(true)}>
                 Soltar a Posse de {claim.holder_name}
               </button>
@@ -336,7 +336,13 @@ export default function Editorial({ p, me, reload }: { p: Detail; me: User; relo
                       await run(
                         "approve",
                         "approve",
-                        () => api(`${base}/versions/${encodeURIComponent(pending.id)}/approve`, { method: "POST" }),
+                        // a revision do texto mostrado: se alguém gravou depois, a API
+                        // recusa (stale_content) e a recarga mostra o texto novo
+                        () =>
+                          api(`${base}/versions/${encodeURIComponent(pending.id)}/approve`, {
+                            method: "POST",
+                            body: JSON.stringify({ revision: p.pending_content?.revision ?? 0 }),
+                          }),
                         p.approval_breaks_four_eyes
                           ? "Aprovada. Já aparece no site, com Segunda revisão pendente."
                           : "Aprovada. Já aparece no site com o Selo “revisado por 2 pessoas”.",

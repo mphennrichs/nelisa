@@ -62,6 +62,9 @@ type ClaimInfo struct {
 	ClaimedAt      time.Time
 	LastActivityAt time.Time
 	ExpiresAt      time.Time
+	// CanRelease: o Ator do contexto pode soltar esta Posse (decidido pelo
+	// módulo queue).
+	CanRelease bool
 }
 
 // Claims é a Posse (módulo queue, ligado no main).

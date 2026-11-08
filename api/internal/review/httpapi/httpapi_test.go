@@ -48,7 +48,12 @@ func newServer(w *fakes.World) http.Handler {
 }
 
 func do(h http.Handler, path, actor string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest("POST", path, nil)
+	return doBody(h, path, actor, `{"revision":0}`)
+}
+
+func doBody(h http.Handler, path, actor, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", path, strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
 	if actor != "" {
 		r.Header.Set("X-Test-Actor", actor)
 	}
@@ -89,6 +94,12 @@ func TestApproveRoutes(t *testing.T) {
 	}
 	if w := do(h, "/api/team/propositions/p1/versions/nope/approve", "rev2:reviewer"); w.Code != 404 || errCode(t, w) != "version_not_found" {
 		t.Errorf("unknown version: %d %s", w.Code, w.Body)
+	}
+	if w := doBody(h, approve, "rev2:reviewer", `{"revision":7}`); w.Code != 409 || errCode(t, w) != "stale_content" {
+		t.Errorf("stale revision: %d %s", w.Code, w.Body)
+	}
+	if w := doBody(h, approve, "rev2:reviewer", `{}`); w.Code != 400 || errCode(t, w) != "revision_required" {
+		t.Errorf("missing revision: %d %s", w.Code, w.Body)
 	}
 	w := do(h, approve, "rev2:reviewer")
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"four_eyes":true`) || !strings.Contains(w.Body.String(), `"review_badge":2`) {

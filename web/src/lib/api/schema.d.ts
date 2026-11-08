@@ -1379,6 +1379,10 @@ export interface paths {
          *     transação: a Versão vira a vigente, a anterior é substituída, a
          *     Proposição fica `ready`, a Posse é solta e a Auditoria registra
          *     (`review.approve`). Falha em qualquer passo desfaz tudo.
+         *
+         *     O corpo leva a `revision` do conteúdo que o Revisor leu: se alguém
+         *     gravou depois, a aprovação é recusada (409 `stale_content`), para
+         *     ninguém aprovar texto que não viu.
          */
         post: {
             parameters: {
@@ -1390,7 +1394,14 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description revision do conteúdo em análise que quem aprova leu */
+                        revision: number;
+                    };
+                };
+            };
             responses: {
                 /** @description Aprovada */
                 200: {
@@ -1422,6 +1433,7 @@ export interface paths {
                 };
                 /**
                  * @description `content_incomplete` (a mensagem lista o que falta),
+                 *     `stale_content` (o conteúdo mudou desde a leitura),
                  *     `version_not_pending` ou `invalid_review_transition` (rascunho).
                  */
                 409: {
@@ -2284,6 +2296,8 @@ export interface components {
         TeamClaim: components["schemas"]["Claim"] & {
             /** @description A Posse é de quem pergunta */
             mine: boolean;
+            /** @description Quem pergunta pode soltar esta Posse (a própria, ou Revisor/Admin) */
+            can_release: boolean;
         };
         ApprovalInfo: {
             /** Format: uuid */

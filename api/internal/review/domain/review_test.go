@@ -61,9 +61,15 @@ func TestAssess(t *testing.T) {
 	if !errors.As(err, &inc) || len(inc.Missing) != 1 || inc.Missing[0].Code != "summary" {
 		t.Errorf("incomplete: %v", err)
 	}
-	// Todos os impedimentos aparecem para a tela (não só o primeiro).
-	all := domain.Assess(domain.Candidate{HasPending: true, Authors: []string{"ed"}, Missing: missing}, editor)
-	if got := codes(all); len(got) != 4 {
+	// Sem a role, só ela aparece: o resto não muda nada para quem nunca
+	// vai poder aprovar.
+	if got := codes(domain.Assess(domain.Candidate{HasPending: true, Authors: []string{"ed"}, Missing: missing}, editor)); len(got) != 1 || got[0] != "role" {
+		t.Errorf("editor blockers: %v", got)
+	}
+	// Com a role, todos os impedimentos aparecem para a tela (não só o
+	// primeiro).
+	authorReviewer := domain.Approver{UserID: "ed", CanReview: true}
+	if got := codes(domain.Assess(domain.Candidate{HasPending: true, Authors: []string{"ed"}, Missing: missing}, authorReviewer)); len(got) != 3 {
 		t.Errorf("all blockers: %v", got)
 	}
 }

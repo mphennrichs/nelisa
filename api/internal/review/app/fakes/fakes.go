@@ -32,9 +32,10 @@ type Version struct {
 	PropositionID string
 	Seq           int
 	// State: "pending", "current" ou "superseded".
-	State   string
-	Authors []string
-	Missing []domain.Blocker
+	State    string
+	Revision int
+	Authors  []string
+	Missing  []domain.Blocker
 }
 
 // Proposition é o que o fake sabe da Proposição.
@@ -219,7 +220,7 @@ type editorial struct{ w *World }
 
 func (e editorial) subject(p Proposition, v Version) app.Subject {
 	return app.Subject{
-		PropositionID: p.ID, Name: p.Name, InReview: p.State == "in_review", VersionID: v.ID, VersionSeq: v.Seq,
+		PropositionID: p.ID, Name: p.Name, InReview: p.State == "in_review", VersionID: v.ID, VersionSeq: v.Seq, Revision: v.Revision,
 		Authors: slices.Clone(v.Authors), Missing: slices.Clone(v.Missing),
 	}
 }
