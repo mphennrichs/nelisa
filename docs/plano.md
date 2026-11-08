@@ -131,3 +131,4 @@ Depois da v1 (ainda sem desenho):
 - 2026-11-07 — protótipo continua no ar como está (apresentações) até a fase 0.
 - 2026-11-08 — fase 2 em duas etapas: primeiro o ciclo editorial (Versão, Resumo, Resumo curto, Temas, Fila, Posse, quatro olhos, Selo, visibilidade: #19, #21, #22, #34), depois Correção menor/Errata (#35) e Estruturação + Comentários (#20). Desenho em [`desenho/fase-2-ciclo-editorial.md`](desenho/fase-2-ciclo-editorial.md).
 - 2026-11-08 — Estruturação busca sozinha o PDF oficial e extrai o texto (não é colar texto); o Editor corrige.
+- 2026-11-08 — Estruturação e Comentários (#20): desenho em [`desenho/fase-2-estruturacao-e-comentarios.md`](desenho/fase-2-estruturacao-e-comentarios.md). Biblioteca de PDF decidida por spike (preferência: PDFium em WebAssembly); colar texto só quando a busca/extração falha; trecho guardado no modelo, tela depois; Correção menor/Errata de Comentário em issue separada.

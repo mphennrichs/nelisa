@@ -197,7 +197,7 @@ veja o texto oficial". Comentários não são obrigatórios.
 5. Comentários (equipe), bloqueios de aprovação, cópia para Versão nova.
 6. Público: `annotated_text` e a seção na página.
 
-## Decisões a confirmar
+## Decisões (confirmadas em 2026-11-08)
 
 1. **Biblioteca de PDF:** PDFium em WebAssembly (recomendado) ou
    `pdftotext`, decidido pelo spike. Vira ADR se a escolha for
