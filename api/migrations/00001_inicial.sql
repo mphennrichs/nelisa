@@ -238,6 +238,66 @@ CREATE INDEX approvals_proposition_idx ON review.approvals (proposition_id, appr
 CREATE INDEX approvals_pending_second_idx ON review.approvals (approved_at)
     WHERE NOT four_eyes AND second_review_by IS NULL;
 
+-- review: Correções menores da Versão vigente. Entram direto (o Leitor vê
+-- o texto corrigido sem aviso) e ficam "a conferir" até um Revisor que não
+-- as fez olhar. before/after guardam o conteúdo inteiro, só para a equipe
+-- comparar; nada daqui sai para o Leitor.
+CREATE TABLE review.minor_fixes (
+    id             uuid PRIMARY KEY,
+    proposition_id uuid NOT NULL REFERENCES proposition.propositions (id) ON DELETE CASCADE,
+    version_id     uuid NOT NULL REFERENCES proposition.versions (id) ON DELETE CASCADE,
+    fields         text[] NOT NULL CHECK (cardinality(fields) > 0),
+    before         jsonb NOT NULL,
+    after          jsonb NOT NULL,
+    created_by     uuid NOT NULL,
+    created_at     timestamptz NOT NULL,
+    checked_by     uuid,
+    checked_at     timestamptz,
+    -- Quem corrigiu nunca confere a própria correção.
+    CONSTRAINT minor_fixes_checked CHECK (
+        (checked_by IS NULL) = (checked_at IS NULL)
+        AND (checked_by IS NULL OR checked_by <> created_by)
+    )
+);
+CREATE INDEX minor_fixes_proposition_idx ON review.minor_fixes (proposition_id, created_at);
+CREATE INDEX minor_fixes_unchecked_idx ON review.minor_fixes (created_at) WHERE checked_by IS NULL;
+
+-- review: Erratas da Versão vigente. Pendente não muda nada; aprovada
+-- (por quem não propôs) troca o conteúdo e sai para o Leitor só como nota
+-- datada (said/correct). Recusada e retirada nunca saem.
+CREATE TABLE review.errata (
+    id             uuid PRIMARY KEY,
+    proposition_id uuid NOT NULL REFERENCES proposition.propositions (id) ON DELETE CASCADE,
+    version_id     uuid NOT NULL REFERENCES proposition.versions (id) ON DELETE CASCADE,
+    -- O conteúdo completo como fica depois da Errata.
+    proposed       jsonb NOT NULL,
+    said           text NOT NULL CHECK (said <> '' AND char_length(said) <= 500),
+    correct        text NOT NULL CHECK (correct <> '' AND char_length(correct) <= 500),
+    -- revision do conteúdo vigente quando a Errata foi proposta: se mudou,
+    -- a Errata foi escrita sobre um texto que não existe mais.
+    base_revision  integer NOT NULL CHECK (base_revision >= 0),
+    state          text NOT NULL CHECK (state IN ('pending', 'approved', 'rejected', 'withdrawn')),
+    created_by     uuid NOT NULL,
+    created_at     timestamptz NOT NULL,
+    decided_by     uuid,
+    decided_at     timestamptz,
+    -- Motivo interno da recusa; nunca sai para o Leitor.
+    reason         text NOT NULL DEFAULT '' CHECK (char_length(reason) <= 1000),
+    CONSTRAINT errata_decision CHECK (
+        (state = 'pending') = (decided_at IS NULL)
+        AND (decided_by IS NULL) = (decided_at IS NULL)
+        -- Quatro olhos: quem propôs não aprova nem recusa; só retira.
+        AND (state NOT IN ('approved', 'rejected') OR decided_by <> created_by)
+        AND (state <> 'withdrawn' OR decided_by = created_by)
+        AND (state <> 'rejected' OR reason <> '')
+    )
+);
+-- No máximo uma Errata pendente por Versão: as duas mexeriam no mesmo
+-- texto. É o banco que garante, mesmo com duas propostas concorrentes.
+CREATE UNIQUE INDEX errata_one_pending_key ON review.errata (version_id) WHERE state = 'pending';
+CREATE INDEX errata_proposition_idx ON review.errata (proposition_id, created_at);
+CREATE INDEX errata_approved_idx ON review.errata (version_id, decided_at) WHERE state = 'approved';
+
 -- queue: a Posse, uma por Proposição. Expira com 3 dias sem atividade; a
 -- linha velha fica até alguém assumir de novo (expirada conta como livre).
 CREATE TABLE queue.claims (

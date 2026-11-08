@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+const countPendingErrataByVersion = `-- name: CountPendingErrataByVersion :one
+SELECT count(*) FROM review.errata WHERE version_id = $1 AND state = 'pending'
+`
+
+func (q *Queries) CountPendingErrataByVersion(ctx context.Context, versionID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countPendingErrataByVersion, versionID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createApproval = `-- name: CreateApproval :exec
 
 INSERT INTO review.approvals (
@@ -39,6 +50,103 @@ func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) 
 		arg.SecondReviewAt,
 	)
 	return err
+}
+
+const createErratum = `-- name: CreateErratum :exec
+
+INSERT INTO review.errata (
+    id, proposition_id, version_id, proposed, said, correct, base_revision, state, created_by, created_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)
+`
+
+type CreateErratumParams struct {
+	ID            string
+	PropositionID string
+	VersionID     string
+	Proposed      []byte
+	Said          string
+	Correct       string
+	BaseRevision  int32
+	CreatedBy     string
+	CreatedAt     time.Time
+}
+
+// Erratas.
+func (q *Queries) CreateErratum(ctx context.Context, arg CreateErratumParams) error {
+	_, err := q.db.Exec(ctx, createErratum,
+		arg.ID,
+		arg.PropositionID,
+		arg.VersionID,
+		arg.Proposed,
+		arg.Said,
+		arg.Correct,
+		arg.BaseRevision,
+		arg.CreatedBy,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const createMinorFix = `-- name: CreateMinorFix :exec
+
+INSERT INTO review.minor_fixes (
+    id, proposition_id, version_id, fields, before, after, created_by, created_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type CreateMinorFixParams struct {
+	ID            string
+	PropositionID string
+	VersionID     string
+	Fields        []string
+	Before        []byte
+	After         []byte
+	CreatedBy     string
+	CreatedAt     time.Time
+}
+
+// Correções menores.
+func (q *Queries) CreateMinorFix(ctx context.Context, arg CreateMinorFixParams) error {
+	_, err := q.db.Exec(ctx, createMinorFix,
+		arg.ID,
+		arg.PropositionID,
+		arg.VersionID,
+		arg.Fields,
+		arg.Before,
+		arg.After,
+		arg.CreatedBy,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const decideErratum = `-- name: DecideErratum :execrows
+UPDATE review.errata
+SET state = $2, decided_by = $3, decided_at = $4, reason = $5
+WHERE id = $1 AND state = 'pending'
+`
+
+type DecideErratumParams struct {
+	ID        string
+	State     string
+	DecidedBy *string
+	DecidedAt *time.Time
+	Reason    string
+}
+
+// Só uma decisão por Errata: a pendente.
+func (q *Queries) DecideErratum(ctx context.Context, arg DecideErratumParams) (int64, error) {
+	result, err := q.db.Exec(ctx, decideErratum,
+		arg.ID,
+		arg.State,
+		arg.DecidedBy,
+		arg.DecidedAt,
+		arg.Reason,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getApproval = `-- name: GetApproval :one
@@ -79,6 +187,53 @@ func (q *Queries) GetApprovalForUpdate(ctx context.Context, versionID string) (R
 	return i, err
 }
 
+const getErratumForUpdate = `-- name: GetErratumForUpdate :one
+SELECT id, proposition_id, version_id, proposed, said, correct, base_revision, state, created_by, created_at, decided_by, decided_at, reason FROM review.errata WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetErratumForUpdate(ctx context.Context, id string) (ReviewErratum, error) {
+	row := q.db.QueryRow(ctx, getErratumForUpdate, id)
+	var i ReviewErratum
+	err := row.Scan(
+		&i.ID,
+		&i.PropositionID,
+		&i.VersionID,
+		&i.Proposed,
+		&i.Said,
+		&i.Correct,
+		&i.BaseRevision,
+		&i.State,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.DecidedBy,
+		&i.DecidedAt,
+		&i.Reason,
+	)
+	return i, err
+}
+
+const getMinorFixForUpdate = `-- name: GetMinorFixForUpdate :one
+SELECT id, proposition_id, version_id, fields, before, after, created_by, created_at, checked_by, checked_at FROM review.minor_fixes WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetMinorFixForUpdate(ctx context.Context, id string) (ReviewMinorFix, error) {
+	row := q.db.QueryRow(ctx, getMinorFixForUpdate, id)
+	var i ReviewMinorFix
+	err := row.Scan(
+		&i.ID,
+		&i.PropositionID,
+		&i.VersionID,
+		&i.Fields,
+		&i.Before,
+		&i.After,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.CheckedBy,
+		&i.CheckedAt,
+	)
+	return i, err
+}
+
 const listApprovalsByVersions = `-- name: ListApprovalsByVersions :many
 SELECT version_id, proposition_id, approved_by, approved_at, four_eyes, second_review_by, second_review_at FROM review.approvals
 WHERE version_id = ANY($1::uuid[])
@@ -102,6 +257,126 @@ func (q *Queries) ListApprovalsByVersions(ctx context.Context, ids []string) ([]
 			&i.FourEyes,
 			&i.SecondReviewBy,
 			&i.SecondReviewAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listApprovedErrataByVersions = `-- name: ListApprovedErrataByVersions :many
+SELECT id, proposition_id, version_id, proposed, said, correct, base_revision, state, created_by, created_at, decided_by, decided_at, reason FROM review.errata
+WHERE state = 'approved' AND version_id = ANY($1::uuid[])
+ORDER BY decided_at DESC, id
+`
+
+func (q *Queries) ListApprovedErrataByVersions(ctx context.Context, ids []string) ([]ReviewErratum, error) {
+	rows, err := q.db.Query(ctx, listApprovedErrataByVersions, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReviewErratum
+	for rows.Next() {
+		var i ReviewErratum
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.VersionID,
+			&i.Proposed,
+			&i.Said,
+			&i.Correct,
+			&i.BaseRevision,
+			&i.State,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.DecidedBy,
+			&i.DecidedAt,
+			&i.Reason,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listErrataByProposition = `-- name: ListErrataByProposition :many
+SELECT id, proposition_id, version_id, proposed, said, correct, base_revision, state, created_by, created_at, decided_by, decided_at, reason FROM review.errata
+WHERE proposition_id = $1
+ORDER BY created_at DESC, id
+`
+
+func (q *Queries) ListErrataByProposition(ctx context.Context, propositionID string) ([]ReviewErratum, error) {
+	rows, err := q.db.Query(ctx, listErrataByProposition, propositionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReviewErratum
+	for rows.Next() {
+		var i ReviewErratum
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.VersionID,
+			&i.Proposed,
+			&i.Said,
+			&i.Correct,
+			&i.BaseRevision,
+			&i.State,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.DecidedBy,
+			&i.DecidedAt,
+			&i.Reason,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPendingErrata = `-- name: ListPendingErrata :many
+SELECT id, proposition_id, version_id, proposed, said, correct, base_revision, state, created_by, created_at, decided_by, decided_at, reason FROM review.errata
+WHERE state = 'pending'
+ORDER BY created_at, id
+`
+
+func (q *Queries) ListPendingErrata(ctx context.Context) ([]ReviewErratum, error) {
+	rows, err := q.db.Query(ctx, listPendingErrata)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReviewErratum
+	for rows.Next() {
+		var i ReviewErratum
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.VersionID,
+			&i.Proposed,
+			&i.Said,
+			&i.Correct,
+			&i.BaseRevision,
+			&i.State,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.DecidedBy,
+			&i.DecidedAt,
+			&i.Reason,
 		); err != nil {
 			return nil, err
 		}
@@ -145,6 +420,101 @@ func (q *Queries) ListPendingSecondReviews(ctx context.Context) ([]ReviewApprova
 		return nil, err
 	}
 	return items, nil
+}
+
+const listUncheckedMinorFixes = `-- name: ListUncheckedMinorFixes :many
+SELECT id, proposition_id, version_id, fields, before, after, created_by, created_at, checked_by, checked_at FROM review.minor_fixes
+WHERE checked_by IS NULL
+ORDER BY created_at, id
+`
+
+func (q *Queries) ListUncheckedMinorFixes(ctx context.Context) ([]ReviewMinorFix, error) {
+	rows, err := q.db.Query(ctx, listUncheckedMinorFixes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReviewMinorFix
+	for rows.Next() {
+		var i ReviewMinorFix
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.VersionID,
+			&i.Fields,
+			&i.Before,
+			&i.After,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.CheckedBy,
+			&i.CheckedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUncheckedMinorFixesByProposition = `-- name: ListUncheckedMinorFixesByProposition :many
+SELECT id, proposition_id, version_id, fields, before, after, created_by, created_at, checked_by, checked_at FROM review.minor_fixes
+WHERE proposition_id = $1 AND checked_by IS NULL
+ORDER BY created_at, id
+`
+
+func (q *Queries) ListUncheckedMinorFixesByProposition(ctx context.Context, propositionID string) ([]ReviewMinorFix, error) {
+	rows, err := q.db.Query(ctx, listUncheckedMinorFixesByProposition, propositionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReviewMinorFix
+	for rows.Next() {
+		var i ReviewMinorFix
+		if err := rows.Scan(
+			&i.ID,
+			&i.PropositionID,
+			&i.VersionID,
+			&i.Fields,
+			&i.Before,
+			&i.After,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.CheckedBy,
+			&i.CheckedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setMinorFixChecked = `-- name: SetMinorFixChecked :execrows
+UPDATE review.minor_fixes
+SET checked_by = $2, checked_at = $3
+WHERE id = $1 AND checked_by IS NULL
+`
+
+type SetMinorFixCheckedParams struct {
+	ID        string
+	CheckedBy *string
+	CheckedAt *time.Time
+}
+
+// Só uma conferência por correção.
+func (q *Queries) SetMinorFixChecked(ctx context.Context, arg SetMinorFixCheckedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setMinorFixChecked, arg.ID, arg.CheckedBy, arg.CheckedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const setSecondReview = `-- name: SetSecondReview :execrows

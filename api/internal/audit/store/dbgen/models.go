@@ -116,6 +116,35 @@ type ReviewApproval struct {
 	SecondReviewAt *time.Time
 }
 
+type ReviewErratum struct {
+	ID            string
+	PropositionID string
+	VersionID     string
+	Proposed      []byte
+	Said          string
+	Correct       string
+	BaseRevision  int32
+	State         string
+	CreatedBy     string
+	CreatedAt     time.Time
+	DecidedBy     *string
+	DecidedAt     *time.Time
+	Reason        string
+}
+
+type ReviewMinorFix struct {
+	ID            string
+	PropositionID string
+	VersionID     string
+	Fields        []string
+	Before        []byte
+	After         []byte
+	CreatedBy     string
+	CreatedAt     time.Time
+	CheckedBy     *string
+	CheckedAt     *time.Time
+}
+
 type TeamRefreshToken struct {
 	ID        string
 	UserID    string
