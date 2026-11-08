@@ -42,9 +42,17 @@ func (e *Editorial) subject(ctx context.Context, p domain.Proposition, v domain.
 	if err != nil {
 		return ApprovalSubject{}, err
 	}
+	missing := c.MissingForApproval(domain.TopicsByID(topics))
+	st, err := e.repos.Structurings.FindByVersion(ctx, v.ID)
+	switch {
+	case err == nil:
+		missing = append(missing, st.MissingForApproval()...)
+	case !errors.Is(err, domain.ErrStructuringNotFound):
+		return ApprovalSubject{}, err
+	}
 	return ApprovalSubject{
 		PropositionID: p.ID, Name: p.Name(), ReviewState: p.ReviewState, Version: v, Revision: c.Revision,
-		Authors: append([]string(nil), c.Authors...), Missing: c.MissingForApproval(domain.TopicsByID(topics)),
+		Authors: append([]string(nil), c.Authors...), Missing: missing,
 	}, nil
 }
 

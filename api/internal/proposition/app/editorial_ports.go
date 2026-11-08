@@ -194,13 +194,16 @@ type People interface {
 
 // Ações auditadas do ciclo editorial.
 const (
-	ActionContentUpdate   = "content.update"
-	ActionContentConfirm  = "content.confirm"
-	ActionVersionCreate   = "version.create"
-	ActionTopicCreate     = "topic.create"
-	ActionTopicRename     = "topic.rename"
-	ActionTopicDeactivate = "topic.deactivate"
-	ActionTopicReactivate = "topic.reactivate"
+	ActionContentUpdate        = "content.update"
+	ActionContentConfirm       = "content.confirm"
+	ActionVersionCreate        = "version.create"
+	ActionStructuringReprocess = "structuring.reprocess"
+	ActionStructuringConfirm   = "structuring.confirm"
+	ActionStructuringRetry     = "structuring.retry"
+	ActionTopicCreate          = "topic.create"
+	ActionTopicRename          = "topic.rename"
+	ActionTopicDeactivate      = "topic.deactivate"
+	ActionTopicReactivate      = "topic.reactivate"
 
 	targetVersion = "version"
 	targetTopic   = "topic"

@@ -198,3 +198,92 @@ func TestRunStructuringLeavesManualAlone(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func (e *env) structEdit() app.StructuringEdit {
+	return app.StructuringEdit{
+		Repos: e.w.Repos(), Claims: e.w.Claims(), Sched: e.w.StructuringScheduler(), Tx: e.w.Tx(), Audit: e.w.Audit(), Clock: e.clk,
+	}
+}
+
+func TestReprocessMakesTheEditorAnAuthor(t *testing.T) {
+	e := newEnv()
+	v := e.importWithURL(t, "") // manual: o Editor cola o texto
+	view, err := app.NewReprocessStructuring(e.structEdit()).Execute(ana, app.ReprocessStructuringInput{
+		PropositionID: v.PropositionID, VersionID: v.ID, SourceText: pecText, Revision: 0,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.State != domain.StructuringReadyToCheck || view.Failure != domain.FailureNone || len(view.Provisions) != 5 {
+		t.Fatalf("view = %+v", view.Structuring)
+	}
+	c, _ := e.w.ContentOf(v.ID)
+	if !c.HasAuthor("ana") || c.Revision != 1 {
+		t.Fatalf("autoria/revisão do conteúdo: %+v", c)
+	}
+	if evs := e.eventsOf(app.ActionStructuringReprocess); len(evs) != 1 || !evs[0].InTx {
+		t.Fatalf("auditoria: %+v", evs)
+	}
+	if _, ok := e.w.Claim(v.PropositionID); !ok {
+		t.Fatal("gravar deveria assumir a Posse")
+	}
+
+	// Outra pessoa, com a Posse da Ana: 409.
+	_, err = app.NewConfirmStructuring(e.structEdit()).Execute(bia, app.ConfirmStructuringInput{
+		PropositionID: v.PropositionID, VersionID: v.ID, Revision: view.Revision,
+	})
+	var taken *app.ClaimTakenError
+	if !errors.As(err, &taken) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRetryQueuesAgainWithoutAuthorship(t *testing.T) {
+	e := newEnv()
+	v := e.importWithURL(t, camaraPDF)
+	temp := &app.TextFetchError{Failure: domain.FailureNetwork, Temporary: true, Err: errors.New("fora")}
+	if _, err := e.run(&fakeText{err: temp}).Execute(context.Background(), v.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	view, err := app.NewRetryStructuring(e.structEdit()).Execute(ana, app.RetryStructuringInput{PropositionID: v.PropositionID, VersionID: v.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.State != domain.StructuringFetching || len(e.w.StructuringQueue()) != 2 {
+		t.Fatalf("view %+v, fila %v", view.Structuring, e.w.StructuringQueue())
+	}
+	if c, _ := e.w.ContentOf(v.ID); c.HasAuthor("ana") {
+		t.Fatal("pedir outra busca não é escrever")
+	}
+	// Já buscando: não há o que refazer.
+	if _, err := app.NewRetryStructuring(e.structEdit()).Execute(ana, app.RetryStructuringInput{
+		PropositionID: v.PropositionID, VersionID: v.ID,
+	}); !errors.Is(err, domain.ErrCannotRetryStructuring) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestApprovalWaitsForStructuring(t *testing.T) {
+	e := newEnv()
+	v := e.importWithURL(t, camaraPDF)
+	missing := func() []string {
+		s, err := e.editorial().PendingSubject(context.Background(), v.PropositionID)
+		if err != nil || s == nil {
+			t.Fatalf("subject %v %v", s, err)
+		}
+		var out []string
+		for _, m := range s.Missing {
+			out = append(out, m.Code)
+		}
+		return out
+	}
+	if !slices.Contains(missing(), domain.MissingStructuring) {
+		t.Fatal("buscando: deveria bloquear")
+	}
+	if _, err := e.run(&fakeText{err: &app.TextFetchError{Failure: domain.FailureNoText}}).Execute(context.Background(), v.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(missing(), domain.MissingStructuring) {
+		t.Fatal("manual sem texto não bloqueia: vai a pronto sem Documento comentado")
+	}
+}

@@ -657,6 +657,115 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/structuring:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    put:
+      tags: [ciclo editorial]
+      summary: Corrige ou cola o texto da Versão e refaz os Dispositivos (Editor ou acima)
+      description: |
+        Só na Versão em análise. Exige a Posse (assume se livre) e o
+        `revision` lido da Estruturação. Volta a "a conferir" mesmo se
+        estava confirmada. Quem grava entra na Autoria do conteúdo (quatro
+        olhos). Registrado na Auditoria (`structuring.reprocess`, sem o
+        texto).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReprocessStructuringRequest" }
+      responses:
+        "200":
+          description: Estruturação refeita
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamStructuring" }
+        "400":
+          description: "`invalid_json` (inclusive sem `revision`) ou `invalid_source_text` (vazio ou mais de 500 mil caracteres)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `structuring_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content` ou `version_not_editable`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/structuring/confirm:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Confirma os Dispositivos da Versão em análise (Editor ou acima)
+      description: |
+        Libera os Comentários e tira o bloqueio `structuring_pending` da
+        aprovação. Exige a Posse e o `revision` lido. Quem confirma entra na
+        Autoria. Auditoria `structuring.confirm`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmContentRequest" }
+      responses:
+        "200":
+          description: Estruturação confirmada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamStructuring" }
+        "400":
+          description: "`invalid_json`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `structuring_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content`, `version_not_editable` ou `structuring_not_ready`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/structuring/retry:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Busca de novo o PDF oficial (Editor ou acima)
+      description: |
+        Só numa Estruturação manual cuja busca falhou e cujo link é de Fonte
+        oficial com API. Exige a Posse; não entra na Autoria. Auditoria
+        `structuring.retry`.
+      responses:
+        "200":
+          description: Busca enfileirada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamStructuring" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `structuring_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `version_not_editable` ou `structuring_cannot_retry`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/team/propositions/{id}/versions/{versionId}/approve:
     parameters:
       - $ref: "#/components/parameters/PropositionID"
@@ -1728,13 +1837,25 @@ components:
           type: string
           description: |
             `role`, `no_pending_version`, `not_in_review`, `four_eyes`,
-            `summary`, `short_summary`, `topics`, `inactive_topics` ou
-            `needs_confirmation`.
+            `summary`, `short_summary`, `topics`, `inactive_topics`,
+            `needs_confirmation` ou `structuring_pending` (Estruturação
+            sendo buscada ou a conferir).
         message: { type: string, description: Texto para a tela }
     TeamEditorial:
       type: object
-      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, can_minor_fix, can_propose_erratum, minor_fixes, pending_erratum, errata, people]
+      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, can_minor_fix, can_propose_erratum, minor_fixes, pending_erratum, errata, people, pending_structuring, current_structuring, can_edit_structuring, can_retry_structuring]
       properties:
+        pending_structuring:
+          oneOf:
+            - $ref: "#/components/schemas/TeamStructuring"
+            - type: "null"
+          description: Estruturação da Versão em análise (null em Versão antiga, sem Estruturação)
+        current_structuring:
+          oneOf:
+            - $ref: "#/components/schemas/TeamStructuring"
+            - type: "null"
+        can_edit_structuring: { type: boolean, description: "Pode corrigir/colar o texto e confirmar (Versão em análise, Posse livre ou sua)" }
+        can_retry_structuring: { type: boolean, description: "Pode pedir outra busca do PDF oficial" }
         versions:
           type: array
           items: { $ref: "#/components/schemas/PropositionVersion" }
@@ -1789,6 +1910,60 @@ components:
           type: object
           additionalProperties: { type: string }
           description: Nomes da equipe por id (Autoria, Posse, aprovação, correções)
+    ReprocessStructuringRequest:
+      type: object
+      required: [source_text, revision]
+      properties:
+        source_text: { type: string, maxLength: 500000, description: Texto corrigido ou colado }
+        revision: { type: integer, description: Revisão da Estruturação lida }
+    TeamStructuring:
+      type: object
+      description: |
+        Estruturação de uma Versão: o texto (interno, nunca vai ao público)
+        que gerou os Dispositivos, os avisos do parser e a árvore.
+      required: [version_id, state, failure, source_text, warnings, provisions, revision, updated_by, updated_at, confirmed_by, confirmed_at]
+      properties:
+        version_id: { type: string, format: uuid }
+        state:
+          type: string
+          enum: [fetching, ready_to_check, confirmed, manual]
+          description: "fetching: buscando o PDF; ready_to_check: a conferir; manual: a busca falhou, cole o texto"
+        failure:
+          type: [string, "null"]
+          enum: [no_url, host_not_allowed, not_found, not_pdf, too_large, no_text, network, null]
+        source_text: { type: string }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/StructuringWarning" }
+        provisions:
+          type: array
+          items: { $ref: "#/components/schemas/TeamProvision" }
+          description: Dispositivos na ordem de leitura
+        revision: { type: integer }
+        updated_by: { type: [string, "null"], format: uuid, description: "null: busca automática" }
+        updated_at: { type: string, format: date-time }
+        confirmed_by: { type: [string, "null"], format: uuid }
+        confirmed_at: { type: [string, "null"], format: date-time }
+    StructuringWarning:
+      type: object
+      required: [code, line, address]
+      properties:
+        code:
+          type: string
+          description: "`no_ementa`, `no_articles`, `duplicate_address`, `article_out_of_order`, `article_gap`, `orphan` ou `unclosed_quote`"
+        line: { type: integer, description: "Linha do texto (1 = primeira; 0 = sem linha)" }
+        address: { type: [string, "null"] }
+    TeamProvision:
+      type: object
+      required: [address, parent, kind, label, text, depth, commentable]
+      properties:
+        address: { type: string, description: "Âncora estável na Versão, ex. art-3.par-2.inc-4" }
+        parent: { type: string, description: "Endereço do Dispositivo acima (vazio no topo)" }
+        kind: { type: string, enum: [ementa, preamble, heading, article, paragraph, item, point, subitem, justification] }
+        label: { type: string, description: "Ex. Art. 3º, § 2º, inciso IV" }
+        text: { type: string }
+        depth: { type: integer }
+        commentable: { type: boolean }
     ContentSnapshot:
       type: object
       required: [summary, short_summary, topic_ids]

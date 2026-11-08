@@ -33,7 +33,6 @@ func fakeSources() (ingestapp.Sources, *fakes.Source, *fakes.Source) {
 		OriginChamber: ingestapp.ChamberCamara, Role: "origin", Status: "Remetida ao Senado Federal",
 		SourceURL: "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2192459",
 		Authors:   []string{"Dep. Reginaldo Lopes (PT/MG)"}, PresentedAt: day0,
-		OfficialTextURL: "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=1845483",
 	}, fakes.Progress1("1-100", day0, "Apresentação"), fakes.Progress1("2-200", day0.Add(30*24*time.Hour), "Aprovada no Plenário"))
 	senado.Put(ingestapp.SourceRecord{
 		ExternalID: "8441243", Kind: "PEC", Number: 221, Year: 2019, Role: "review", OriginChamber: ingestapp.ChamberCamara,
@@ -43,6 +42,12 @@ func fakeSources() (ingestapp.Sources, *fakes.Source, *fakes.Source) {
 		ExternalID: "2487436", Kind: "PEC", Number: 8, Year: 2025, OriginChamber: ingestapp.ChamberCamara,
 		AttachedTo: "PEC 221/2019", Status: "Aguardando parecer",
 	}, fakes.Progress1("1-100", day0.Add(400*24*time.Hour), "Apresentação"))
+	// Com link do PDF oficial: a Importação começa a Estruturação.
+	camara.Put(ingestapp.SourceRecord{
+		ExternalID: "2623604", Kind: "PEC", Number: 9, Year: 2026, OriginChamber: ingestapp.ChamberCamara,
+		Status: "Aguardando parecer", OfficialSummary: "Reduz a idade de imputabilidade penal",
+		OfficialTextURL: "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=3127176",
+	}, fakes.Progress1("1-100", day0.Add(500*24*time.Hour), "Apresentação"))
 	return ingestapp.NewSources(camara, senado), camara, senado
 }
 

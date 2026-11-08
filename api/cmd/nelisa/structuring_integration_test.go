@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"strings"
@@ -31,25 +33,25 @@ func (fakeOfficialText) Fetch(context.Context, string) ([]string, error) {
 }
 
 // A Importação enfileira a busca do PDF oficial na mesma transação; o
-// worker de verdade lê, quebra em Dispositivos e grava. O texto extraído
+// worker de verdade lê, quebra em Dispositivos e grava. O Editor corrige o
+// texto, confirma, e só então a Versão pode ser aprovada. O texto extraído
 // nunca sai no público.
 func TestStructuringEndToEnd(t *testing.T) {
 	a := newEditorialAppWith(t, nil, true)
 	ctx := context.Background()
-	pid := a.importAndSubmit()
+	var imp struct {
+		PropositionID string `json:"proposition_id"`
+	}
+	w := a.must(a.do("POST", "/api/team/propositions/import", "edu", `{"chamber":"camara","external_id":"2623604"}`), 201, "import")
+	_ = json.Unmarshal(w.Body.Bytes(), &imp)
+	pid := imp.PropositionID
+	a.must(a.do("POST", "/api/team/propositions/"+pid+"/submit-for-review", "edu", ""), 200, "submit")
 	vid, _ := a.pending(pid)
 
 	rivertest.RequireInserted(ctx, t, riverpgxv5.New(a.pool), propjobs.StructureVersionArgs{VersionID: vid},
 		&rivertest.RequireInsertedOpts{Schema: jobs.Schema, MaxAttempts: 5})
-	state := func() string {
-		var s string
-		if err := a.pool.QueryRow(ctx, `SELECT state FROM proposition.structurings WHERE version_id = $1`, vid).Scan(&s); err != nil {
-			t.Fatal(err)
-		}
-		return s
-	}
-	if s := state(); s != "fetching" {
-		t.Fatalf("state = %s", s)
+	if st := a.structuring(pid, "edu"); st.State != "fetching" {
+		t.Fatalf("state = %s", st.State)
 	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -64,7 +66,7 @@ func TestStructuringEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	deadline := time.After(30 * time.Second)
-	for state() == "fetching" {
+	for a.structuring(pid, "edu").State == "fetching" {
 		select {
 		case <-done:
 		case <-deadline:
@@ -78,32 +80,102 @@ func TestStructuringEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if s := state(); s != "ready_to_check" {
-		t.Fatalf("state = %s", s)
+	st := a.structuring(pid, "edu")
+	if st.State != "ready_to_check" || st.Failure != nil || st.UpdatedBy != nil {
+		t.Fatalf("estruturação = %+v", st)
 	}
-	rows, err := a.pool.Query(ctx, `SELECT address FROM proposition.provisions WHERE version_id = $1 ORDER BY position`, vid)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var addrs []string
-	for rows.Next() {
-		var s string
-		if err := rows.Scan(&s); err != nil {
-			t.Fatal(err)
-		}
-		addrs = append(addrs, s)
-	}
-	if got := strings.Join(addrs, " "); got != "ementa preambulo art-1 art-2 justificacao" {
+	if got := st.addresses(); got != "ementa preambulo art-1 art-2 justificacao" {
 		t.Fatalf("provisions = %s", got)
 	}
-	var text string
-	if err := a.pool.QueryRow(ctx, `SELECT source_text FROM proposition.structurings WHERE version_id = $1`, vid).Scan(&text); err != nil {
-		t.Fatal(err)
+	if strings.Contains(st.SourceText, "PEC n.221/2019") {
+		t.Errorf("rodapé repetido ficou no texto: %q", st.SourceText)
 	}
-	if strings.Contains(text, "PEC n.221/2019") {
-		t.Errorf("rodapé repetido ficou no texto: %q", text)
+
+	// Conteúdo completo, mas a Estruturação a conferir ainda bloqueia.
+	trab := a.topic("Trabalho")
+	_, rev := a.pending(pid)
+	a.must(a.do("PUT", "/api/team/propositions/"+pid+"/versions/"+vid+"/content", "edu",
+		contentBody("Reduz a idade penal.", "Idade penal.", []string{trab}, rev)), 200, "content")
+	if d := a.detail(pid, "rita"); d.CanApprove || !hasBlocker(d, "structuring_pending") {
+		t.Fatalf("rita: %+v", d)
 	}
-	if pub := a.public(); strings.Contains(pub, "promulgam") || strings.Contains(pub, "source_text") {
+
+	// Rui (sem a Posse) não mexe; Edu com revisão velha leva 409.
+	fixed := strings.Replace(st.SourceText, "Art. 2º", "Art. 2º O texto corrigido.", 1)
+	body := func(text string, rev int) string {
+		b, _ := json.Marshal(map[string]any{"source_text": text, "revision": rev})
+		return string(b)
+	}
+	path := "/api/team/propositions/" + pid + "/versions/" + vid + "/structuring"
+	a.expectErr(a.do("PUT", path, "rui", body(fixed, st.Revision)), 409, "claim_taken", "rui reprocess")
+	a.expectErr(a.do("PUT", path, "edu", body(fixed, st.Revision-1)), 409, "stale_content", "stale reprocess")
+	a.expectErr(a.do("PUT", path, "edu", body("  ", st.Revision)), 400, "invalid_source_text", "empty text")
+	a.expectErr(a.do("POST", path+"/retry", "edu", ""), 409, "structuring_cannot_retry", "retry")
+
+	var after structuringView
+	w = a.must(a.do("PUT", path, "edu", body(fixed, st.Revision)), 200, "reprocess")
+	_ = json.Unmarshal(w.Body.Bytes(), &after)
+	if after.State != "ready_to_check" || after.Revision != st.Revision+1 || !strings.Contains(after.SourceText, "corrigido") {
+		t.Fatalf("depois de corrigir: %+v", after)
+	}
+	a.must(a.do("POST", path+"/confirm", "edu", fmt.Sprintf(`{"revision":%d}`, after.Revision)), 200, "confirm")
+	a.expectErr(a.do("POST", path+"/confirm", "edu", fmt.Sprintf(`{"revision":%d}`, after.Revision+1)), 409, "structuring_not_ready", "confirm twice")
+
+	// Confirmada: Rita aprova (Edu, autor do texto, não aprovaria).
+	d := a.detail(pid, "rita")
+	if !d.CanApprove {
+		t.Fatalf("rita: %+v", d)
+	}
+	a.must(a.do("POST", "/api/team/propositions/"+pid+"/versions/"+vid+"/approve", "rita", a.revBody(pid)), 200, "approve")
+	if n := a.auditCount("structuring.reprocess"); n != 1 {
+		t.Errorf("structuring.reprocess = %d", n)
+	}
+	if n := a.auditCount("structuring.confirm"); n != 1 {
+		t.Errorf("structuring.confirm = %d", n)
+	}
+
+	pub := a.must(a.do("GET", "/api/public/propositions/pec-9-2026", "", ""), 200, "public").Body.String()
+	if strings.Contains(pub, "promulgam") || strings.Contains(pub, "source_text") || strings.Contains(pub, "corrigido") {
 		t.Errorf("texto da Estruturação vazou no público: %s", pub)
 	}
+}
+
+type structuringView struct {
+	State      string  `json:"state"`
+	Failure    *string `json:"failure"`
+	SourceText string  `json:"source_text"`
+	Revision   int     `json:"revision"`
+	UpdatedBy  *string `json:"updated_by"`
+	Provisions []struct {
+		Address string `json:"address"`
+	} `json:"provisions"`
+}
+
+func (s structuringView) addresses() string {
+	var out []string
+	for _, p := range s.Provisions {
+		out = append(out, p.Address)
+	}
+	return strings.Join(out, " ")
+}
+
+func (a *editorialApp) structuring(pid, who string) structuringView {
+	a.t.Helper()
+	w := a.must(a.do("GET", "/api/team/propositions/"+pid, who, ""), 200, "detail")
+	var d struct {
+		PendingStructuring *structuringView `json:"pending_structuring"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &d); err != nil || d.PendingStructuring == nil {
+		a.t.Fatalf("sem pending_structuring: %s", w.Body)
+	}
+	return *d.PendingStructuring
+}
+
+func hasBlocker(d teamDetail, code string) bool {
+	for _, b := range d.ApproveBlockers {
+		if b.Code == code {
+			return true
+		}
+	}
+	return false
 }

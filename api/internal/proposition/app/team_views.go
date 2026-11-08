@@ -85,6 +85,15 @@ type TeamEditorial struct {
 	// CanMinorFix: o review permite (pronta, sem Errata pendente) e a
 	// Posse está livre ou é do Ator.
 	CanMinorFix bool
+	// Structurings traz a Estruturação (com os Dispositivos) da Versão em
+	// análise e da vigente.
+	Structurings map[string]StructuringView
+	// CanEditStructuring: corrigir/colar o texto e confirmar, na Versão
+	// em análise, com a Posse livre ou do Ator.
+	CanEditStructuring bool
+	// CanRetryStructuring: a Estruturação da Versão em análise é manual
+	// por falha de busca que vale tentar de novo.
+	CanRetryStructuring bool
 }
 
 // GetProposition mostra uma Proposição à equipe, com Vínculos, Tramitação,
@@ -173,6 +182,28 @@ func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID 
 	ed.CanCreateVersion = pending == nil && free
 	ed.CanMinorFix = ed.Review.CanMinorFix && free
 
+	ed.Structurings = map[string]StructuringView{}
+	if len(ids) > 0 {
+		sts, err := uc.repos.Structurings.ListByVersions(ctx, ids)
+		if err != nil {
+			return TeamEditorial{}, err
+		}
+		for _, st := range sts {
+			ps, err := uc.repos.Structurings.ListProvisions(ctx, st.VersionID)
+			if err != nil {
+				return TeamEditorial{}, err
+			}
+			ed.Structurings[st.VersionID] = StructuringView{Structuring: st, Provisions: ps}
+		}
+	}
+	if pending != nil {
+		if st, ok := ed.Structurings[pending.ID]; ok {
+			ed.CanEditStructuring = ed.CanEdit
+			probe := st.Structuring
+			ed.CanRetryStructuring = ed.CanEdit && probe.Retry(*pending, actorID, st.UpdatedAt) == nil
+		}
+	}
+
 	var who []string
 	for _, c := range ed.Contents {
 		who = append(who, c.Authors...)
@@ -187,6 +218,14 @@ func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID 
 	}
 	if ed.Claim != nil {
 		who = append(who, ed.Claim.UserID)
+	}
+	for _, st := range ed.Structurings {
+		if st.UpdatedBy != "" {
+			who = append(who, st.UpdatedBy)
+		}
+		if st.ConfirmedBy != "" {
+			who = append(who, st.ConfirmedBy)
+		}
 	}
 	if a := ed.Review.Current; a != nil {
 		who = append(who, a.ApprovedBy)

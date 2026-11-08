@@ -43,7 +43,18 @@ const (
 // artigos e justificação, tem uns 100 mil caracteres).
 const MaxSourceTextLen = 500_000
 
-var ErrStructuringNotFound = errors.New("estruturação não encontrada")
+var (
+	ErrStructuringNotFound = errors.New("estruturação não encontrada")
+	// ErrEmptySourceText: reprocessar exige texto.
+	ErrEmptySourceText = errors.New("proposition: cole ou escreva o texto da Versão")
+	// ErrSourceTextTooLong: mais que MaxSourceTextLen caracteres.
+	ErrSourceTextTooLong = errors.New("proposition: texto da Versão longo demais")
+	// ErrStructuringNotReady: confirmar exige Dispositivos a conferir.
+	ErrStructuringNotReady = errors.New("proposition: não há Estruturação a confirmar")
+	// ErrCannotRetryStructuring: só se busca de novo uma Estruturação manual
+	// cujo link é de Fonte oficial com API.
+	ErrCannotRetryStructuring = errors.New("proposition: não há busca a refazer")
+)
 
 // officialTextHosts são as Fontes oficiais com API cadastrada: só delas o
 // Nelisa busca o PDF sozinho (CONTEXT.md, "Estruturação"; AGENTS.md, "nada
@@ -108,6 +119,62 @@ func (s *Structuring) Structured(text string, r structuring.Result, by string, n
 	s.Revision++
 	s.UpdatedBy, s.UpdatedAt = by, now
 	s.ConfirmedBy, s.ConfirmedAt = "", nil
+}
+
+// Reprocess troca o texto pelo que o Editor corrigiu ou colou e refaz os
+// Dispositivos. Volta a "a conferir" mesmo se estava confirmada.
+func (s *Structuring) Reprocess(text, editorID string, now time.Time) (structuring.Result, error) {
+	text = strings.TrimSpace(strings.ReplaceAll(text, "\r\n", "\n"))
+	if text == "" {
+		return structuring.Result{}, ErrEmptySourceText
+	}
+	if len([]rune(text)) > MaxSourceTextLen {
+		return structuring.Result{}, ErrSourceTextTooLong
+	}
+	r := structuring.Parse(text)
+	s.Structured(text, r, editorID, now)
+	return r, nil
+}
+
+// Confirm é o Editor dizendo que os Dispositivos estão certos: dá para
+// comentar e não bloqueia mais a aprovação.
+func (s *Structuring) Confirm(editorID string, now time.Time) error {
+	if s.State != StructuringReadyToCheck {
+		return ErrStructuringNotReady
+	}
+	s.State = StructuringConfirmed
+	s.Revision++
+	s.UpdatedBy, s.UpdatedAt = editorID, now
+	t := now
+	s.ConfirmedBy, s.ConfirmedAt = editorID, &t
+	return nil
+}
+
+// Retry volta a buscar o PDF oficial de uma Estruturação manual (a fonte
+// estava fora do ar, o PDF saiu depois). Sem sentido se o link nem é de
+// Fonte oficial com API.
+func (s *Structuring) Retry(v Version, editorID string, now time.Time) error {
+	if s.State != StructuringManual || s.Failure == FailureNoURL || s.Failure == FailureHostNotAllowed ||
+		!OfficialTextFetchable(v.OfficialTextURL) {
+		return ErrCannotRetryStructuring
+	}
+	s.State, s.Failure = StructuringFetching, FailureNone
+	s.Revision++
+	s.UpdatedBy, s.UpdatedAt = editorID, now
+	return nil
+}
+
+// MissingForApproval: Dispositivos ainda não buscados ou não conferidos
+// impedem a aprovação. Manual sem texto não impede (a Proposição vai a
+// "pronto" sem Documento comentado).
+func (s Structuring) MissingForApproval() []Missing {
+	switch s.State {
+	case StructuringFetching:
+		return []Missing{{MissingStructuring, "Aguarde a leitura do texto oficial ou cole o texto da Versão."}}
+	case StructuringReadyToCheck:
+		return []Missing{{MissingStructuring, "Confira e confirme a Estruturação do texto."}}
+	}
+	return nil
 }
 
 // Provision é um Dispositivo gravado de uma Versão, na ordem de leitura.

@@ -85,10 +85,69 @@ type editorialDTO struct {
 	CanSecondReview        bool              `json:"can_second_review"`
 	CanMinorFix            bool              `json:"can_minor_fix"`
 	CanProposeErratum      bool              `json:"can_propose_erratum"`
+	PendingStructuring     *structuringDTO   `json:"pending_structuring"`
+	CurrentStructuring     *structuringDTO   `json:"current_structuring"`
+	CanEditStructuring     bool              `json:"can_edit_structuring"`
+	CanRetryStructuring    bool              `json:"can_retry_structuring"`
 	MinorFixes             []minorFixDTO     `json:"minor_fixes"`
 	PendingErratum         *erratumDTO       `json:"pending_erratum"`
 	Errata                 []erratumDTO      `json:"errata"`
 	People                 map[string]string `json:"people"`
+}
+
+// structuringDTO é a Estruturação de uma Versão para a equipe: o texto
+// que gerou os Dispositivos, os avisos do parser e a árvore.
+type structuringDTO struct {
+	VersionID   string             `json:"version_id"`
+	State       string             `json:"state"`
+	Failure     *string            `json:"failure"`
+	SourceText  string             `json:"source_text"`
+	Warnings    []structWarningDTO `json:"warnings"`
+	Provisions  []teamProvisionDTO `json:"provisions"`
+	Revision    int                `json:"revision"`
+	UpdatedBy   *string            `json:"updated_by"`
+	UpdatedAt   string             `json:"updated_at"`
+	ConfirmedBy *string            `json:"confirmed_by"`
+	ConfirmedAt *string            `json:"confirmed_at"`
+}
+
+type structWarningDTO struct {
+	Code    string  `json:"code"`
+	Line    int     `json:"line"`
+	Address *string `json:"address"`
+}
+
+type teamProvisionDTO struct {
+	Address     string `json:"address"`
+	Parent      string `json:"parent"`
+	Kind        string `json:"kind"`
+	Label       string `json:"label"`
+	Text        string `json:"text"`
+	Depth       int    `json:"depth"`
+	Commentable bool   `json:"commentable"`
+}
+
+func toStructuringDTO(v app.StructuringView) structuringDTO {
+	out := structuringDTO{
+		VersionID: v.VersionID, State: string(v.State), SourceText: v.SourceText,
+		Warnings: make([]structWarningDTO, 0, len(v.Warnings)), Provisions: make([]teamProvisionDTO, 0, len(v.Provisions)),
+		Revision: v.Revision, UpdatedBy: strPtr(v.UpdatedBy), UpdatedAt: ts(v.UpdatedAt),
+		ConfirmedBy: strPtr(v.ConfirmedBy), ConfirmedAt: tsPtr(v.ConfirmedAt),
+	}
+	if v.Failure != domain.FailureNone {
+		f := string(v.Failure)
+		out.Failure = &f
+	}
+	for _, w := range v.Warnings {
+		out.Warnings = append(out.Warnings, structWarningDTO{Code: w.Code, Line: w.Line, Address: strPtr(w.Address)})
+	}
+	for _, p := range v.Provisions {
+		out.Provisions = append(out.Provisions, teamProvisionDTO{
+			Address: p.Address, Parent: p.Parent, Kind: string(p.Kind), Label: p.Label, Text: p.Text, Depth: p.Depth,
+			Commentable: p.Kind.Commentable(),
+		})
+	}
+	return out
 }
 
 type snapshotDTO struct {
@@ -172,6 +231,7 @@ func toEditorialDTO(ed app.TeamEditorial, actor string) editorialDTO {
 		CanApprove: ed.Review.CanApprove, ApproveBlockers: make([]blockerDTO, 0, len(ed.Review.Blockers)),
 		ApprovalBreaksFourEyes: ed.Review.ApprovalBreaksFourEyes, CanSecondReview: ed.Review.CanSecondReview,
 		CanMinorFix: ed.CanMinorFix, CanProposeErratum: ed.Review.CanProposeErratum,
+		CanEditStructuring: ed.CanEditStructuring, CanRetryStructuring: ed.CanRetryStructuring,
 		MinorFixes: make([]minorFixDTO, 0, len(ed.Review.MinorFixes)), Errata: make([]erratumDTO, 0, len(ed.Review.Errata)),
 		People: ed.People,
 	}
@@ -205,6 +265,16 @@ func toEditorialDTO(ed app.TeamEditorial, actor string) editorialDTO {
 		if c, ok := ed.Contents[current.ID]; ok {
 			d := toContentDTO(c)
 			out.CurrentContent = &d
+		}
+		if st, ok := ed.Structurings[current.ID]; ok {
+			d := toStructuringDTO(st)
+			out.CurrentStructuring = &d
+		}
+	}
+	if pending != nil {
+		if st, ok := ed.Structurings[pending.ID]; ok {
+			d := toStructuringDTO(st)
+			out.PendingStructuring = &d
 		}
 	}
 	for _, t := range ed.Topics {
@@ -314,6 +384,63 @@ func (h *Handlers) confirmContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, toContentDTO(c))
+}
+
+// --- Estruturação ---
+
+type reprocessStructuringRequest struct {
+	SourceText string `json:"source_text"`
+	Revision   *int   `json:"revision"`
+}
+
+func (h *Handlers) reprocessStructuring(w http.ResponseWriter, r *http.Request) {
+	var req reprocessStructuringRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.Revision == nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_json", "Informe a revisão lida (revision).")
+		return
+	}
+	v, err := h.uc.ReprocessStructuring.Execute(r.Context(), app.ReprocessStructuringInput{
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"),
+		SourceText: req.SourceText, Revision: *req.Revision,
+	})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, toStructuringDTO(v))
+}
+
+func (h *Handlers) confirmStructuring(w http.ResponseWriter, r *http.Request) {
+	var req confirmContentRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.Revision == nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_json", "Informe a revisão lida (revision).")
+		return
+	}
+	v, err := h.uc.ConfirmStructuring.Execute(r.Context(), app.ConfirmStructuringInput{
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"), Revision: *req.Revision,
+	})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, toStructuringDTO(v))
+}
+
+func (h *Handlers) retryStructuring(w http.ResponseWriter, r *http.Request) {
+	v, err := h.uc.RetryStructuring.Execute(r.Context(), app.RetryStructuringInput{
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"),
+	})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, toStructuringDTO(v))
 }
 
 // --- Temas ---

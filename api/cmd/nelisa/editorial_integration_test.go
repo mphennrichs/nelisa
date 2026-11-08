@@ -279,7 +279,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 
 	// Versão nova: conteúdo copiado a confirmar; Proposição volta para
 	// em revisão; o público continua com a vigente e ganha o aviso.
-	w := a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo da CCJ","official_text_url":"https://www.camara.leg.br/sub.pdf"}`), 201, "new version")
+	w := a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo da CCJ","official_text_url":"https://sapl.camara.goiania.go.gov.br/sub.pdf"}`), 201, "new version")
 	if !strings.Contains(w.Body.String(), `"needs_confirmation":true`) {
 		t.Fatalf("new version content: %s", w.Body)
 	}
@@ -294,7 +294,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	// Nada da Versão em análise aparece no público, nem com uma vigente.
 	body = a.public()
 	if strings.Contains(body, "SEGREDO") || !strings.Contains(body, `"summary":"Reduz a jornada de trabalho semanal."`) ||
-		!strings.Contains(body, `"pending_version":{"label":"Substitutivo da CCJ","official_text_url":"https://www.camara.leg.br/sub.pdf"}`) {
+		!strings.Contains(body, `"pending_version":{"label":"Substitutivo da CCJ","official_text_url":"https://sapl.camara.goiania.go.gov.br/sub.pdf"}`) {
 		t.Fatalf("public with pending version: %s", body)
 	}
 	// (authors no público é o Autor oficial da Proposição; a Autoria

@@ -155,24 +155,28 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 		Tx: p.tx, Audit: reviewAudit{record: p.audit}, Clock: clk,
 	}
 	pc := propClaims{g: gate}
+	se := propapp.StructuringEdit{Repos: repos, Claims: pc, Sched: p.scheduler, Tx: p.tx, Audit: pa, Clock: clk}
 	pr := propReviews{r: reports}
 	re := reviewEditorial{e: editorial}
 	qp := queuePeople{d: directory}
 	return contentUseCases{
 		prop: prophttp.UseCases{
-			ListPropositions: propapp.NewListPropositions(p.props, p.links),
-			GetProposition:   propapp.NewGetProposition(repos, p.links, tl, pc, pr, propPeople{d: directory}),
-			ConfirmLink:      propapp.NewConfirmLink(p.links, p.tx, pa, p.scheduler, clk),
-			RejectLink:       propapp.NewRejectLink(p.links, p.tx, pa),
-			SubmitForReview:  propapp.NewSubmitForReview(p.props, p.tx, pa, clk),
-			CreateVersion:    propapp.NewCreateVersion(repos, pc, p.scheduler, p.tx, pa, clk),
-			UpdateContent:    propapp.NewUpdateContent(repos, pc, p.tx, pa, clk),
-			ConfirmContent:   propapp.NewConfirmContent(repos, pc, p.tx, pa, clk),
-			ListTopics:       propapp.NewListTopics(p.topics),
-			CreateTopic:      propapp.NewCreateTopic(p.topics, p.tx, pa, clk),
-			UpdateTopic:      propapp.NewUpdateTopic(p.topics, p.tx, pa),
-			ListPublic:       propapp.NewListPublicPropositions(repos, p.links, pr),
-			GetPublic:        propapp.NewGetPublicProposition(repos, p.links, tl, pr),
+			ListPropositions:     propapp.NewListPropositions(p.props, p.links),
+			GetProposition:       propapp.NewGetProposition(repos, p.links, tl, pc, pr, propPeople{d: directory}),
+			ConfirmLink:          propapp.NewConfirmLink(p.links, p.tx, pa, p.scheduler, clk),
+			RejectLink:           propapp.NewRejectLink(p.links, p.tx, pa),
+			SubmitForReview:      propapp.NewSubmitForReview(p.props, p.tx, pa, clk),
+			CreateVersion:        propapp.NewCreateVersion(repos, pc, p.scheduler, p.tx, pa, clk),
+			UpdateContent:        propapp.NewUpdateContent(repos, pc, p.tx, pa, clk),
+			ConfirmContent:       propapp.NewConfirmContent(repos, pc, p.tx, pa, clk),
+			ReprocessStructuring: propapp.NewReprocessStructuring(se),
+			ConfirmStructuring:   propapp.NewConfirmStructuring(se),
+			RetryStructuring:     propapp.NewRetryStructuring(se),
+			ListTopics:           propapp.NewListTopics(p.topics),
+			CreateTopic:          propapp.NewCreateTopic(p.topics, p.tx, pa, clk),
+			UpdateTopic:          propapp.NewUpdateTopic(p.topics, p.tx, pa),
+			ListPublic:           propapp.NewListPublicPropositions(repos, p.links, pr),
+			GetPublic:            propapp.NewGetPublicProposition(repos, p.links, tl, pr),
 		},
 		review: reviewhttp.UseCases{
 			Approve:      reviewapp.NewApprove(p.approvals, re, reviewClaims{g: gate}, p.tx, reviewAudit{record: p.audit}, clk),

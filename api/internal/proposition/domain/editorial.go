@@ -223,6 +223,11 @@ func (c *Content) touch(editorID string, now time.Time) {
 	c.UpdatedBy, c.UpdatedAt = editorID, now
 }
 
+// RecordAuthor registra que editorID mexeu no que o aprovador vai assinar
+// além do Resumo (a Estruturação, os Comentários): entra na Autoria e a
+// revisão sobe, para quem aprova com uma leitura velha levar 409.
+func (c *Content) RecordAuthor(editorID string, now time.Time) { c.touch(editorID, now) }
+
 // HasAuthor diz se userID já escreveu este conteúdo (quatro olhos).
 func (c Content) HasAuthor(userID string) bool { return slices.Contains(c.Authors, userID) }
 
@@ -239,6 +244,7 @@ const (
 	MissingTopics            = "topics"
 	MissingInactiveTopics    = "inactive_topics"
 	MissingNeedsConfirmation = "needs_confirmation"
+	MissingStructuring       = "structuring_pending"
 )
 
 // MissingForApproval lista o que impede a aprovação: Resumo e Resumo curto
