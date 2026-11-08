@@ -35,7 +35,11 @@ type World struct {
 	contents  map[string]domain.Content
 	topics    map[string]domain.Topic
 	claims    map[string]app.ClaimInfo
-	inTx      bool
+	// Estruturação: por Versão, os Dispositivos e os jobs enfileirados.
+	structurings map[string]domain.Structuring
+	provisions   map[string][]domain.Provision
+	structQueue  []string
+	inTx         bool
 
 	// Statuses e Badges são o que o módulo review responderia.
 	Statuses map[string]app.ReviewStatus
@@ -57,7 +61,8 @@ func NewWorld() *World {
 		timeline: map[string][]app.TimelineEntry{},
 		versions: map[string]domain.Version{}, contents: map[string]domain.Content{}, topics: map[string]domain.Topic{},
 		claims: map[string]app.ClaimInfo{}, Statuses: map[string]app.ReviewStatus{}, Badges: map[string]int{},
-		Names: map[string]string{},
+		Names:        map[string]string{},
+		structurings: map[string]domain.Structuring{}, provisions: map[string][]domain.Provision{},
 	}
 }
 
@@ -117,6 +122,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	events, scheduled := slices.Clone(w.events), slices.Clone(w.scheduled)
 	versions, contents, topics := maps.Clone(w.versions), maps.Clone(w.contents), maps.Clone(w.topics)
 	claims := maps.Clone(w.claims)
+	structurings, provisions, structQueue := maps.Clone(w.structurings), maps.Clone(w.provisions), slices.Clone(w.structQueue)
 	w.inTx = true
 	w.mu.Unlock()
 
@@ -128,6 +134,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	if err != nil {
 		w.props, w.links, w.events, w.scheduled = props, links, events, scheduled
 		w.versions, w.contents, w.topics, w.claims = versions, contents, topics, claims
+		w.structurings, w.provisions, w.structQueue = structurings, provisions, structQueue
 	}
 	return err
 }

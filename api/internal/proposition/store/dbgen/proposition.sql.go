@@ -165,6 +165,39 @@ func (q *Queries) CreateProposition(ctx context.Context, arg CreatePropositionPa
 	return err
 }
 
+const createStructuring = `-- name: CreateStructuring :exec
+
+INSERT INTO proposition.structurings (
+    version_id, state, failure, source_text, warnings, revision, updated_by, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type CreateStructuringParams struct {
+	VersionID  string
+	State      string
+	Failure    string
+	SourceText string
+	Warnings   []byte
+	Revision   int32
+	UpdatedBy  *string
+	UpdatedAt  time.Time
+}
+
+// Estruturação.
+func (q *Queries) CreateStructuring(ctx context.Context, arg CreateStructuringParams) error {
+	_, err := q.db.Exec(ctx, createStructuring,
+		arg.VersionID,
+		arg.State,
+		arg.Failure,
+		arg.SourceText,
+		arg.Warnings,
+		arg.Revision,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createTopic = `-- name: CreateTopic :exec
 
 INSERT INTO proposition.topics (id, name, active, created_at) VALUES ($1, $2, $3, $4)
@@ -218,6 +251,15 @@ func (q *Queries) CreateVersion(ctx context.Context, arg CreateVersionParams) er
 		arg.CreatedBy,
 		arg.CreatedAt,
 	)
+	return err
+}
+
+const deleteProvisions = `-- name: DeleteProvisions :exec
+DELETE FROM proposition.provisions WHERE version_id = $1
+`
+
+func (q *Queries) DeleteProvisions(ctx context.Context, versionID string) error {
+	_, err := q.db.Exec(ctx, deleteProvisions, versionID)
 	return err
 }
 
@@ -425,6 +467,50 @@ func (q *Queries) GetPropositionBySlug(ctx context.Context, slug string) (Propos
 	return i, err
 }
 
+const getStructuring = `-- name: GetStructuring :one
+SELECT version_id, state, failure, source_text, warnings, revision, updated_by, updated_at, confirmed_by, confirmed_at FROM proposition.structurings WHERE version_id = $1
+`
+
+func (q *Queries) GetStructuring(ctx context.Context, versionID string) (PropositionStructuring, error) {
+	row := q.db.QueryRow(ctx, getStructuring, versionID)
+	var i PropositionStructuring
+	err := row.Scan(
+		&i.VersionID,
+		&i.State,
+		&i.Failure,
+		&i.SourceText,
+		&i.Warnings,
+		&i.Revision,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.ConfirmedBy,
+		&i.ConfirmedAt,
+	)
+	return i, err
+}
+
+const getStructuringForUpdate = `-- name: GetStructuringForUpdate :one
+SELECT version_id, state, failure, source_text, warnings, revision, updated_by, updated_at, confirmed_by, confirmed_at FROM proposition.structurings WHERE version_id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetStructuringForUpdate(ctx context.Context, versionID string) (PropositionStructuring, error) {
+	row := q.db.QueryRow(ctx, getStructuringForUpdate, versionID)
+	var i PropositionStructuring
+	err := row.Scan(
+		&i.VersionID,
+		&i.State,
+		&i.Failure,
+		&i.SourceText,
+		&i.Warnings,
+		&i.Revision,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.ConfirmedBy,
+		&i.ConfirmedAt,
+	)
+	return i, err
+}
+
 const getTopic = `-- name: GetTopic :one
 SELECT id, name, active, created_at FROM proposition.topics WHERE id = $1
 `
@@ -459,6 +545,29 @@ func (q *Queries) GetVersion(ctx context.Context, id string) (PropositionVersion
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const insertProvisions = `-- name: InsertProvisions :exec
+INSERT INTO proposition.provisions (
+    version_id, address, parent_address, kind, label, text, depth, position, text_hash
+)
+SELECT $1::uuid, a.address, a.parent_address, a.kind, a.label, a.text, a.depth, a.position, a.text_hash
+FROM jsonb_to_recordset($2::jsonb) AS a(
+    address text, parent_address text, kind text, label text, text text,
+    depth integer, position integer, text_hash text
+)
+`
+
+type InsertProvisionsParams struct {
+	VersionID string
+	Rows      []byte
+}
+
+// Todos os Dispositivos de uma vez: rows é um array JSON de
+// {address, parent_address, kind, label, text, depth, position, text_hash}.
+func (q *Queries) InsertProvisions(ctx context.Context, arg InsertProvisionsParams) error {
+	_, err := q.db.Exec(ctx, insertProvisions, arg.VersionID, arg.Rows)
+	return err
 }
 
 const listAttachedTo = `-- name: ListAttachedTo :many
@@ -779,6 +888,75 @@ func (q *Queries) ListPropositionsInStates(ctx context.Context, states []string)
 	return items, nil
 }
 
+const listProvisions = `-- name: ListProvisions :many
+SELECT version_id, address, parent_address, kind, label, text, depth, position, text_hash FROM proposition.provisions WHERE version_id = $1 ORDER BY position
+`
+
+func (q *Queries) ListProvisions(ctx context.Context, versionID string) ([]PropositionProvision, error) {
+	rows, err := q.db.Query(ctx, listProvisions, versionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionProvision
+	for rows.Next() {
+		var i PropositionProvision
+		if err := rows.Scan(
+			&i.VersionID,
+			&i.Address,
+			&i.ParentAddress,
+			&i.Kind,
+			&i.Label,
+			&i.Text,
+			&i.Depth,
+			&i.Position,
+			&i.TextHash,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStructurings = `-- name: ListStructurings :many
+SELECT version_id, state, failure, source_text, warnings, revision, updated_by, updated_at, confirmed_by, confirmed_at FROM proposition.structurings WHERE version_id = ANY($1::uuid[])
+`
+
+func (q *Queries) ListStructurings(ctx context.Context, versionIds []string) ([]PropositionStructuring, error) {
+	rows, err := q.db.Query(ctx, listStructurings, versionIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionStructuring
+	for rows.Next() {
+		var i PropositionStructuring
+		if err := rows.Scan(
+			&i.VersionID,
+			&i.State,
+			&i.Failure,
+			&i.SourceText,
+			&i.Warnings,
+			&i.Revision,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.ConfirmedBy,
+			&i.ConfirmedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTopics = `-- name: ListTopics :many
 SELECT id, name, active, created_at FROM proposition.topics ORDER BY lower(name), id
 `
@@ -1052,6 +1230,55 @@ func (q *Queries) UpdateProposition(ctx context.Context, arg UpdatePropositionPa
 		arg.UpdatedAt,
 	)
 	return err
+}
+
+const updateStructuring = `-- name: UpdateStructuring :execrows
+UPDATE proposition.structurings
+SET state = $1,
+    failure = $2,
+    source_text = $3,
+    warnings = $4,
+    revision = $5,
+    updated_by = $6,
+    updated_at = $7,
+    confirmed_by = $8,
+    confirmed_at = $9
+WHERE version_id = $10 AND revision = $11
+`
+
+type UpdateStructuringParams struct {
+	State        string
+	Failure      string
+	SourceText   string
+	Warnings     []byte
+	Revision     int32
+	UpdatedBy    *string
+	UpdatedAt    time.Time
+	ConfirmedBy  *string
+	ConfirmedAt  *time.Time
+	VersionID    string
+	PrevRevision int32
+}
+
+// Só grava se ninguém gravou depois da leitura (trava otimista).
+func (q *Queries) UpdateStructuring(ctx context.Context, arg UpdateStructuringParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateStructuring,
+		arg.State,
+		arg.Failure,
+		arg.SourceText,
+		arg.Warnings,
+		arg.Revision,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+		arg.ConfirmedBy,
+		arg.ConfirmedAt,
+		arg.VersionID,
+		arg.PrevRevision,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateTopic = `-- name: UpdateTopic :exec

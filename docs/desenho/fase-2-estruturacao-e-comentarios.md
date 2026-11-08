@@ -141,9 +141,11 @@ Regras da LC 95/98, por expressão regular sobre linhas, gerando uma árvore:
   Posse e `revision`, como o Resumo. Quem grava entra em `authors` do
   Comentário **e** do conteúdo da Versão (os quatro olhos valem para tudo que
   o aprovador vai assinar).
-- Auditoria: `structuring.fetch_failed`, `structuring.reprocess`,
+- Auditoria (ações da equipe): `structuring.reprocess`,
   `structuring.confirm`, `comment.create`, `comment.update`,
-  `comment.delete` (metadado, nunca o texto).
+  `comment.delete` (metadado, nunca o texto). A busca automática não é
+  ação de ninguém: o resultado fica no estado da Estruturação e no log do
+  worker.
 
 ## 6. Aprovação
 

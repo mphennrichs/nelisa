@@ -33,6 +33,7 @@ func fakeSources() (ingestapp.Sources, *fakes.Source, *fakes.Source) {
 		OriginChamber: ingestapp.ChamberCamara, Role: "origin", Status: "Remetida ao Senado Federal",
 		SourceURL: "https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2192459",
 		Authors:   []string{"Dep. Reginaldo Lopes (PT/MG)"}, PresentedAt: day0,
+		OfficialTextURL: "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=1845483",
 	}, fakes.Progress1("1-100", day0, "Apresentação"), fakes.Progress1("2-200", day0.Add(30*24*time.Hour), "Aprovada no Plenário"))
 	senado.Put(ingestapp.SourceRecord{
 		ExternalID: "8441243", Kind: "PEC", Number: 221, Year: 2019, Role: "review", OriginChamber: ingestapp.ChamberCamara,
@@ -62,7 +63,7 @@ func TestContentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sched := ingestjobs.NewScheduler(jobs.NewInserter(inserter))
+	sched := newRiverSchedulers(jobs.NewInserter(inserter))
 	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), logger)
 	h := newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger)
 
@@ -157,7 +158,7 @@ func TestContentEndToEnd(t *testing.T) {
 		&rivertest.RequireInsertedOpts{Schema: jobs.Schema, MaxAttempts: 8})
 
 	// O worker de verdade sincroniza (e a rodada periódica roda ao subir).
-	worker, err := newWorkerClient(pool, sources, time.Hour, clk, logger)
+	worker, err := newWorkerClient(pool, sources, fakeOfficialText{}, time.Hour, clk, logger)
 	if err != nil {
 		t.Fatal(err)
 	}

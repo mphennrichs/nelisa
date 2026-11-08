@@ -54,6 +54,18 @@ type PropositionProposition struct {
 	UpdatedAt       time.Time
 }
 
+type PropositionProvision struct {
+	VersionID     string
+	Address       string
+	ParentAddress string
+	Kind          string
+	Label         string
+	Text          string
+	Depth         int32
+	Position      int32
+	TextHash      string
+}
+
 type PropositionSourceLink struct {
 	ID            string
 	PropositionID string
@@ -67,6 +79,19 @@ type PropositionSourceLink struct {
 	LastSyncedAt  *time.Time
 	LastSyncError string
 	CreatedAt     time.Time
+}
+
+type PropositionStructuring struct {
+	VersionID   string
+	State       string
+	Failure     string
+	SourceText  string
+	Warnings    []byte
+	Revision    int32
+	UpdatedBy   *string
+	UpdatedAt   time.Time
+	ConfirmedBy *string
+	ConfirmedAt *time.Time
 }
 
 type PropositionTopic struct {

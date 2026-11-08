@@ -14,12 +14,14 @@ import (
 	ingestjobs "github.com/mphennrichs/nelisa/api/internal/ingest/jobs"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/db"
+	"github.com/mphennrichs/nelisa/api/internal/platform/jobs"
 	progressapp "github.com/mphennrichs/nelisa/api/internal/progress/app"
 	progressdomain "github.com/mphennrichs/nelisa/api/internal/progress/domain"
 	progressstore "github.com/mphennrichs/nelisa/api/internal/progress/store"
 	propapp "github.com/mphennrichs/nelisa/api/internal/proposition/app"
 	propdomain "github.com/mphennrichs/nelisa/api/internal/proposition/domain"
 	prophttp "github.com/mphennrichs/nelisa/api/internal/proposition/httpapi"
+	propjobs "github.com/mphennrichs/nelisa/api/internal/proposition/jobs"
 	propstore "github.com/mphennrichs/nelisa/api/internal/proposition/store"
 	queueapp "github.com/mphennrichs/nelisa/api/internal/queue/app"
 	queuehttp "github.com/mphennrichs/nelisa/api/internal/queue/httpapi"
@@ -40,10 +42,34 @@ type txRunner interface {
 	WithinTx(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
-// scheduler enfileira Sincronizações (ingest/jobs.Scheduler em produção).
+// scheduler enfileira jobs: Sincronizações (ingest/jobs.Scheduler) e
+// Estruturações (proposition/jobs.Scheduler) em produção.
 type scheduler interface {
 	ScheduleSync(ctx context.Context, linkID string) error
 	ScheduleSyncs(ctx context.Context, linkIDs []string) error
+	ScheduleStructuring(ctx context.Context, versionID string) error
+}
+
+// riverSchedulers junta os agendadores do River dos módulos.
+type riverSchedulers struct {
+	sync        ingestjobs.Scheduler
+	structuring propjobs.Scheduler
+}
+
+func newRiverSchedulers(ins jobs.Inserter) riverSchedulers {
+	return riverSchedulers{sync: ingestjobs.NewScheduler(ins), structuring: propjobs.NewScheduler(ins)}
+}
+
+func (s riverSchedulers) ScheduleSync(ctx context.Context, linkID string) error {
+	return s.sync.ScheduleSync(ctx, linkID)
+}
+
+func (s riverSchedulers) ScheduleSyncs(ctx context.Context, linkIDs []string) error {
+	return s.sync.ScheduleSyncs(ctx, linkIDs)
+}
+
+func (s riverSchedulers) ScheduleStructuring(ctx context.Context, versionID string) error {
+	return s.structuring.ScheduleStructuring(ctx, versionID)
 }
 
 // recordAudit grava um evento de Auditoria na transação do contexto.
@@ -52,15 +78,17 @@ type recordAudit func(ctx context.Context, in auditapp.RecordEventInput) error
 // contentPorts são as implementações que os módulos de conteúdo recebem.
 // Em produção vêm do Postgres e do River; nos testes, dos fakes.
 type contentPorts struct {
-	props     propapp.PropositionRepo
-	versions  propapp.VersionRepo
-	contents  propapp.ContentRepo
-	topics    propapp.TopicRepo
-	links     propapp.LinkRepo
-	approvals reviewapp.ApprovalRepo
-	fixes     reviewapp.MinorFixRepo
-	errata    reviewapp.ErratumRepo
-	claims    queueapp.ClaimRepo
+	props    propapp.PropositionRepo
+	versions propapp.VersionRepo
+	contents propapp.ContentRepo
+	topics   propapp.TopicRepo
+	// structurings: Estruturação e Dispositivos de cada Versão.
+	structurings propapp.StructuringRepo
+	links        propapp.LinkRepo
+	approvals    reviewapp.ApprovalRepo
+	fixes        reviewapp.MinorFixRepo
+	errata       reviewapp.ErratumRepo
+	claims       queueapp.ClaimRepo
 	// users é o cadastro da equipe, só para nomes e conta ativa
 	// (teamapp.Directory).
 	users     teamapp.UserRepo
@@ -73,21 +101,22 @@ type contentPorts struct {
 
 func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, sources ingestapp.Sources) contentPorts {
 	return contentPorts{
-		props:     propstore.NewPropositions(pool),
-		versions:  propstore.NewVersions(pool),
-		contents:  propstore.NewContents(pool),
-		topics:    propstore.NewTopics(pool),
-		links:     propstore.NewLinks(pool),
-		approvals: reviewstore.New(pool),
-		fixes:     reviewstore.NewMinorFixes(pool),
-		errata:    reviewstore.NewErrata(pool),
-		claims:    queuestore.New(pool),
-		users:     teamstore.NewUsers(pool),
-		entries:   progressstore.New(pool),
-		tx:        db.NewTxRunner(pool),
-		audit:     auditapp.NewRecordEvent(auditstore.New(pool), clk).Execute,
-		scheduler: sched,
-		sources:   sources,
+		props:        propstore.NewPropositions(pool),
+		versions:     propstore.NewVersions(pool),
+		contents:     propstore.NewContents(pool),
+		topics:       propstore.NewTopics(pool),
+		structurings: propstore.NewStructurings(pool),
+		links:        propstore.NewLinks(pool),
+		approvals:    reviewstore.New(pool),
+		fixes:        reviewstore.NewMinorFixes(pool),
+		errata:       reviewstore.NewErrata(pool),
+		claims:       queuestore.New(pool),
+		users:        teamstore.NewUsers(pool),
+		entries:      progressstore.New(pool),
+		tx:           db.NewTxRunner(pool),
+		audit:        auditapp.NewRecordEvent(auditstore.New(pool), clk).Execute,
+		scheduler:    sched,
+		sources:      sources,
 	}
 }
 
@@ -103,8 +132,10 @@ type contentUseCases struct {
 
 func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 	timeline := progressapp.NewTimeline(p.entries)
-	repos := propapp.EditorialRepos{Props: p.props, Versions: p.versions, Contents: p.contents, Topics: p.topics}
-	catalog := propapp.NewCatalog(repos, p.links, clk)
+	repos := propapp.EditorialRepos{
+		Props: p.props, Versions: p.versions, Contents: p.contents, Topics: p.topics, Structurings: p.structurings,
+	}
+	catalog := propapp.NewCatalog(repos, p.links, p.scheduler, clk)
 	ic := ingestCatalog{c: catalog}
 	pw := progressWriter{uc: progressapp.NewRecordEntries(p.entries, clk)}
 	tl := timelineReader{uc: timeline}
@@ -134,7 +165,7 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			ConfirmLink:      propapp.NewConfirmLink(p.links, p.tx, pa, p.scheduler, clk),
 			RejectLink:       propapp.NewRejectLink(p.links, p.tx, pa),
 			SubmitForReview:  propapp.NewSubmitForReview(p.props, p.tx, pa, clk),
-			CreateVersion:    propapp.NewCreateVersion(repos, pc, p.tx, pa, clk),
+			CreateVersion:    propapp.NewCreateVersion(repos, pc, p.scheduler, p.tx, pa, clk),
 			UpdateContent:    propapp.NewUpdateContent(repos, pc, p.tx, pa, clk),
 			ConfirmContent:   propapp.NewConfirmContent(repos, pc, p.tx, pa, clk),
 			ListTopics:       propapp.NewListTopics(p.topics),

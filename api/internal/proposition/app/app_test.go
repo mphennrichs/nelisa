@@ -28,7 +28,9 @@ func as(id string, role auth.Role) context.Context {
 
 var editor = as("editor-1", auth.RoleEditor)
 
-func (e *env) catalog() *app.Catalog { return app.NewCatalog(e.w.Repos(), e.w.Links(), e.clk) }
+func (e *env) catalog() *app.Catalog {
+	return app.NewCatalog(e.w.Repos(), e.w.Links(), e.w.StructuringScheduler(), e.clk)
+}
 func (e *env) confirm() *app.ConfirmLink {
 	return app.NewConfirmLink(e.w.Links(), e.w.Tx(), e.w.Audit(), e.w.Scheduler(), e.clk)
 }

@@ -50,7 +50,7 @@ func newServer(t *testing.T) *server {
 		ConfirmLink:      app.NewConfirmLink(w.Links(), w.Tx(), w.Audit(), w.Scheduler(), clk),
 		RejectLink:       app.NewRejectLink(w.Links(), w.Tx(), w.Audit()),
 		SubmitForReview:  app.NewSubmitForReview(w.Props(), w.Tx(), w.Audit(), clk),
-		CreateVersion:    app.NewCreateVersion(w.Repos(), w.Claims(), w.Tx(), w.Audit(), clk),
+		CreateVersion:    app.NewCreateVersion(w.Repos(), w.Claims(), w.StructuringScheduler(), w.Tx(), w.Audit(), clk),
 		UpdateContent:    app.NewUpdateContent(w.Repos(), w.Claims(), w.Tx(), w.Audit(), clk),
 		ConfirmContent:   app.NewConfirmContent(w.Repos(), w.Claims(), w.Tx(), w.Audit(), clk),
 		ListTopics:       app.NewListTopics(w.Topics()),

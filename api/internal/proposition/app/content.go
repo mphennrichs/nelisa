@@ -9,10 +9,11 @@ import (
 
 // EditorialRepos são os repositórios do ciclo editorial.
 type EditorialRepos struct {
-	Props    PropositionRepo
-	Versions VersionRepo
-	Contents ContentRepo
-	Topics   TopicRepo
+	Props        PropositionRepo
+	Versions     VersionRepo
+	Contents     ContentRepo
+	Topics       TopicRepo
+	Structurings StructuringRepo
 }
 
 // --- Versão nova ---
@@ -38,13 +39,14 @@ type CreateVersionResult struct {
 type CreateVersion struct {
 	repos  EditorialRepos
 	claims Claims
+	sched  StructuringScheduler
 	tx     TxRunner
 	audit  AuditRecorder
 	clock  clock.Clock
 }
 
-func NewCreateVersion(repos EditorialRepos, claims Claims, tx TxRunner, audit AuditRecorder, clk clock.Clock) *CreateVersion {
-	return &CreateVersion{repos: repos, claims: claims, tx: tx, audit: audit, clock: clk}
+func NewCreateVersion(repos EditorialRepos, claims Claims, sched StructuringScheduler, tx TxRunner, audit AuditRecorder, clk clock.Clock) *CreateVersion {
+	return &CreateVersion{repos: repos, claims: claims, sched: sched, tx: tx, audit: audit, clock: clk}
 }
 
 func (uc *CreateVersion) Execute(ctx context.Context, in CreateVersionInput) (CreateVersionResult, error) {
@@ -90,6 +92,9 @@ func (uc *CreateVersion) Execute(ctx context.Context, in CreateVersionInput) (Cr
 			return err
 		}
 		if err := uc.repos.Contents.Create(ctx, content); err != nil {
+			return err
+		}
+		if err := startStructuring(ctx, uc.repos.Structurings, uc.sched, v, now); err != nil {
 			return err
 		}
 		from := p.ReviewState
