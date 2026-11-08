@@ -28,3 +28,16 @@ export function UnderReviewBadge() {
     </span>
   );
 }
+
+export function TopicList({ topics }: { topics: string[] }) {
+  if (topics.length === 0) return null;
+  return (
+    <ul aria-label="Temas" className="flex flex-wrap gap-2">
+      {topics.map((t) => (
+        <li key={t} className="rounded border border-stone-300 bg-white px-2 py-0.5 text-sm text-stone-800">
+          {t}
+        </li>
+      ))}
+    </ul>
+  );
+}

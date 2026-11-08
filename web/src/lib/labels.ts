@@ -55,3 +55,34 @@ export function chamberIn(c: string) {
 export function chamberThe(c: string) {
   return CHAMBER_THE[c] ?? chamberLabel(c);
 }
+
+export const SPHERE_LABEL: Record<components["schemas"]["Sphere"], string> = {
+  federal: "Federal",
+  state: "Estadual",
+  municipal: "Municipal",
+};
+
+export const VERSION_STATE_LABEL: Record<components["schemas"]["PropositionVersion"]["state"], string> = {
+  pending: "Em análise",
+  current: "Vigente",
+  superseded: "Substituída",
+};
+
+/** Texto do Selo de revisão: nunca nomes, só quantas pessoas revisaram. */
+export function reviewBadgeLabel(badge: number) {
+  return badge >= 2 ? "Revisado por 2 pessoas" : "Revisado por 1 pessoa";
+}
+
+/** Parágrafos de um texto simples (linha em branco separa parágrafos). */
+export function paragraphs(s: string) {
+  return s
+    .replace(/\r\n/g, "\n")
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/** Conta caracteres como a API (code points, depois de tirar espaços das pontas). */
+export function charCount(s: string) {
+  return [...s.replace(/\r\n/g, "\n").trim()].length;
+}

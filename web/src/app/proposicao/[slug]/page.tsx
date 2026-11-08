@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import PublicShell, { UnderReviewBadge } from "@/components/PublicShell";
+import PublicShell, { TopicList, UnderReviewBadge } from "@/components/PublicShell";
 import { getPublicProposition, type PublicPropositionDetail } from "@/lib/public/api";
-import { chamberLabel, fmtDate, officialText, chamberIn } from "@/lib/labels";
+import { chamberLabel, fmtDate, officialText, chamberIn, paragraphs, reviewBadgeLabel } from "@/lib/labels";
 
 // Renderiza sob demanda (a API não existe no build da imagem); os dados
 // ficam 60s no cache do fetch (lib/public/api.ts).
@@ -35,7 +35,9 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getPublicProposition((await params).slug);
   if (!p) return { title: "Proposição não encontrada · Nelisa" };
-  const description = p.official_summary.length > 200 ? `${p.official_summary.slice(0, 197)}…` : p.official_summary;
+  // O Resumo curto já cabe (≤ 280) e foi revisado; sem ele, a ementa oficial encurtada.
+  const description =
+    p.short_summary || (p.official_summary.length > 200 ? `${p.official_summary.slice(0, 197)}…` : p.official_summary);
   return {
     title: `${p.name} · Nelisa`,
     description,
@@ -47,6 +49,8 @@ export default async function PropositionPage({ params }: Props) {
   const p = await getPublicProposition((await params).slug);
   if (!p) notFound();
   const timeline = [...p.timeline].reverse(); // mais recente primeiro
+  // Com Versão vigente a API manda o Resumo; sem ela, só dados oficiais.
+  const reviewed = !p.under_review && p.summary !== "";
 
   return (
     <PublicShell>
@@ -59,7 +63,32 @@ export default async function PropositionPage({ params }: Props) {
             {p.under_review && <UnderReviewBadge />}
           </div>
           <h1 className="text-3xl font-bold text-balance sm:text-4xl">{p.name}</h1>
-          <p className="text-lg leading-relaxed text-stone-800">{p.official_summary}</p>
+          {reviewed ? (
+            <>
+              <TopicList topics={p.topics} />
+              {p.review_badge != null && (
+                <p className="text-sm text-stone-700">
+                  <span className="font-medium">{reviewBadgeLabel(p.review_badge)}</span> da equipe do Nelisa antes de publicar.
+                </p>
+              )}
+            </>
+          ) : (
+            <div>
+              <p className="text-sm font-medium text-stone-600">Ementa oficial</p>
+              <p className="text-lg leading-relaxed text-stone-800">{p.official_summary}</p>
+            </div>
+          )}
+          {p.pending_version && (
+            <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+              Há texto novo em análise: <span className="font-medium">{p.pending_version.label}</span>. O resumo abaixo é do texto
+              anterior até a equipe revisar o novo.{" "}
+              {p.pending_version.official_text_url && (
+                <a href={p.pending_version.official_text_url} className="link" rel="noopener noreferrer">
+                  Ler o texto novo na Casa
+                </a>
+              )}
+            </p>
+          )}
           {p.under_review && (
             <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
               Em análise pela equipe: por enquanto mostramos só os dados oficiais. O resumo e os comentários do Nelisa
@@ -68,9 +97,26 @@ export default async function PropositionPage({ params }: Props) {
           )}
         </header>
 
+        {reviewed && (
+          <section aria-labelledby="resumo" className="space-y-3">
+            <h2 id="resumo" className="text-lg font-semibold">Resumo</h2>
+            <div className="max-w-prose space-y-4 text-lg leading-relaxed text-stone-900">
+              {paragraphs(p.summary).map((para, i) => (
+                <p key={i} className="whitespace-pre-line [overflow-wrap:anywhere]">{para}</p>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section aria-labelledby="dados" className="card space-y-3">
           <h2 id="dados" className="text-lg font-semibold">Dados oficiais</h2>
           <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[max-content_1fr]">
+            {reviewed && (
+              <>
+                <dt className="font-medium text-stone-600">Ementa oficial</dt>
+                <dd className="leading-relaxed">{p.official_summary}</dd>
+              </>
+            )}
             <dt className="font-medium text-stone-600">Situação</dt>
             <dd>
               {officialText(p.status) || "—"}

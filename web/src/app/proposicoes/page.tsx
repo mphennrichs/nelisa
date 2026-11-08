@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PublicShell, { UnderReviewBadge } from "@/components/PublicShell";
+import PublicShell, { TopicList, UnderReviewBadge } from "@/components/PublicShell";
 import { listPublicPropositions } from "@/lib/public/api";
 import { chamberLabel, fmtDate, officialText } from "@/lib/labels";
 
@@ -33,7 +33,17 @@ export default async function PropositionsPage() {
               <h2 className="text-xl font-semibold">
                 <Link href={`/proposicao/${p.slug}`} className="hover:underline">{p.name}</Link>
               </h2>
-              <p className="leading-relaxed text-stone-800">{p.official_summary}</p>
+              {p.short_summary ? (
+                <>
+                  <p className="leading-relaxed text-stone-800">{p.short_summary}</p>
+                  <TopicList topics={p.topics} />
+                </>
+              ) : (
+                <p className="leading-relaxed text-stone-800">
+                  <span className="font-medium text-stone-600">Ementa oficial: </span>
+                  {p.official_summary}
+                </p>
+              )}
               {p.status && <p className="text-sm text-stone-600">Situação: {officialText(p.status)}</p>}
             </li>
           ))}
