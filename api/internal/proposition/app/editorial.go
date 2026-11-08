@@ -47,6 +47,11 @@ func (e *Editorial) subject(ctx context.Context, p domain.Proposition, v domain.
 	switch {
 	case err == nil:
 		missing = append(missing, st.MissingForApproval()...)
+		cs, err := e.repos.Comments.ListByVersions(ctx, []string{v.ID})
+		if err != nil {
+			return ApprovalSubject{}, err
+		}
+		missing = append(missing, domain.MissingCommentConfirmation(cs)...)
 	case !errors.Is(err, domain.ErrStructuringNotFound):
 		return ApprovalSubject{}, err
 	}

@@ -94,6 +94,12 @@ type TeamEditorial struct {
 	// CanRetryStructuring: a Estruturação da Versão em análise é manual
 	// por falha de busca que vale tentar de novo.
 	CanRetryStructuring bool
+	// Comments traz os Comentários vivos da Versão em análise e da
+	// vigente, por Versão.
+	Comments map[string][]domain.Comment
+	// CanComment: Estruturação da Versão em análise confirmada e Posse
+	// livre ou do Ator.
+	CanComment bool
 }
 
 // GetProposition mostra uma Proposição à equipe, com Vínculos, Tramitação,
@@ -196,8 +202,19 @@ func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID 
 			ed.Structurings[st.VersionID] = StructuringView{Structuring: st, Provisions: ps}
 		}
 	}
+	ed.Comments = map[string][]domain.Comment{}
+	if len(ids) > 0 {
+		cs, err := uc.repos.Comments.ListByVersions(ctx, ids)
+		if err != nil {
+			return TeamEditorial{}, err
+		}
+		for _, c := range domain.LiveComments(cs) {
+			ed.Comments[c.VersionID] = append(ed.Comments[c.VersionID], c)
+		}
+	}
 	if pending != nil {
 		if st, ok := ed.Structurings[pending.ID]; ok {
+			ed.CanComment = ed.CanEdit && st.State == domain.StructuringConfirmed
 			ed.CanEditStructuring = ed.CanEdit
 			probe := st.Structuring
 			ed.CanRetryStructuring = ed.CanEdit && probe.Retry(*pending, actorID, st.UpdatedAt) == nil
@@ -218,6 +235,11 @@ func (uc *GetProposition) editorial(ctx context.Context, propositionID, actorID 
 	}
 	if ed.Claim != nil {
 		who = append(who, ed.Claim.UserID)
+	}
+	for _, cs := range ed.Comments {
+		for _, c := range cs {
+			who = append(who, c.Authors...)
+		}
 	}
 	for _, st := range ed.Structurings {
 		if st.UpdatedBy != "" {

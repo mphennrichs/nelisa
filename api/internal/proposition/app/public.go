@@ -50,8 +50,24 @@ func publicEditorial(ctx context.Context, repos EditorialRepos, badges PublicRev
 		return ed, err
 	}
 	if withErrata {
-		// Só na página: a lista não mostra as notas.
+		// Só na página: a lista não mostra as notas nem o Documento
+		// comentado.
 		if ed.Errata, err = badges.ApprovedErrata(ctx, currentIDs); err != nil {
+			return ed, err
+		}
+		if ed.Structurings, err = repos.Structurings.ListByVersions(ctx, currentIDs); err != nil {
+			return ed, err
+		}
+		ed.Provisions = map[string][]domain.Provision{}
+		for _, s := range ed.Structurings {
+			if s.State != domain.StructuringConfirmed {
+				continue
+			}
+			if ed.Provisions[s.VersionID], err = repos.Structurings.ListProvisions(ctx, s.VersionID); err != nil {
+				return ed, err
+			}
+		}
+		if ed.Comments, err = repos.Comments.ListByVersions(ctx, currentIDs); err != nil {
 			return ed, err
 		}
 	}

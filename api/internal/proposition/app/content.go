@@ -14,6 +14,7 @@ type EditorialRepos struct {
 	Contents     ContentRepo
 	Topics       TopicRepo
 	Structurings StructuringRepo
+	Comments     CommentRepo
 }
 
 // --- Versão nova ---

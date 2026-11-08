@@ -232,3 +232,16 @@ type StructuringRepo interface {
 type StructuringScheduler interface {
 	ScheduleStructuring(ctx context.Context, versionID string) error
 }
+
+// CommentRepo persiste os Comentários.
+type CommentRepo interface {
+	Create(ctx context.Context, c domain.Comment) error
+	// FindForUpdate trava o Comentário até o fim da transação;
+	// ErrCommentNotFound se não há (ou id inválido).
+	FindForUpdate(ctx context.Context, id string) (domain.Comment, error)
+	// ListByVersions traz todos, inclusive apagados; quem lê filtra.
+	ListByVersions(ctx context.Context, versionIDs []string) ([]domain.Comment, error)
+	// Update grava c só se a revisão guardada ainda for prevRevision;
+	// senão ErrStaleContent.
+	Update(ctx context.Context, c domain.Comment, prevRevision int) error
+}

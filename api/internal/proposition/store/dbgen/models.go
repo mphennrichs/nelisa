@@ -6,6 +6,8 @@ package dbgen
 
 import (
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AuditEvent struct {
@@ -30,6 +32,24 @@ type ProgressEntry struct {
 	Dispatch      string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+type PropositionComment struct {
+	ID                string
+	VersionID         string
+	ProvisionAddress  string
+	Body              string
+	QuoteStart        pgtype.Int4
+	QuoteEnd          pgtype.Int4
+	NeedsConfirmation bool
+	CopiedFrom        *string
+	Authors           []string
+	Revision          int32
+	CreatedBy         string
+	CreatedAt         time.Time
+	UpdatedBy         *string
+	UpdatedAt         time.Time
+	DeletedAt         *time.Time
 }
 
 type PropositionProposition struct {

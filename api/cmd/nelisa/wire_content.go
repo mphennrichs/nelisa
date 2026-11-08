@@ -84,6 +84,7 @@ type contentPorts struct {
 	topics   propapp.TopicRepo
 	// structurings: Estruturação e Dispositivos de cada Versão.
 	structurings propapp.StructuringRepo
+	comments     propapp.CommentRepo
 	links        propapp.LinkRepo
 	approvals    reviewapp.ApprovalRepo
 	fixes        reviewapp.MinorFixRepo
@@ -106,6 +107,7 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 		contents:     propstore.NewContents(pool),
 		topics:       propstore.NewTopics(pool),
 		structurings: propstore.NewStructurings(pool),
+		comments:     propstore.NewComments(pool),
 		links:        propstore.NewLinks(pool),
 		approvals:    reviewstore.New(pool),
 		fixes:        reviewstore.NewMinorFixes(pool),
@@ -134,6 +136,7 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 	timeline := progressapp.NewTimeline(p.entries)
 	repos := propapp.EditorialRepos{
 		Props: p.props, Versions: p.versions, Contents: p.contents, Topics: p.topics, Structurings: p.structurings,
+		Comments: p.comments,
 	}
 	catalog := propapp.NewCatalog(repos, p.links, p.scheduler, clk)
 	ic := ingestCatalog{c: catalog}
@@ -172,6 +175,10 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			ReprocessStructuring: propapp.NewReprocessStructuring(se),
 			ConfirmStructuring:   propapp.NewConfirmStructuring(se),
 			RetryStructuring:     propapp.NewRetryStructuring(se),
+			CreateComment:        propapp.NewCreateComment(se),
+			UpdateComment:        propapp.NewUpdateComment(se),
+			DeleteComment:        propapp.NewDeleteComment(se),
+			ConfirmComment:       propapp.NewConfirmComment(se),
 			ListTopics:           propapp.NewListTopics(p.topics),
 			CreateTopic:          propapp.NewCreateTopic(p.topics, p.tx, pa, clk),
 			UpdateTopic:          propapp.NewUpdateTopic(p.topics, p.tx, pa),

@@ -694,7 +694,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
         "409":
-          description: "`claim_taken`, `stale_content` ou `version_not_editable`"
+          description: "`claim_taken`, `stale_content`, `version_not_editable` ou `anchors_removed` (o texto novo apaga Dispositivos que têm Comentário)"
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -763,6 +763,151 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "409":
           description: "`claim_taken`, `version_not_editable` ou `structuring_cannot_retry`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/comments:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+    post:
+      tags: [ciclo editorial]
+      summary: Comenta um Dispositivo da Versão em análise (Editor ou acima)
+      description: |
+        Só depois de confirmada a Estruturação. Exige a Posse (assume se
+        livre). Quem comenta entra na Autoria do Comentário e do conteúdo
+        (quatro olhos). Auditoria `comment.create` (sem o texto).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCommentRequest" }
+      responses:
+        "201":
+          description: Comentário criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamComment" }
+        "400":
+          description: "`invalid_json`, `invalid_comment` (vazio ou mais de 3.000 caracteres), `provision_not_found` ou `provision_not_commentable` (Capítulo, Seção)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `structuring_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `version_not_editable` ou `structuring_not_confirmed`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/comments/{commentId}:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+      - { name: commentId, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      tags: [ciclo editorial]
+      summary: Edita um Comentário (Editor ou acima)
+      description: Exige a Posse e o `revision` lido. Editar um Comentário trazido não o confirma. Auditoria `comment.update`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateCommentRequest" }
+      responses:
+        "200":
+          description: Comentário gravado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamComment" }
+        "400":
+          description: "`invalid_json` ou `invalid_comment`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `comment_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content` ou `version_not_editable`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      tags: [ciclo editorial]
+      summary: Apaga um Comentário (Editor ou acima)
+      description: Soft delete. Exige a Posse e o `revision` lido. Auditoria `comment.delete`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmContentRequest" }
+      responses:
+        "200":
+          description: Comentário apagado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamComment" }
+        "400":
+          description: "`invalid_json`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `comment_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content` ou `version_not_editable`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/propositions/{id}/versions/{versionId}/comments/{commentId}/confirm:
+    parameters:
+      - $ref: "#/components/parameters/PropositionID"
+      - $ref: "#/components/parameters/VersionID"
+      - { name: commentId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [ciclo editorial]
+      summary: Confirma um Comentário trazido da Versão anterior (Editor ou acima)
+      description: Exige a Posse e o `revision` lido; quem confirma entra na Autoria. Auditoria `comment.confirm`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmContentRequest" }
+      responses:
+        "200":
+          description: Comentário confirmado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamComment" }
+        "400":
+          description: "`invalid_json`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`proposition_not_found`, `version_not_found` ou `comment_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`claim_taken`, `stale_content`, `version_not_editable` ou `nothing_to_confirm`"
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -1713,8 +1858,18 @@ components:
       allOf:
         - $ref: "#/components/schemas/PublicProposition"
         - type: object
-          required: [timeline, errata]
+          required: [timeline, errata, annotated_text]
           properties:
+            annotated_text:
+              oneOf:
+                - type: array
+                  items: { $ref: "#/components/schemas/PublicProvision" }
+                - type: "null"
+              description: |
+                Documento comentado da Versão vigente: os Dispositivos na ordem
+                de leitura, com os Comentários. null sem Versão vigente ou sem
+                Estruturação confirmada. Nunca traz o texto fonte, avisos,
+                Comentários a confirmar ou apagados, nem nomes da equipe.
             timeline:
               type: array
               items: { $ref: "#/components/schemas/TimelineEntry" }
@@ -1725,6 +1880,24 @@ components:
                 Erratas aprovadas da Versão vigente, da mais nova para a mais
                 antiga. Pendentes, recusadas e retiradas nunca saem; nem quem
                 propôs ou decidiu.
+    PublicProvision:
+      type: object
+      additionalProperties: false
+      required: [address, label, kind, text, depth, comments]
+      properties:
+        address: { type: string, description: "Âncora estável (link #address)" }
+        label: { type: string }
+        kind: { type: string, enum: [ementa, preamble, heading, article, paragraph, item, point, subitem, justification] }
+        text: { type: string }
+        depth: { type: integer }
+        comments:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [body]
+            properties:
+              body: { type: string }
     PublicErratum:
       type: object
       additionalProperties: false
@@ -1838,13 +2011,22 @@ components:
           description: |
             `role`, `no_pending_version`, `not_in_review`, `four_eyes`,
             `summary`, `short_summary`, `topics`, `inactive_topics`,
-            `needs_confirmation` ou `structuring_pending` (Estruturação
-            sendo buscada ou a conferir).
+            `needs_confirmation`, `structuring_pending` (Estruturação
+            sendo buscada ou a conferir) ou `comments_unconfirmed`.
         message: { type: string, description: Texto para a tela }
     TeamEditorial:
       type: object
-      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, can_minor_fix, can_propose_erratum, minor_fixes, pending_erratum, errata, people, pending_structuring, current_structuring, can_edit_structuring, can_retry_structuring]
+      required: [versions, pending_content, current_content, topics, claim, review_badge, current_approval, can_edit, can_create_version, can_approve, approve_blockers, approval_breaks_four_eyes, can_second_review, can_minor_fix, can_propose_erratum, minor_fixes, pending_erratum, errata, people, pending_structuring, current_structuring, can_edit_structuring, can_retry_structuring, pending_comments, current_comments, can_comment]
       properties:
+        pending_comments:
+          type: array
+          items: { $ref: "#/components/schemas/TeamComment" }
+          description: Comentários vivos da Versão em análise
+        current_comments:
+          type: array
+          items: { $ref: "#/components/schemas/TeamComment" }
+          description: Comentários vivos da Versão vigente
+        can_comment: { type: boolean, description: "Pode comentar a Versão em análise (Estruturação confirmada, Posse livre ou sua)" }
         pending_structuring:
           oneOf:
             - $ref: "#/components/schemas/TeamStructuring"
@@ -1910,6 +2092,35 @@ components:
           type: object
           additionalProperties: { type: string }
           description: Nomes da equipe por id (Autoria, Posse, aprovação, correções)
+    TeamComment:
+      type: object
+      required: [id, version_id, provision_address, body, needs_confirmation, authors, revision, created_by, created_at, updated_by, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        version_id: { type: string, format: uuid }
+        provision_address: { type: string }
+        body: { type: string, maxLength: 3000 }
+        needs_confirmation: { type: boolean, description: Trazido da Versão anterior, a confirmar }
+        authors:
+          type: array
+          items: { type: string, format: uuid }
+        revision: { type: integer }
+        created_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_by: { type: [string, "null"], format: uuid }
+        updated_at: { type: string, format: date-time }
+    CreateCommentRequest:
+      type: object
+      required: [provision_address, body]
+      properties:
+        provision_address: { type: string }
+        body: { type: string, maxLength: 3000 }
+    UpdateCommentRequest:
+      type: object
+      required: [body, revision]
+      properties:
+        body: { type: string, maxLength: 3000 }
+        revision: { type: integer }
     ReprocessStructuringRequest:
       type: object
       required: [source_text, revision]

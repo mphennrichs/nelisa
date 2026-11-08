@@ -1421,7 +1421,7 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
-                /** @description `claim_taken`, `stale_content` ou `version_not_editable` */
+                /** @description `claim_taken`, `stale_content`, `version_not_editable` ou `anchors_removed` (o texto novo apaga Dispositivos que têm Comentário) */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1570,6 +1570,306 @@ export interface paths {
                     };
                 };
                 /** @description `claim_taken`, `version_not_editable` ou `structuring_cannot_retry` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comenta um Dispositivo da Versão em análise (Editor ou acima)
+         * @description Só depois de confirmada a Estruturação. Exige a Posse (assume se
+         *     livre). Quem comenta entra na Autoria do Comentário e do conteúdo
+         *     (quatro olhos). Auditoria `comment.create` (sem o texto).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Comentário criado */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamComment"];
+                    };
+                };
+                /** @description `invalid_json`, `invalid_comment` (vazio ou mais de 3.000 caracteres), `provision_not_found` ou `provision_not_commentable` (Capítulo, Seção) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `structuring_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `version_not_editable` ou `structuring_not_confirmed` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+                commentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edita um Comentário (Editor ou acima)
+         * @description Exige a Posse e o `revision` lido. Editar um Comentário trazido não o confirma. Auditoria `comment.update`.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                    commentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Comentário gravado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamComment"];
+                    };
+                };
+                /** @description `invalid_json` ou `invalid_comment` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `comment_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content` ou `version_not_editable` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Apaga um Comentário (Editor ou acima)
+         * @description Soft delete. Exige a Posse e o `revision` lido. Auditoria `comment.delete`.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                    commentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmContentRequest"];
+                };
+            };
+            responses: {
+                /** @description Comentário apagado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamComment"];
+                    };
+                };
+                /** @description `invalid_json` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `comment_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content` ou `version_not_editable` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/comments/{commentId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+                commentId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma um Comentário trazido da Versão anterior (Editor ou acima)
+         * @description Exige a Posse e o `revision` lido; quem confirma entra na Autoria. Auditoria `comment.confirm`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                    commentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmContentRequest"];
+                };
+            };
+            responses: {
+                /** @description Comentário confirmado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamComment"];
+                    };
+                };
+                /** @description `invalid_json` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `comment_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content`, `version_not_editable` ou `nothing_to_confirm` */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -2960,6 +3260,13 @@ export interface components {
             official_text_url: string;
         };
         PublicPropositionDetail: components["schemas"]["PublicProposition"] & {
+            /**
+             * @description Documento comentado da Versão vigente: os Dispositivos na ordem
+             *     de leitura, com os Comentários. null sem Versão vigente ou sem
+             *     Estruturação confirmada. Nunca traz o texto fonte, avisos,
+             *     Comentários a confirmar ou apagados, nem nomes da equipe.
+             */
+            annotated_text: components["schemas"]["PublicProvision"][] | null;
             timeline: components["schemas"]["TimelineEntry"][];
             /**
              * @description Erratas aprovadas da Versão vigente, da mais nova para a mais
@@ -2967,6 +3274,18 @@ export interface components {
              *     propôs ou decidiu.
              */
             errata: components["schemas"]["PublicErratum"][];
+        };
+        PublicProvision: {
+            /** @description Âncora estável (link #address) */
+            address: string;
+            label: string;
+            /** @enum {string} */
+            kind: "ementa" | "preamble" | "heading" | "article" | "paragraph" | "item" | "point" | "subitem" | "justification";
+            text: string;
+            depth: number;
+            comments: {
+                body: string;
+            }[];
         };
         PublicErratum: {
             /** Format: date-time */
@@ -3082,14 +3401,20 @@ export interface components {
             /**
              * @description `role`, `no_pending_version`, `not_in_review`, `four_eyes`,
              *     `summary`, `short_summary`, `topics`, `inactive_topics`,
-             *     `needs_confirmation` ou `structuring_pending` (Estruturação
-             *     sendo buscada ou a conferir).
+             *     `needs_confirmation`, `structuring_pending` (Estruturação
+             *     sendo buscada ou a conferir) ou `comments_unconfirmed`.
              */
             code: string;
             /** @description Texto para a tela */
             message: string;
         };
         TeamEditorial: {
+            /** @description Comentários vivos da Versão em análise */
+            pending_comments: components["schemas"]["TeamComment"][];
+            /** @description Comentários vivos da Versão vigente */
+            current_comments: components["schemas"]["TeamComment"][];
+            /** @description Pode comentar a Versão em análise (Estruturação confirmada, Posse livre ou sua) */
+            can_comment: boolean;
             /** @description Estruturação da Versão em análise (null em Versão antiga, sem Estruturação) */
             pending_structuring: components["schemas"]["TeamStructuring"] | null;
             current_structuring: components["schemas"]["TeamStructuring"] | null;
@@ -3132,6 +3457,34 @@ export interface components {
             people: {
                 [key: string]: string;
             };
+        };
+        TeamComment: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            version_id: string;
+            provision_address: string;
+            body: string;
+            /** @description Trazido da Versão anterior */
+            needs_confirmation: boolean;
+            authors: string[];
+            revision: number;
+            /** Format: uuid */
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            updated_by: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateCommentRequest: {
+            provision_address: string;
+            body: string;
+        };
+        UpdateCommentRequest: {
+            body: string;
+            revision: number;
         };
         ReprocessStructuringRequest: {
             /** @description Texto corrigido ou colado */
