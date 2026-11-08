@@ -29,6 +29,9 @@ import (
 	"github.com/mphennrichs/nelisa/api/internal/platform/jobs"
 	"github.com/mphennrichs/nelisa/api/internal/platform/migrate"
 	"github.com/mphennrichs/nelisa/api/internal/platform/observability"
+	propapp "github.com/mphennrichs/nelisa/api/internal/proposition/app"
+	propjobs "github.com/mphennrichs/nelisa/api/internal/proposition/jobs"
+	"github.com/mphennrichs/nelisa/api/internal/proposition/officialtext"
 	"github.com/mphennrichs/nelisa/api/migrations"
 )
 
@@ -98,7 +101,7 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	sched := ingestjobs.NewScheduler(jobs.NewInserter(riverClient))
+	sched := newRiverSchedulers(jobs.NewInserter(riverClient))
 	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), logger)
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -142,7 +145,11 @@ func runWorker(ctx context.Context, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	client, err := newWorkerClient(pool, sources, cfg.SyncInterval, clock.System{}, logger)
+	// O PDF oficial (Estruturação) é lido com o PDFium em WebAssembly; o
+	// runtime só sobe na primeira leitura.
+	pdf := officialtext.NewPDFium()
+	defer pdf.Close()
+	client, err := newWorkerClient(pool, sources, officialtext.New(pdf, nil), cfg.SyncInterval, clock.System{}, logger)
 	if err != nil {
 		return err
 	}
@@ -160,16 +167,21 @@ func runWorker(ctx context.Context, logger *slog.Logger) error {
 // enfileira um job por Vínculo por um cliente insert-only à parte: os
 // workers precisam estar registrados antes de o cliente que os executa
 // nascer.
-func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, interval time.Duration, clk clock.Clock, logger *slog.Logger) (*jobs.Client, error) {
+func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, text propapp.OfficialText, interval time.Duration, clk clock.Clock, logger *slog.Logger) (*jobs.Client, error) {
 	inserter, err := jobs.NewInsertOnlyClient(pool, logger)
 	if err != nil {
 		return nil, err
 	}
-	sched := ingestjobs.NewScheduler(jobs.NewInserter(inserter))
-	uc := newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk)
+	sched := newRiverSchedulers(jobs.NewInserter(inserter))
+	ports := postgresContentPorts(pool, clk, sched, sources)
+	uc := newContentUseCases(ports, clk)
 	workers := river.NewWorkers()
 	syncLink, syncAll := newIngestWorkers(uc, logger)
 	if err := ingestjobs.Register(workers, syncLink, syncAll); err != nil {
+		return nil, fmt.Errorf("registrando workers: %w", err)
+	}
+	run := propapp.NewRunStructuring(ports.versions, ports.structurings, text, ports.tx, clk)
+	if err := propjobs.Register(workers, propjobs.NewStructureVersionWorker(run, logger)); err != nil {
 		return nil, fmt.Errorf("registrando workers: %w", err)
 	}
 	return jobs.NewWorkerClient(pool, jobs.WorkerOptions{

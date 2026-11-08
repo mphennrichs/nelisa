@@ -16,15 +16,20 @@ import (
 // uso do ingest) já autorizou, audita e chama tudo dentro da própria
 // transação. Nunca confirmam um Vínculo sugerido: só ConfirmLink faz isso.
 type Catalog struct {
-	props    PropositionRepo
-	versions VersionRepo
-	contents ContentRepo
-	links    LinkRepo
-	clock    clock.Clock
+	props        PropositionRepo
+	versions     VersionRepo
+	contents     ContentRepo
+	structurings StructuringRepo
+	links        LinkRepo
+	sched        StructuringScheduler
+	clock        clock.Clock
 }
 
-func NewCatalog(repos EditorialRepos, links LinkRepo, clk clock.Clock) *Catalog {
-	return &Catalog{props: repos.Props, versions: repos.Versions, contents: repos.Contents, links: links, clock: clk}
+func NewCatalog(repos EditorialRepos, links LinkRepo, sched StructuringScheduler, clk clock.Clock) *Catalog {
+	return &Catalog{
+		props: repos.Props, versions: repos.Versions, contents: repos.Contents, structurings: repos.Structurings,
+		links: links, sched: sched, clock: clk,
+	}
 }
 
 // LinksByExternal devolve os Vínculos (sugeridos e confirmados) desses
@@ -132,6 +137,10 @@ func (c *Catalog) CreateImported(ctx context.Context, in CreateImportedInput) (C
 		return CreateImportedResult{}, err
 	}
 	if err := c.contents.Create(ctx, domain.NewEmptyContent(v.ID, now)); err != nil {
+		return CreateImportedResult{}, err
+	}
+	// O PDF oficial é buscado e lido em segundo plano (Estruturação).
+	if err := startStructuring(ctx, c.structurings, c.sched, v, now); err != nil {
 		return CreateImportedResult{}, err
 	}
 

@@ -27,7 +27,10 @@ type Reviews interface {
 
 // Repos são os repositórios do ciclo editorial.
 func (w *World) Repos() app.EditorialRepos {
-	return app.EditorialRepos{Props: w.Props(), Versions: w.Versions(), Contents: w.Contents(), Topics: w.Topics()}
+	return app.EditorialRepos{
+		Props: w.Props(), Versions: w.Versions(), Contents: w.Contents(), Topics: w.Topics(),
+		Structurings: w.Structurings(),
+	}
 }
 
 // PutVersion, PutContent e PutTopic gravam direto (montagem de teste).

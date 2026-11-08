@@ -42,6 +42,12 @@ func fakeSources() (ingestapp.Sources, *fakes.Source, *fakes.Source) {
 		ExternalID: "2487436", Kind: "PEC", Number: 8, Year: 2025, OriginChamber: ingestapp.ChamberCamara,
 		AttachedTo: "PEC 221/2019", Status: "Aguardando parecer",
 	}, fakes.Progress1("1-100", day0.Add(400*24*time.Hour), "Apresentação"))
+	// Com link do PDF oficial: a Importação começa a Estruturação.
+	camara.Put(ingestapp.SourceRecord{
+		ExternalID: "2623604", Kind: "PEC", Number: 9, Year: 2026, OriginChamber: ingestapp.ChamberCamara,
+		Status: "Aguardando parecer", OfficialSummary: "Reduz a idade de imputabilidade penal",
+		OfficialTextURL: "https://www.camara.leg.br/proposicoesWeb/prop_mostrarintegra?codteor=3127176",
+	}, fakes.Progress1("1-100", day0.Add(500*24*time.Hour), "Apresentação"))
 	return ingestapp.NewSources(camara, senado), camara, senado
 }
 
@@ -62,7 +68,7 @@ func TestContentEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sched := ingestjobs.NewScheduler(jobs.NewInserter(inserter))
+	sched := newRiverSchedulers(jobs.NewInserter(inserter))
 	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), logger)
 	h := newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger)
 
@@ -157,7 +163,7 @@ func TestContentEndToEnd(t *testing.T) {
 		&rivertest.RequireInsertedOpts{Schema: jobs.Schema, MaxAttempts: 8})
 
 	// O worker de verdade sincroniza (e a rodada periódica roda ao subir).
-	worker, err := newWorkerClient(pool, sources, time.Hour, clk, logger)
+	worker, err := newWorkerClient(pool, sources, fakeOfficialText{}, time.Hour, clk, logger)
 	if err != nil {
 		t.Fatal(err)
 	}

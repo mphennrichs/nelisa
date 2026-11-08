@@ -1357,6 +1357,235 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/propositions/{id}/versions/{versionId}/structuring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Corrige ou cola o texto da Versão e refaz os Dispositivos (Editor ou acima)
+         * @description Só na Versão em análise. Exige a Posse (assume se livre) e o
+         *     `revision` lido da Estruturação. Volta a "a conferir" mesmo se
+         *     estava confirmada. Quem grava entra na Autoria do conteúdo (quatro
+         *     olhos). Registrado na Auditoria (`structuring.reprocess`, sem o
+         *     texto).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReprocessStructuringRequest"];
+                };
+            };
+            responses: {
+                /** @description Estruturação refeita */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamStructuring"];
+                    };
+                };
+                /** @description `invalid_json` (inclusive sem `revision`) ou `invalid_source_text` (vazio ou mais de 500 mil caracteres) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `structuring_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content` ou `version_not_editable` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/structuring/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma os Dispositivos da Versão em análise (Editor ou acima)
+         * @description Libera os Comentários e tira o bloqueio `structuring_pending` da
+         *     aprovação. Exige a Posse e o `revision` lido. Quem confirma entra na
+         *     Autoria. Auditoria `structuring.confirm`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmContentRequest"];
+                };
+            };
+            responses: {
+                /** @description Estruturação confirmada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamStructuring"];
+                    };
+                };
+                /** @description `invalid_json` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `structuring_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `stale_content`, `version_not_editable` ou `structuring_not_ready` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/propositions/{id}/versions/{versionId}/structuring/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["PropositionID"];
+                versionId: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Busca de novo o PDF oficial (Editor ou acima)
+         * @description Só numa Estruturação manual cuja busca falhou e cujo link é de Fonte
+         *     oficial com API. Exige a Posse; não entra na Autoria. Auditoria
+         *     `structuring.retry`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["PropositionID"];
+                    versionId: components["parameters"]["VersionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Busca enfileirada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamStructuring"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `proposition_not_found`, `version_not_found` ou `structuring_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `claim_taken`, `version_not_editable` ou `structuring_cannot_retry` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/team/propositions/{id}/versions/{versionId}/approve": {
         parameters: {
             query?: never;
@@ -2852,14 +3081,22 @@ export interface components {
         Blocker: {
             /**
              * @description `role`, `no_pending_version`, `not_in_review`, `four_eyes`,
-             *     `summary`, `short_summary`, `topics`, `inactive_topics` ou
-             *     `needs_confirmation`.
+             *     `summary`, `short_summary`, `topics`, `inactive_topics`,
+             *     `needs_confirmation` ou `structuring_pending` (Estruturação
+             *     sendo buscada ou a conferir).
              */
             code: string;
             /** @description Texto para a tela */
             message: string;
         };
         TeamEditorial: {
+            /** @description Estruturação da Versão em análise (null em Versão antiga, sem Estruturação) */
+            pending_structuring: components["schemas"]["TeamStructuring"] | null;
+            current_structuring: components["schemas"]["TeamStructuring"] | null;
+            /** @description Pode corrigir/colar o texto e confirmar (Versão em análise, Posse livre ou sua) */
+            can_edit_structuring: boolean;
+            /** @description Pode pedir outra busca do PDF oficial */
+            can_retry_structuring: boolean;
             versions: components["schemas"]["PropositionVersion"][];
             pending_content: components["schemas"]["VersionContent"] | null;
             current_content: components["schemas"]["VersionContent"] | null;
@@ -2895,6 +3132,63 @@ export interface components {
             people: {
                 [key: string]: string;
             };
+        };
+        ReprocessStructuringRequest: {
+            /** @description Texto corrigido ou colado */
+            source_text: string;
+            /** @description Revisão da Estruturação lida */
+            revision: number;
+        };
+        /**
+         * @description Estruturação de uma Versão: o texto (interno, nunca vai ao público)
+         *     que gerou os Dispositivos, os avisos do parser e a árvore.
+         */
+        TeamStructuring: {
+            /** Format: uuid */
+            version_id: string;
+            /**
+             * @description fetching: buscando o PDF; ready_to_check: a conferir; manual: a busca falhou, cole o texto
+             * @enum {string}
+             */
+            state: "fetching" | "ready_to_check" | "confirmed" | "manual";
+            /** @enum {string|null} */
+            failure: "no_url" | "host_not_allowed" | "not_found" | "not_pdf" | "too_large" | "no_text" | "network" | null;
+            source_text: string;
+            warnings: components["schemas"]["StructuringWarning"][];
+            /** @description Dispositivos na ordem de leitura */
+            provisions: components["schemas"]["TeamProvision"][];
+            revision: number;
+            /**
+             * Format: uuid
+             * @description null: busca automática
+             */
+            updated_by: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            confirmed_by: string | null;
+            /** Format: date-time */
+            confirmed_at: string | null;
+        };
+        StructuringWarning: {
+            /** @description `no_ementa`, `no_articles`, `duplicate_address`, `article_out_of_order`, `article_gap`, `orphan` ou `unclosed_quote` */
+            code: string;
+            /** @description Linha do texto (1 = primeira; 0 = sem linha) */
+            line: number;
+            address: string | null;
+        };
+        TeamProvision: {
+            /** @description Âncora estável na Versão, ex. art-3.par-2.inc-4 */
+            address: string;
+            /** @description Endereço do Dispositivo acima (vazio no topo) */
+            parent: string;
+            /** @enum {string} */
+            kind: "ementa" | "preamble" | "heading" | "article" | "paragraph" | "item" | "point" | "subitem" | "justification";
+            /** @description Ex. Art. 3º, § 2º, inciso IV */
+            label: string;
+            text: string;
+            depth: number;
+            commentable: boolean;
         };
         ContentSnapshot: {
             summary: string;

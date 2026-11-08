@@ -28,11 +28,15 @@ type UseCases struct {
 	CreateVersion    *app.CreateVersion
 	UpdateContent    *app.UpdateContent
 	ConfirmContent   *app.ConfirmContent
-	ListTopics       *app.ListTopics
-	CreateTopic      *app.CreateTopic
-	UpdateTopic      *app.UpdateTopic
-	ListPublic       *app.ListPublicPropositions
-	GetPublic        *app.GetPublicProposition
+	// Estruturação: corrigir/colar o texto, confirmar, buscar de novo.
+	ReprocessStructuring *app.ReprocessStructuring
+	ConfirmStructuring   *app.ConfirmStructuring
+	RetryStructuring     *app.RetryStructuring
+	ListTopics           *app.ListTopics
+	CreateTopic          *app.CreateTopic
+	UpdateTopic          *app.UpdateTopic
+	ListPublic           *app.ListPublicPropositions
+	GetPublic            *app.GetPublicProposition
 }
 
 // Handlers são os handlers HTTP do módulo.
@@ -57,6 +61,9 @@ func (h *Handlers) RegisterTeam(r chi.Router) {
 		r.Post("/propositions/{id}/versions", h.createVersion)
 		r.Put("/propositions/{id}/versions/{versionId}/content", h.updateContent)
 		r.Post("/propositions/{id}/versions/{versionId}/content/confirm", h.confirmContent)
+		r.Put("/propositions/{id}/versions/{versionId}/structuring", h.reprocessStructuring)
+		r.Post("/propositions/{id}/versions/{versionId}/structuring/confirm", h.confirmStructuring)
+		r.Post("/propositions/{id}/versions/{versionId}/structuring/retry", h.retryStructuring)
 		r.Get("/topics", h.listTopics)
 	})
 	r.Group(func(r chi.Router) {
@@ -420,6 +427,11 @@ func errMappings() []errMapping {
 		{domain.ErrPendingVersionExists, http.StatusConflict, "pending_version_exists", "Já existe uma Versão em análise; aprove-a antes de registrar outra."},
 		{domain.ErrStaleContent, http.StatusConflict, "stale_content", "Outra pessoa gravou este conteúdo depois que você o abriu. Recarregue para ver a versão atual."},
 		{domain.ErrNothingToConfirm, http.StatusConflict, "nothing_to_confirm", "Não há conteúdo trazido da Versão anterior para confirmar."},
+		{domain.ErrStructuringNotFound, http.StatusNotFound, "structuring_not_found", "Esta Versão não tem Estruturação."},
+		{domain.ErrEmptySourceText, http.StatusBadRequest, "invalid_source_text", "Cole ou escreva o texto da Versão."},
+		{domain.ErrSourceTextTooLong, http.StatusBadRequest, "invalid_source_text", "O texto passa de 500 mil caracteres."},
+		{domain.ErrStructuringNotReady, http.StatusConflict, "structuring_not_ready", "Não há Dispositivos a confirmar: o texto ainda não foi lido ou já foi confirmado."},
+		{domain.ErrCannotRetryStructuring, http.StatusConflict, "structuring_cannot_retry", "Não há busca a refazer: o link não é de Fonte oficial com API ou a Estruturação não falhou."},
 		{domain.ErrInvalidLabel, http.StatusBadRequest, "invalid_label", "Rótulo da Versão é obrigatório (até 120 caracteres)."},
 		{domain.ErrInvalidVersionURL, http.StatusBadRequest, "invalid_official_text_url", "Informe o link http(s) do Documento integral."},
 		{domain.ErrSummaryTooLong, http.StatusBadRequest, "summary_too_long", "O Resumo pode ter até 5.000 caracteres."},

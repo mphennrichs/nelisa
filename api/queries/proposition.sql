@@ -167,3 +167,51 @@ SELECT * FROM proposition.topics ORDER BY lower(name), id;
 
 -- name: UpdateTopic :exec
 UPDATE proposition.topics SET name = $2, active = $3 WHERE id = $1;
+
+-- Estruturação.
+
+-- name: CreateStructuring :exec
+INSERT INTO proposition.structurings (
+    version_id, state, failure, source_text, warnings, revision, updated_by, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: GetStructuring :one
+SELECT * FROM proposition.structurings WHERE version_id = $1;
+
+-- name: GetStructuringForUpdate :one
+SELECT * FROM proposition.structurings WHERE version_id = $1 FOR UPDATE;
+
+-- name: ListStructurings :many
+SELECT * FROM proposition.structurings WHERE version_id = ANY(sqlc.arg(version_ids)::uuid[]);
+
+-- name: UpdateStructuring :execrows
+-- Só grava se ninguém gravou depois da leitura (trava otimista).
+UPDATE proposition.structurings
+SET state = sqlc.arg(state),
+    failure = sqlc.arg(failure),
+    source_text = sqlc.arg(source_text),
+    warnings = sqlc.arg(warnings),
+    revision = sqlc.arg(revision),
+    updated_by = sqlc.arg(updated_by),
+    updated_at = sqlc.arg(updated_at),
+    confirmed_by = sqlc.arg(confirmed_by),
+    confirmed_at = sqlc.arg(confirmed_at)
+WHERE version_id = sqlc.arg(version_id) AND revision = sqlc.arg(prev_revision);
+
+-- name: DeleteProvisions :exec
+DELETE FROM proposition.provisions WHERE version_id = $1;
+
+-- name: InsertProvisions :exec
+-- Todos os Dispositivos de uma vez: rows é um array JSON de
+-- {address, parent_address, kind, label, text, depth, position, text_hash}.
+INSERT INTO proposition.provisions (
+    version_id, address, parent_address, kind, label, text, depth, position, text_hash
+)
+SELECT sqlc.arg(version_id)::uuid, a.address, a.parent_address, a.kind, a.label, a.text, a.depth, a.position, a.text_hash
+FROM jsonb_to_recordset(sqlc.arg(rows)::jsonb) AS a(
+    address text, parent_address text, kind text, label text, text text,
+    depth integer, position integer, text_hash text
+);
+
+-- name: ListProvisions :many
+SELECT * FROM proposition.provisions WHERE version_id = $1 ORDER BY position;

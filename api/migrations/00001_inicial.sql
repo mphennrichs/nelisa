@@ -198,6 +198,44 @@ CREATE TABLE proposition.version_contents (
     updated_at         timestamptz NOT NULL
 );
 
+-- Estruturação de uma Versão (1:1): o texto que gerou os Dispositivos.
+-- O Nelisa busca o PDF oficial sozinho só em Fonte oficial com API; o
+-- PDF não é guardado. source_text é interno: nunca sai no público.
+CREATE TABLE proposition.structurings (
+    version_id   uuid PRIMARY KEY REFERENCES proposition.versions (id) ON DELETE CASCADE,
+    state        text NOT NULL CHECK (state IN ('fetching', 'ready_to_check', 'confirmed', 'manual')),
+    failure      text NOT NULL DEFAULT '' CHECK (failure IN (
+        '', 'no_url', 'host_not_allowed', 'not_found', 'not_pdf', 'too_large', 'no_text', 'network')),
+    source_text  text NOT NULL DEFAULT '' CHECK (char_length(source_text) <= 500000),
+    -- Avisos do parser para o Editor: [{code, line, address}].
+    warnings     jsonb NOT NULL DEFAULT '[]',
+    revision     integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
+    -- NULL quando foi a busca automática.
+    updated_by   uuid,
+    updated_at   timestamptz NOT NULL,
+    confirmed_by uuid,
+    confirmed_at timestamptz,
+    -- manual sempre diz o motivo; os outros estados nunca têm motivo.
+    CHECK ((state = 'manual') = (failure <> ''))
+);
+
+-- Dispositivos de uma Versão, gerados pelo parser a partir do source_text
+-- (nunca editados um a um). address é a âncora estável dos Comentários.
+CREATE TABLE proposition.provisions (
+    version_id     uuid NOT NULL REFERENCES proposition.structurings (version_id) ON DELETE CASCADE,
+    address        text NOT NULL CHECK (address <> ''),
+    parent_address text NOT NULL DEFAULT '',
+    kind           text NOT NULL CHECK (kind IN (
+        'ementa', 'preamble', 'heading', 'article', 'paragraph', 'item', 'point', 'subitem', 'justification')),
+    label          text NOT NULL,
+    text           text NOT NULL,
+    depth          integer NOT NULL CHECK (depth >= 0),
+    position       integer NOT NULL CHECK (position >= 0),
+    text_hash      text NOT NULL,
+    PRIMARY KEY (version_id, address)
+);
+CREATE UNIQUE INDEX provisions_position_key ON proposition.provisions (version_id, position);
+
 -- progress: a Tramitação, um evento por linha, de todas as Casas.
 CREATE TABLE progress.entries (
     id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

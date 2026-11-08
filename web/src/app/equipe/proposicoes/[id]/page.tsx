@@ -8,6 +8,7 @@ import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FormError, RequireTeam } from "@/lib/team/ui";
 import { REVIEW_STATE_LABEL, chamberLabel, fmtDate, fmtDateTime, officialText, chamberIn } from "@/lib/labels";
 import Editorial from "./Editorial";
+import Structuring from "./Structuring";
 
 type Detail = components["schemas"]["TeamPropositionDetail"];
 type Link_ = components["schemas"]["SourceLink"];
@@ -108,6 +109,8 @@ function PropositionDetail({ id }: { id: string }) {
       </section>
 
       <Editorial p={p} reload={load} />
+
+      <Structuring p={p} reload={load} />
 
       <section aria-labelledby="vinculos" className="card space-y-3">
         <h2 id="vinculos" className="text-lg font-semibold">Vínculos de fonte</h2>

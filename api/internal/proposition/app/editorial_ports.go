@@ -194,14 +194,41 @@ type People interface {
 
 // Ações auditadas do ciclo editorial.
 const (
-	ActionContentUpdate   = "content.update"
-	ActionContentConfirm  = "content.confirm"
-	ActionVersionCreate   = "version.create"
-	ActionTopicCreate     = "topic.create"
-	ActionTopicRename     = "topic.rename"
-	ActionTopicDeactivate = "topic.deactivate"
-	ActionTopicReactivate = "topic.reactivate"
+	ActionContentUpdate        = "content.update"
+	ActionContentConfirm       = "content.confirm"
+	ActionVersionCreate        = "version.create"
+	ActionStructuringReprocess = "structuring.reprocess"
+	ActionStructuringConfirm   = "structuring.confirm"
+	ActionStructuringRetry     = "structuring.retry"
+	ActionTopicCreate          = "topic.create"
+	ActionTopicRename          = "topic.rename"
+	ActionTopicDeactivate      = "topic.deactivate"
+	ActionTopicReactivate      = "topic.reactivate"
 
 	targetVersion = "version"
 	targetTopic   = "topic"
 )
+
+// StructuringRepo persiste a Estruturação (1:1 com a Versão) e os
+// Dispositivos dela.
+type StructuringRepo interface {
+	Create(ctx context.Context, s domain.Structuring) error
+	// FindByVersion devolve ErrStructuringNotFound se não há.
+	FindByVersion(ctx context.Context, versionID string) (domain.Structuring, error)
+	// FindByVersionForUpdate trava a linha até o fim da transação.
+	FindByVersionForUpdate(ctx context.Context, versionID string) (domain.Structuring, error)
+	ListByVersions(ctx context.Context, versionIDs []string) ([]domain.Structuring, error)
+	// Update grava s só se a revisão guardada ainda for prevRevision;
+	// senão ErrStaleContent.
+	Update(ctx context.Context, s domain.Structuring, prevRevision int) error
+	// ReplaceProvisions troca todos os Dispositivos da Versão.
+	ReplaceProvisions(ctx context.Context, versionID string, ps []domain.Provision) error
+	ListProvisions(ctx context.Context, versionID string) ([]domain.Provision, error)
+}
+
+// StructuringScheduler enfileira a busca e leitura do PDF oficial de uma
+// Versão (River, ligado no main). Dentro de uma transação, o job entra
+// nela: some se a Versão não for gravada.
+type StructuringScheduler interface {
+	ScheduleStructuring(ctx context.Context, versionID string) error
+}

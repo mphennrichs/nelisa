@@ -16,6 +16,7 @@ import (
 
 	auditapp "github.com/mphennrichs/nelisa/api/internal/audit/app"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
+	"github.com/mphennrichs/nelisa/api/internal/platform/jobs"
 	"github.com/mphennrichs/nelisa/api/internal/platform/testdb"
 )
 
@@ -32,13 +33,28 @@ type editorialApp struct {
 
 func newEditorialApp(t *testing.T, wrapAudit func(recordAudit) recordAudit) *editorialApp {
 	t.Helper()
+	return newEditorialAppWith(t, wrapAudit, false)
+}
+
+// newEditorialAppWith com withRiver enfileira os jobs no River de verdade
+// (sem worker: o teste sobe um quando quiser).
+func newEditorialAppWith(t *testing.T, wrapAudit func(recordAudit) recordAudit, withRiver bool) *editorialApp {
+	t.Helper()
 	pool, _ := testdb.New(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := testConfig()
 	cfg.BootstrapToken = "segredo-de-bootstrap-e2e"
 	clk := clock.System{}
 	sources, _, _ := fakeSources()
-	ports := postgresContentPorts(pool, clk, noScheduler{}, sources)
+	var sched scheduler = noScheduler{}
+	if withRiver {
+		ins, err := jobs.NewInsertOnlyClient(pool, logger)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sched = newRiverSchedulers(jobs.NewInserter(ins))
+	}
+	ports := postgresContentPorts(pool, clk, sched, sources)
 	if wrapAudit != nil {
 		ports.audit = wrapAudit(ports.audit)
 	}
@@ -263,7 +279,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 
 	// Versão nova: conteúdo copiado a confirmar; Proposição volta para
 	// em revisão; o público continua com a vigente e ganha o aviso.
-	w := a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo da CCJ","official_text_url":"https://www.camara.leg.br/sub.pdf"}`), 201, "new version")
+	w := a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo da CCJ","official_text_url":"https://sapl.camara.goiania.go.gov.br/sub.pdf"}`), 201, "new version")
 	if !strings.Contains(w.Body.String(), `"needs_confirmation":true`) {
 		t.Fatalf("new version content: %s", w.Body)
 	}
@@ -278,7 +294,7 @@ func TestEditorialCycleEndToEnd(t *testing.T) {
 	// Nada da Versão em análise aparece no público, nem com uma vigente.
 	body = a.public()
 	if strings.Contains(body, "SEGREDO") || !strings.Contains(body, `"summary":"Reduz a jornada de trabalho semanal."`) ||
-		!strings.Contains(body, `"pending_version":{"label":"Substitutivo da CCJ","official_text_url":"https://www.camara.leg.br/sub.pdf"}`) {
+		!strings.Contains(body, `"pending_version":{"label":"Substitutivo da CCJ","official_text_url":"https://sapl.camara.goiania.go.gov.br/sub.pdf"}`) {
 		t.Fatalf("public with pending version: %s", body)
 	}
 	// (authors no público é o Autor oficial da Proposição; a Autoria

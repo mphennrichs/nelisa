@@ -182,7 +182,7 @@ func TestMinorFixEndToEnd(t *testing.T) {
 	// Versão nova em análise: a Correção menor só vale na vigente de uma
 	// Proposição pronta.
 	a.must(a.do("DELETE", base+"/claim", "rita", ""), 204, "rita releases")
-	a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo","official_text_url":"https://www.camara.leg.br/sub.pdf"}`), 201, "new version")
+	a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo","official_text_url":"https://sapl.camara.goiania.go.gov.br/sub.pdf"}`), 201, "new version")
 	v2, rev2 := a.pending(pid)
 	_, rev = a.current(pid)
 	a.expectErr(a.do("PUT", base+"/versions/"+v2+"/minor-fix", "edu", contentBody("X", "Y", []string{trabalho}, rev2)), 409, "version_not_current", "fix on pending version")
@@ -308,7 +308,7 @@ func TestErratumEndToEnd(t *testing.T) {
 
 	// Versão nova vira vigente: as Erratas da anterior saem com o conteúdo
 	// dela.
-	a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo","official_text_url":"https://www.camara.leg.br/sub.pdf"}`), 201, "new version")
+	a.must(a.do("POST", base+"/versions", "edu", `{"label":"Substitutivo","official_text_url":"https://sapl.camara.goiania.go.gov.br/sub.pdf"}`), 201, "new version")
 	v2, rev2 := a.pending(pid)
 	a.must(a.do("POST", base+"/versions/"+v2+"/content/confirm", "edu", fmt.Sprintf(`{"revision":%d}`, rev2)), 200, "edu confirms")
 	a.must(a.do("POST", base+"/versions/"+v2+"/approve", "rui", a.revBody(pid)), 200, "rui approves v2")

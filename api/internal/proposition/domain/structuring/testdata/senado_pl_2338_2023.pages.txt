@@ -1,0 +1,1377 @@
+Dispõe sobre o desenvolvimento, o fomento
+e o uso ético e responsável da inteligência 
+artificial com base na centralidade da 
+pessoa humana.
+O Congresso Nacional decreta:
+CAPÍTULO I
+DISPOSIÇÕES PRELIMINARES
+Art. 1º Esta Lei estabelece normas gerais de caráter nacional para a governança 
+responsável de sistemas de inteligência artificial (IA) no Brasil, com o objetivo de proteger 
+os direitos fundamentais, estimular a inovação responsável e a competitividade e garantir a 
+implementação de sistemas seguros e confiáveis, em benefício da pessoa humana, do regime 
+democrático e do desenvolvimento social, científico, tecnológico e econômico.
+§ 1º Esta Lei não se aplica ao sistema de IA:
+I – utilizado por pessoa natural para fim exclusivamente particular e não 
+econômico;
+II – desenvolvido e utilizado única e exclusivamente para fins de defesa nacional;
+III – utilizado em atividades de investigação, pesquisa, testagem e 
+desenvolvimento de sistemas, aplicações ou modelos de IA antes de serem colocados em 
+circulação no mercado ou colocados em serviço, sendo observadas para as referidas atividades 
+a legislação aplicável, em especial a Lei nº 8.078, de 11 de setembro de 1990 (Código de 
+Defesa do Consumidor), a Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de 
+Dados Pessoais), a Lei nº 6.938, de 31 de agosto de 1981 (Política Nacional do Meio 
+Ambiente), e a Lei nº 9.610, de 19 de fevereiro de 1998 (Lei dos Direitos Autorais), devendo 
+a testagem em condições reais observar o disposto nesta Lei;
+IV – utilizado em serviços que se limitem ao provimento de infraestrutura de 
+armazenamento e transporte de dados empregados em sistemas de IA.
+§ 2º A fim de promover o desenvolvimento tecnológico nacional, o Sistema 
+Nacional de Regulação e Governança de Inteligência Artificial (SIA) regulamentará regimes 
+simplificados, envolvendo flexibilização de obrigações regulatórias previstas nesta Lei, nos 
+seguintes casos:
+2
+I – padrões e formatos abertos e livres, com exceção daqueles considerados de alto 
+risco;
+II – incentivo à inovação e à pesquisa científica e tecnológica no ambiente 
+produtivo, com vistas à capacitação tecnológica, ao alcance da autonomia tecnológica e ao 
+desenvolvimento do sistema produtivo nacional e regional do País;
+III – projetos de interesse público, os que atendam as prioridades das políticas 
+industrial e de ciência, tecnologia e inovação e os que visem à solução dos problemas 
+brasileiros.
+Art. 2º O desenvolvimento, a implementação e o uso de sistema de IA no Brasil 
+têm como fundamentos:
+I – centralidade da pessoa humana;
+II – respeito e promoção aos direitos humanos e aos valores democráticos;
+III – livre desenvolvimento da personalidade e liberdade de expressão;
+IV – proteção ao meio ambiente e ao desenvolvimento ecologicamente 
+equilibrado;
+V – igualdade, não discriminação, pluralidade e diversidade;
+VI – direitos sociais, em especial a valorização do trabalho humano;
+VII – desenvolvimento socioeconômico, científico e tecnológico e inovação;
+VIII – defesa do consumidor, livre iniciativa e livre concorrência;
+IX – privacidade, proteção de dados pessoais e autodeterminação informativa;
+X – promoção da pesquisa e do desenvolvimento com a finalidade de estimular o 
+desenvolvimento social, a redução de desigualdades e a inovação nos setores produtivos, no 
+poder público e as parcerias público-privadas;
+XI – acesso à informação e à disseminação de dados, de forma aberta, estruturada 
+e segura;
+XII – proteção de direitos culturais e promoção dos bens artísticos e históricos;
+XIII – educação e conscientização sobre os sistemas de IA para a promoção do 
+pleno desenvolvimento e do exercício da cidadania;
+XIV – proteção e promoção de direitos de grupos vulneráveis, em especial de 
+idosos, pessoas com deficiência e, com proteção integral e visando ao melhor interesse, de 
+crianças e adolescentes, reconhecendo a vulnerabilidade agravada;
+XV – integridade da informação mediante a proteção e a promoção da 
+confiabilidade, da precisão e da consistência das informações para o fortalecimento da 
+liberdade de expressão, do acesso à informação e dos demais direitos fundamentais;
+XVI – fortalecimento do processo democrático e do pluralismo político;
+XVII – proteção de direitos de autor e conexos, de direitos de propriedade 
+intelectual e do segredo comercial e industrial;
+XVIII – garantia da segurança da informação e da segurança cibernética; 
+XIX – inserção, integração e competitividade brasileira no mercado internacional;
+XX – cooperação internacional para o desenvolvimento e o atendimento a padrões 
+técnicos e a regimes de obrigações nacionais e internacionais.
+3
+Art. 3º O desenvolvimento, a implementação e o uso de sistemas de IA observarão 
+a boa-fé e os seguintes princípios:
+I – crescimento inclusivo, desenvolvimento sustentável e bem-estar, incluindo a 
+proteção do trabalho e do trabalhador;
+II – autodeterminação e liberdade de decisão e de escolha;
+III – supervisão e determinação humana efetiva e adequada no ciclo de vida da IA, 
+considerando o grau de risco envolvido;
+IV – não discriminação ilícita ou abusiva;
+V – justiça, equidade e inclusão;
+VI – transparência e explicabilidade, observado o segredo comercial e industrial, 
+considerada a participação de cada agente na cadeia de valor de IA;
+VII – diligência devida e auditabilidade ao longo de todo o ciclo de vida do sistema 
+de IA, de acordo com o risco envolvido e o estado da arte do desenvolvimento tecnológico;
+VIII – confiabilidade e robustez do sistema de IA;
+IX – proteção dos direitos e garantias fundamentais, incluindo o devido processo 
+legal, a contestabilidade e o contraditório;
+X – prestação de contas, responsabilização e reparação integral de danos;
+XI – prevenção, precaução e mitigação de riscos e danos;
+XII – não maleficência e proporcionalidade entre os métodos empregados e as 
+finalidades determinadas e legítimas do sistema de IA;
+XIII – desenvolvimento e uso ético e responsável da IA;
+XIV – governança transparente, participativa e orientada à proteção de direitos 
+fundamentais individuais, sociais, coletivos e econômicos;
+XV – promoção da interoperabilidade de sistemas de IA para permitir acesso mais 
+amplo e inovação colaborativa;
+XVI – possibilidade e condição de utilização de sistemas e tecnologias com 
+segurança e autonomia por pessoas com deficiência, garantida a plena acessibilidade à 
+informação e à comunicação;
+XVII – proteção integral das crianças e dos adolescentes.
+Art. 4º Para os fins desta Lei, adotam-se as seguintes definições:
+I – sistema de inteligência artificial (IA): sistema baseado em máquina que, com 
+graus diferentes de autonomia e para objetivos explícitos ou implícitos, infere, a partir de um 
+conjunto de dados ou informações que recebe, como gerar resultados, em especial previsão, 
+conteúdo, recomendação ou decisão que possa influenciar o ambiente virtual, físico ou real;
+II – ciclo de vida: série de fases, desde a concepção, planejamento, 
+desenvolvimento, treinamento, retreinamento, testagem, validação, implantação e 
+monitoramento, para eventuais modificações e adaptações de um sistema de IA, cuja 
+descontinuidade pode ocorrer em quaisquer das etapas referidas;
+III – sistema de inteligência artificial de propósito geral (SIAPG): sistema de IA 
+baseado em modelo de IA treinado com bases de dados em grande escala, capaz de realizar 
+ampla variedade de tarefas distintas e servir diferentes finalidades, incluindo aquelas para as 
+4
+quais não foram especificamente desenvolvidos e treinados, podendo ser integrado em 
+diversos sistemas ou aplicações;
+IV – inteligência artificial generativa (IA generativa): modelo de IA 
+especificamente destinado a gerar ou modificar significativamente, com diferentes graus de 
+autonomia, texto, imagens, áudio, vídeo ou código de software;
+V – desenvolvedor: pessoa natural ou jurídica, de natureza pública ou privada, que 
+desenvolva sistema de IA, diretamente ou por encomenda, com vistas a sua colocação no 
+mercado ou a sua aplicação em serviço por ela fornecido, sob seu próprio nome ou marca, a 
+título oneroso ou gratuito;
+VI – distribuidor: pessoa natural ou jurídica, de natureza pública ou privada, que 
+disponibilize e distribua sistema de IA para que terceiro o aplique, a título oneroso ou gratuito;
+VII – aplicador: pessoa natural ou jurídica, de natureza pública ou privada, que 
+empregue ou utilize, em seu nome ou benefício, sistema de IA, inclusive configurando, 
+mantendo ou apoiando com o fornecimento de dados para a operação e o monitoramento do 
+sistema de IA;
+VIII – agentes de inteligência artificial: desenvolvedores, distribuidores e 
+aplicadores que atuem na cadeia de valor e na governança interna de sistemas de IA, nos 
+termos definidos por regulamento;
+IX – autoridade competente: entidade da administração pública federal, dotada de 
+autonomia técnica e decisória, que coordenará o Sistema Nacional de Regulação e 
+Governança de Inteligência Artificial (SIA);
+X – Sistema Nacional de Regulação e Governança de Inteligência Artificial (SIA):
+ecossistema regulatório coordenado pela autoridade competente que tem por finalidade 
+precípua promover e garantir a cooperação e a harmonização com as demais autoridades 
+setoriais e entes reguladores, sem vínculo de subordinação hierárquica entre eles, e outros 
+sistemas nacionais para a plena implementação e fiscalização do cumprimento desta Lei em 
+todo o território nacional, com segurança jurídica;
+XI – discriminação abusiva ou ilícita: qualquer distinção, exclusão, restrição ou 
+preferência, em qualquer área da vida pública ou privada, cujo propósito ou efeito seja anular 
+ou restringir, de forma abusiva ou ilícita, o reconhecimento, o gozo ou o exercício, em 
+condições de igualdade, de um ou mais direitos ou liberdades previstos no ordenamento 
+jurídico, em razão de características pessoais;
+XII – discriminação indireta abusiva ou ilícita: discriminação que ocorre quando 
+normativa, prática ou critério aparentemente neutro tem a capacidade de acarretar 
+desvantagem para pessoa ou grupos afetados, ou os coloquem em desvantagem, desde que 
+essa normativa, prática ou critério seja abusivo ou ilícito;
+XIII – mineração de textos e dados: processo de extração e análise de grandes 
+quantidades de dados, com alto grau de automação, realizado de forma direta nos dados 
+primários, ou indireta por meio de outra ferramenta, a partir dos quais são extraídos padrões 
+e correlações que gerarão informações relevantes para a pesquisa, o desenvolvimento ou a 
+utilização de sistemas de IA;
+5
+XIV – pessoa ou grupo afetado: pessoa natural ou grupo de pessoas que seja direta 
+ou indiretamente impactado por sistema de IA;
+XV – avaliação preliminar: processo simplificado de autoavaliação, anterior à 
+utilização ou colocação no mercado de um ou mais sistemas de IA, para classificação de seu 
+grau de risco, com o objetivo de determinar o cumprimento das obrigações definidas nesta 
+Lei;
+XVI – avaliação de impacto algorítmico: análise do impacto sobre os direitos 
+fundamentais, apresentando medidas preventivas, mitigadoras e de reversão dos impactos 
+negativos, bem como medidas potencializadoras dos impactos positivos de um sistema de IA;
+XVII – vulnerabilidade: estado de assimetria agravada de informação ou de poder 
+que afeta pessoas naturais ou grupos em razão, entre outras, de suas condições cognitivas, 
+sociais, étnicas, econômicas e etárias, a exemplo de crianças e adolescentes, idosos e pessoas 
+com deficiência;
+XVIII – ambiente regulatório experimental (sandbox regulatório): conjunto de 
+condições especiais estabelecidas para desenvolver, treinar, validar e testar, por tempo 
+limitado, um sistema de IA inovador, bem como modelos de negócio e políticas públicas 
+inovadoras e técnicas e tecnologias experimentais que envolvam IA, mediante o cumprimento 
+de critérios e de limites previamente estabelecidos e por meio de procedimento facilitado;
+XIX – estado da arte do desenvolvimento tecnológico: meios técnicos razoáveis e 
+disponíveis, baseado em evidências científicas, tecnológicas e boas práticas consolidadas;
+XX – efeitos jurídicos relevantes: consequências jurídicas modificativas, 
+impeditivas ou extintivas negativas que atingem direitos e liberdades fundamentais;
+XXI – conteúdos sintéticos: informações, tais como imagens, vídeos, áudio e texto, 
+que foram significativamente modificadas ou geradas por sistemas de IA;
+XXII – integridade da informação: resultado de um ecossistema informacional que 
+viabiliza e disponibiliza informações e conhecimento confiáveis, diversos e precisos, em 
+tempo hábil para promoção da liberdade de expressão;
+XXIII – identificação biométrica: método que envolve o reconhecimento de 
+características físicas, fisiológicas e comportamentais humanas, com o propósito de 
+identificar um indivíduo;
+XXIV – autenticação biométrica: processo de verificação ou confirmação da 
+identidade de um indivíduo, com o objetivo de singularizá-lo, por meio da comparação de 
+suas características biométricas obtidas a partir de um modelo previamente armazenado;
+XXV – introdução ou colocação em circulação no mercado: disponibilização 
+inicial ou introdução para usuários do sistema de IA, a título oneroso ou gratuito;
+XXVI – autoridades setoriais: órgãos e entidades do Poder Executivo federal 
+responsáveis pela regulação de setores específicos da atividade econômica e governamental, 
+conforme sua competência legal;
+XXVII – sistemas de armas autônomas (SAA): sistemas que, uma vez ativados, 
+podem selecionar e atacar alvos sem intervenção humana adicional;
+XXVIII – interface de programação de aplicação (API): conjunto de protocolos e 
+funções que permitem que diferentes sistemas interajam entre si;
+6
+XXIX – contexto de uso: utilização específica à qual é destinado o sistema ou 
+aplicação de IA, incluindo o sistema a ser utilizado, o contexto e a finalidade específicos e 
+suas condições de utilização;
+XXX – risco sistêmico: potenciais efeitos adversos negativos decorrentes de um 
+sistema de IA de propósito geral e generativa com impacto significativo sobre direitos 
+fundamentais individuais e sociais.
+CAPÍTULO II
+DOS DIREITOS
+Seção I
+Dos Direitos da Pessoa ou Grupo Afetado por Sistema de IA
+Art. 5º A pessoa ou grupo afetado por sistema de IA, independentemente do seu 
+grau de risco, tem os seguintes direitos, a serem exercidos na forma e nas condições descritas 
+neste Capítulo:
+I – direito à informação quanto às suas interações com sistemas de IA, de forma 
+acessível, gratuita e de fácil compreensão, inclusive sobre caráter automatizado da interação, 
+exceto nos casos em que se trate de sistemas de IA dedicados única e exclusivamente à 
+cibersegurança e à ciberdefesa, conforme regulamento;
+II – direito à privacidade e à proteção de dados pessoais, em especial os direitos 
+dos titulares de dados nos termos da Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de 
+Proteção de Dados Pessoais), e da legislação pertinente;
+III – direito à não discriminação ilícita ou abusiva e à correção de vieses 
+discriminatórios ilegais ou abusivos, sejam eles diretos ou indiretos.
+§ 1º A informação referida no inciso I do caput deste artigo será fornecida com o 
+uso de ícones ou símbolos uniformizados facilmente reconhecíveis, sem prejuízo de outros 
+formatos.
+§ 2º Os sistemas de IA que se destinem a grupos vulneráveis deverão, em todas as 
+etapas de seu ciclo de vida, ser transparentes e adotar linguagem simples, clara e apropriada 
+à idade e à capacidade cognitiva, e ser implementados considerando o melhor interesse desses 
+grupos.
+Seção II
+Dos Direitos da Pessoa ou Grupo Afetado por Sistema de IA de Alto Risco
+Art. 6º A pessoa ou grupo afetado por sistema de IA de alto risco tem os seguintes 
+direitos:
+I – direito à explicação sobre a decisão, a recomendação ou a previsão feitas pelo 
+sistema;
+II – direito de contestar e de solicitar a revisão de decisões, recomendações ou 
+previsões de sistema de IA;
+7
+III – direito à revisão humana das decisões, levando-se em conta o contexto, o risco 
+e o estado da arte do desenvolvimento tecnológico.
+§ 1º A explicação referida no inciso I do caput deste artigo, respeitado o segredo 
+comercial e industrial, incluirá informações suficientes, adequadas e inteligíveis, nos termos 
+de regulamento.
+§ 2º Os direitos previstos nesta Seção serão implementados considerando o estado 
+da arte do desenvolvimento tecnológico, devendo o agente do sistema de IA de alto risco 
+sempre implementar medidas eficazes e proporcionais.
+Art. 7º O direito à explicação previsto nesta Seção será fornecido por processo 
+gratuito, em linguagem simples, acessível e adequada que facilite à pessoa compreender o 
+resultado da decisão ou previsão em questão, dentro de um prazo razoável, a depender da 
+complexidade do sistema de IA e do número de agentes envolvidos.
+Parágrafo único. A autoridade competente disciplinará prazos e procedimentos 
+para o exercício do direito à explicação, incluindo procedimento simplificado, considerando, 
+entre outros, os seguintes critérios:
+I – a complexidade dos sistemas de IA;
+II – o porte do agente, em especial no caso de micro e pequenas empresas e 
+startups.
+Art. 8º A supervisão humana de sistemas de IA de alto risco buscará prevenir ou 
+minimizar os riscos para direitos e liberdades das pessoas ou grupos afetados que possam 
+decorrer de seu uso normal ou de seu uso em condições de utilização indevida razoavelmente 
+previsíveis, viabilizando que as pessoas responsáveis pela supervisão humana possam, nos 
+termos de regulamento, compreender, interpretar, decidir e intervir nos sistemas de IA, bem 
+como priorizar o gerenciamento de riscos e impactos irreversíveis.
+Parágrafo único. A supervisão humana não será exigida caso sua implementação 
+seja comprovadamente impossível ou implique esforço desproporcional, hipóteses em que o 
+agente do sistema de IA de alto risco implementará medidas alternativas eficazes.
+Art. 9º Os agentes de IA de alto risco informarão, de forma suficiente, objetiva, 
+clara e acessível, os procedimentos necessários para o exercício dos direitos descritos neste 
+Capítulo.
+Art. 10. A autoridade competente estabelecerá, no que couber e sempre em 
+cooperação institucional formal com as autoridades setoriais do SIA, diretrizes gerais sobre a 
+forma e as condições de exercício de direitos perante cada um dos agentes de sistema de IA.
+Art. 11. A defesa dos interesses e dos direitos previstos nesta Lei poderá ser 
+exercida:
+I – perante o órgão administrativo competente;
+II – em juízo, individual ou coletivamente, na forma do disposto na legislação 
+pertinente acerca dos instrumentos de tutela individual, coletiva e difusa.
+CAPÍTULO III
+DA CATEGORIZAÇÃO DOS RISCOS
+8
+Seção I
+Da Avaliação Preliminar
+Art. 12. Antes de sua introdução e circulação no mercado, emprego ou utilização, 
+o agente de IA poderá realizar avaliação preliminar para determinar o grau de risco do sistema, 
+baseando-se nos critérios previstos neste Capítulo, de acordo com o estado da arte do 
+desenvolvimento tecnológico.
+§ 1º A realização da avaliação preliminar será considerada como medida de boa 
+prática e poderá resultar em benefícios para o agente de IA para fins do disposto no art. 50,
+§ 1º, podendo, inclusive, receber tratamento prioritário em procedimentos para avaliação de 
+conformidade, nos termos do art. 34, ambos desta Lei.
+§ 2º Caberá à autoridade setorial definir as hipóteses em que a avaliação preliminar 
+será simplificada ou dispensada, observadas as normas gerais da autoridade competente.
+§ 3º O agente poderá requerer junto aos demais agentes dos sistemas de IA
+informações que o capacitem a efetuar avaliação preliminar, nos termos desta Lei, respeitados 
+os segredos comercial e industrial.
+§ 4º Garantidos o contraditório e a ampla defesa, a autoridade competente poderá, 
+em colaboração com as autoridades setoriais do SIA, determinar a reclassificação do sistema 
+de IA, mediante notificação prévia, bem como determinar, de forma fundamentada, a 
+realização de avaliação de impacto algorítmico.
+§ 5º O resultado da avaliação preliminar poderá ser utilizado pelo agente de IA 
+para demonstrar conformidade com os requisitos de segurança, transparência e ética previstos 
+nesta Lei.
+§ 6º A autoridade setorial poderá requerer a realização ou o acesso à avaliação 
+preliminar do sistema de IA para fins de avaliação de risco do sistema, respeitados os segredos 
+comercial e industrial.
+Seção II
+Do Risco Excessivo
+Art. 13. São vedados o desenvolvimento, a implementação e o uso de sistemas de 
+IA:
+I – com o propósito de:
+a) instigar ou induzir o comportamento da pessoa natural ou de grupos de maneira 
+que cause danos à saúde, à segurança ou a outros direitos fundamentais próprios ou de 
+terceiros;
+b) explorar quaisquer vulnerabilidades da pessoa natural ou de grupos com o 
+objetivo ou o efeito de induzir o seu comportamento de maneira que cause danos à saúde, à 
+segurança ou outros a direitos fundamentais próprios ou de terceiros;
+c) avaliar os traços de personalidade, as características ou o comportamento 
+passado, criminal ou não, de pessoas singulares ou grupos, para avaliação de risco de 
+cometimento de crimes, de infrações ou de reincidência;
+9
+d) possibilitar a produção ou disseminação ou facilitar a criação de material que 
+caracterize ou represente abuso ou exploração sexual de crianças e adolescentes;
+II − pelo poder público, para avaliar, classificar ou ranquear as pessoas naturais, 
+com base no seu comportamento social ou em atributos da sua personalidade, por meio de 
+pontuação universal, para o acesso a bens e serviços e políticas públicas, de forma ilegítima 
+ou desproporcional;
+III – em sistemas de armas autônomas (SAA);
+IV – em sistemas de identificação biométrica à distância, em tempo real e em 
+espaços acessíveis ao público, com exceção das seguintes hipóteses:
+a) instrução de inquérito ou processo criminal, mediante autorização judicial 
+prévia e motivada, quando houver indícios razoáveis da autoria ou participação em infração 
+penal, a prova não puder ser feita por outros meios disponíveis e o fato investigado não 
+constituir infração penal de menor potencial ofensivo;
+b) busca de vítimas de crimes e de pessoas desaparecidas, ou em circunstâncias 
+que envolvam ameaça grave e iminente à vida ou à integridade física de pessoas naturais;
+c) flagrante delito de crimes punidos com pena privativa de liberdade superior a 2 
+(dois) anos, com imediata comunicação à autoridade judicial;
+d) recaptura de réus evadidos e cumprimento de mandados de prisão e de medidas 
+restritivas ordenadas pelo Poder Judiciário.
+§ 1º Os desenvolvedores de sistemas de IA devem adotar medidas para coibir o 
+uso de seus sistemas para as hipóteses descritas no caput deste artigo.
+§ 2º O uso de sistemas a que se refere o inciso IV deste artigo deverá ser 
+proporcional e estritamente necessário ao atendimento do interesse público, observados o 
+devido processo legal e o controle judicial, bem como os princípios e direitos previstos nesta 
+Lei e, no que couber, na Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de 
+Dados Pessoais), especialmente a garantia contra a discriminação e a necessidade de revisão 
+da inferência algorítmica pelo agente público responsável.
+Seção III
+Do Alto Risco
+Art. 14. Considera-se de alto risco o sistema de IA empregado para as seguintes 
+finalidades e contextos de usos, levando-se em conta a probabilidade e a gravidade dos 
+impactos adversos sobre pessoas ou grupos afetados, nos termos de regulamentação:
+I – aplicação como dispositivos de segurança na gestão e no funcionamento de 
+infraestruturas críticas, tais como controle de trânsito e redes de abastecimento de água e de 
+eletricidade, quando houver risco relevante à integridade física das pessoas e à interrupção de 
+serviços essenciais, de forma ilícita ou abusiva, e desde que sejam determinantes para o 
+resultado ou decisão, funcionamento ou acesso a serviço essencial;
+II – sistemas de IA utilizados como fator determinante na tomada de decisões de 
+seleção de estudantes em processos de ingresso em instituições de ensino ou de formação 
+profissional, ou para avaliações determinantes no progresso acadêmico ou monitoramento de 
+10
+estudantes, ressalvadas as hipóteses de monitoramento exclusivamente para finalidade de 
+segurança;
+III – recrutamento, triagem, filtragem ou avaliação de candidatos, tomada de 
+decisões sobre promoções ou cessações de relações contratuais de trabalho, avaliação do 
+desempenho e do comportamento das pessoas afetadas nas áreas de emprego, gestão de 
+trabalhadores e acesso ao emprego por conta própria;
+IV – avaliação de critérios de acesso, elegibilidade, concessão, revisão, redução ou 
+revogação de serviços privados e públicos que sejam considerados essenciais, incluindo 
+sistemas utilizados para avaliar a elegibilidade de pessoas naturais quanto a prestações de 
+serviços públicos de assistência e de seguridade;
+V – avaliação e classificação de chamadas ou determinação de prioridades para 
+serviços públicos essenciais, tais como de bombeiros e assistência médica;
+VI – administração da justiça, no que se refere ao uso de sistemas que auxiliem 
+autoridades judiciárias na investigação dos fatos e na aplicação da lei quando houver risco às 
+liberdades individuais e ao Estado democrático de direito, excluindo-se os sistemas que 
+auxiliem atos e atividades administrativas;
+VII – veículos autônomos em espaços públicos, quando seu uso puder gerar risco 
+relevante à integridade física de pessoas;
+VIII – aplicações na área da saúde para auxiliar diagnósticos e procedimentos 
+médicos, quando houver risco relevante à integridade física e mental das pessoas;
+IX – estudo analítico de crimes relativos a pessoas naturais, permitindo às 
+autoridades policiais pesquisar grandes conjuntos de dados, disponíveis em diferentes fontes 
+de dados ou em diferentes formatos, no intuito de identificar padrões e perfis 
+comportamentais;
+X – investigação por autoridades administrativas para avaliar a credibilidade dos 
+elementos de prova no decurso da investigação ou da repressão de infrações, para prever a 
+ocorrência ou a recorrência de uma infração real ou potencial com base na definição de perfis 
+de pessoas singulares;
+XI – sistemas de identificação e autenticação biométrica para o reconhecimento de 
+emoções, excluindo-se os sistemas de autenticação biométrica cujo único objetivo seja a 
+confirmação de uma pessoa singular específica; 
+XII – gestão da imigração e controle de fronteiras para avaliar o ingresso de pessoa 
+ou grupo de pessoas em território nacional.
+Parágrafo único. Não se considera uso de alto risco aquele no qual o sistema de IA 
+é utilizado como tecnologia intermediária que não influencie ou determine resultado ou 
+decisão ou quando desempenha uma tarefa processual restrita.
+Art. 15. Caberá ao SIA regulamentar a classificação da lista dos sistemas de IA de 
+alto risco, bem como identificar novas hipóteses de aplicação de alto risco, levando em 
+consideração a probabilidade e a gravidade dos impactos adversos sobre pessoas ou grupos 
+afetados, e com base em, pelo menos, 1 (um) dos seguintes critérios:
+I – o sistema produzir, de forma ilícita ou abusiva, efeitos jurídicos relevantes e 
+impactar negativamente o acesso a serviços públicos ou essenciais;
+11
+II – alto potencial danoso de ordem material ou moral, bem como viés 
+discriminatório ilegal ou abusivo;
+III – o sistema afetar significativamente pessoas de um grupo vulnerável;
+IV – grau de reversibilidade dos danos;
+V – histórico danoso, de ordem material ou moral relevante;
+VI – grau de transparência, explicabilidade e auditabilidade do sistema de IA que 
+dificulte significativamente o seu controle ou supervisão;
+VII – alto potencial danoso sistêmico, tal como à segurança cibernética, e violência 
+contra grupos vulneráveis;
+VIII – extensão e probabilidade dos riscos do sistema de IA, incluindo as medidas 
+de mitigação adotadas e considerando os benefícios esperados, de acordo com os princípios 
+e fundamentos desta Lei;
+IX – o sistema representar riscos significativos à saúde humana integral – física, 
+mental e social – nas dimensões individual e coletiva;
+X – o sistema poder impactar negativamente o desenvolvimento e a integridade 
+física, psíquica ou moral de crianças e adolescentes.
+Art. 16. A regulamentação da lista e a classificação de novas aplicações de 
+sistemas de IA de alto risco serão precedidas de procedimento que garanta participação social 
+e de análise de impacto regulatório, cabendo:
+I – à autoridade competente, como coordenadora do SIA, garantir a aplicação 
+harmônica desta Lei, devendo:
+a) expedir orientações normativas gerais em relação aos impactos dos sistemas de 
+IA sobre os direitos e as liberdades fundamentais ou que produzam efeitos jurídicos 
+relevantes;
+b) publicar a lista consolidada de todos os sistemas de alto risco definidos pelas 
+autoridades setoriais;
+II – às autoridades setoriais, no âmbito de suas atribuições e em caráter prevalente, 
+dispor sobre os aspectos técnicos e específicos de aplicações de IA no mercado regulado, 
+devendo:
+a) estabelecer listas sobre hipóteses classificadas ou não classificadas como de alto 
+risco dentro das finalidades e contextos definidos no art. 14;
+b) estabelecer, com precisão, o rol de sistemas de alto risco desta Lei;
+c) receber e analisar as avaliações de impacto algorítmico;
+d) indicar, em lista, casos de utilização de sistemas ou aplicações de sistemas de 
+IA de alto risco ou não.
+§ 1º A autoridade competente e as autoridades setoriais deverão considerar o 
+estado da arte do desenvolvimento tecnológico e a evolução e a harmonização das boas 
+práticas setoriais e não setoriais para fins de monitoramento e reclassificação contínua dos 
+sistemas de IA de alto risco.
+§ 2º O desenvolvedor e o aplicador que considerar que o sistema de IA não se 
+enquadra na classificação de alto risco poderá apresentar petição fundamentada às autoridades 
+setoriais juntamente com a sua avaliação preliminar, nos termos de regulamento.
+12
+§ 3º Os distribuidores deverão assegurar que o sistema de IA cumpra as medidas 
+de governança previstas nesta Lei antes de ser colocado em circulação no mercado.
+§ 4º A autoridade competente e as autoridades setoriais poderão acreditar 
+organismos de avaliação de conformidade que ofereçam aos agentes de IA serviços de 
+identificação e classificação de risco do uso de sistemas de IA, em conformidade com normas 
+técnicas nacionais e internacionais aplicáveis.
+§ 5º Na classificação de novas aplicações de sistemas de IA de alto risco, as 
+autoridades setoriais deverão:
+I – indicar de modo expresso suas consequências jurídicas e administrativas e as 
+condições para que a regularização ocorra de modo proporcional e equânime, não se podendo 
+impor aos sujeitos atingidos ônus ou perdas que, em função das peculiaridades do caso, sejam 
+anormais ou excessivos;
+II – considerar os obstáculos e as dificuldades reais dos agentes de IA e as 
+exigências das políticas públicas a seu cargo, sem prejuízo dos direitos das pessoas e dos 
+grupos afetados;
+III – prever regime de transição para que novas obrigações e deveres sejam 
+cumpridos de forma proporcional, equânime e eficiente e sem prejuízo dos interesses das
+pessoas e dos grupos afetados por sistemas de IA.
+§ 6º O procedimento referido no caput deste artigo deverá oportunizar a 
+manifestação dos setores econômicos produtivos afetados.
+CAPÍTULO IV
+DA GOVERNANÇA DOS SISTEMAS DE INTELIGÊNCIA ARTIFICIAL
+Seção I
+Disposições Gerais
+Art. 17. Os agentes de IA deverão garantir a segurança dos sistemas e o 
+atendimento dos direitos de pessoas ou grupos afetados, nos termos de regulamento.
+Seção II
+Das Medidas de Governança para Sistemas de Alto Risco
+Art. 18. Além de atender ao disposto na Seção I deste Capítulo, o desenvolvedor
+e o aplicador, ao introduzirem ou colocarem em circulação no mercado sistema de alto risco, 
+adotarão, entre outras, as seguintes medidas de governança e os seguintes processos internos, 
+de acordo com o estado da arte do desenvolvimento tecnológico e com esforços razoáveis:
+I – para o aplicador:
+a) documentação em formato adequado, considerando todas as etapas relevantes 
+no ciclo de vida do sistema;
+b) uso de ferramentas ou processos dos resultados da utilização do sistema, de 
+modo a permitir a avaliação de sua acurácia e robustez e a apurar potenciais resultados 
+13
+discriminatórios ilícitos ou abusivos, e implementação das medidas de mitigação de riscos 
+adotadas;
+c) documentação da realização de testes para avaliação de níveis apropriados de 
+confiabilidade e segurança;
+d) documentação em formato adequado do grau de supervisão humana que tenha 
+contribuído para os resultados apresentados pelos sistemas de IA;
+e) medidas para mitigar e prevenir vieses discriminatórios, quando o risco à 
+discriminação decorrer da aplicação do sistema de IA;
+f) disponibilização de informações adequadas que permitam, respeitado o sigilo 
+industrial e comercial de acordo com as suas capacidades técnicas, a interpretação dos 
+resultados e o funcionamento de sistemas de IA introduzidos ou colocados em circulação no 
+mercado;
+II – para o desenvolvedor:
+a) manutenção de registro das medidas de governança adotadas no 
+desenvolvimento do sistema de IA, para prestação das informações necessárias ao aplicador 
+de modo que este último cumpra as obrigações determinadas no inciso I do caput deste artigo, 
+em conformidade com a relação jurídica estabelecida entre as partes e ressalvado o sigilo 
+comercial e industrial;
+b) uso de ferramentas ou processos de registro da operação do sistema, de modo a 
+permitir a avaliação de sua acurácia e robustez;
+c) realização de testes para avaliação de níveis apropriados de segurança;
+d) adoção de medidas técnicas para viabilizar a aplicabilidade dos resultados dos 
+sistemas de IA e o fornecimento de informações adequadas que permitam a interpretação dos 
+seus resultados e do seu funcionamento, respeitado o sigilo industrial e comercial;
+e) medidas para mitigar e prevenir vieses discriminatórios, quando o risco à 
+discriminação decorrer da aplicação do sistema de IA; 
+f) transparência sobre as políticas de gestão e governança para promoção da 
+responsabilidade social e sustentável, no âmbito de suas atividades.
+§ 1º Caberá às autoridades setoriais definir as hipóteses em que as obrigações 
+estabelecidas em regulamento serão flexibilizadas ou dispensadas, de acordo com o contexto 
+de atuação do agente de IA na cadeia de valor do sistema de IA.
+§ 2º Os distribuidores deverão apoiar e verificar se o sistema de IA cumpre as 
+medidas de governança previstas nesta Lei, antes de o sistema ser colocado em circulação no 
+mercado, nos termos de regulamento.
+§ 3º Os agentes da cadeia de valor de sistema ou aplicação de IA devem cooperar 
+entre si, disponibilizando as informações necessárias e fornecendo o acesso técnico e a 
+assistência razoavelmente esperados e necessários para o cumprimento das obrigações 
+estabelecidas neste artigo, resguardado o sigilo industrial e comercial.
+§ 4º As medidas de governança e os processos internos previstos neste artigo, a 
+serem adotados pelos agentes, deverão corresponder à respectiva fase do ciclo de vida do 
+sistema de IA que lhes compete, de acordo com o nível de conhecimento sobre o respectivo 
+projeto, implementação, aplicação e uso.
+14
+§ 5º Caso o aplicador ou o distribuidor realize modificação substancial ou altere a 
+finalidade de um sistema de IA, será considerado desenvolvedor para os efeitos desta Lei.
+Art. 19. Quando o sistema de IA gerar conteúdo sintético, deverá, considerando o 
+estado da arte do desenvolvimento tecnológico e o contexto de uso, incluir identificador em 
+tais conteúdos para verificação de autenticidade ou de características de sua proveniência, 
+modificações ou transmissão, conforme regulamento.
+§ 1º A presença do identificador previsto no caput não supre outros requisitos de 
+informação e transparência, bem como outros parâmetros a serem definidos em regulamento.
+§ 2º A autoridade competente, em colaboração com o Conselho Permanente de 
+Cooperação Regulatória de Inteligência Artificial (Cria), disponibilizará biblioteca de 
+softwares com vistas a facilitar o cumprimento da obrigação de sinalização, idealmente 
+adotando padrão internacional amplamente reconhecido.
+§ 3º O uso de conteúdo sintético em obras com finalidade artística, cultural ou de 
+entretenimento poderá, sempre que não representar risco de disseminação de informações 
+falsas, ser sinalizado por meios que não comprometam a utilidade e a qualidade da obra, como 
+nos créditos ou nos metadados associados a tal obra, preservando sua fruição pelo público e 
+seus usos convencionais.
+Art. 20. Para buscar a mitigação de riscos relacionados à produção e à circulação 
+de conteúdo sintético, o poder público, em conjunto com a iniciativa privada, com a sociedade 
+civil e com profissionais de pesquisa e desenvolvimento, deverá, na forma de regulamentação, 
+promover capacidades para identificar e rotular conteúdo sintético produzido por sistemas de 
+IA e estabelecer a autenticidade e a proveniência do conteúdo digital produzido.
+Art. 21. Os agentes de IA de alto risco devem garantir que seus sistemas estão de 
+acordo com as medidas de governança definidas em todo o Capítulo IV desta Lei, assim como 
+em outras legislações pertinentes, em especial do seu respectivo setor.
+Seção III
+Das Medidas de Governança Aplicadas pelo Poder Público
+Art. 22. Ao desenvolver, contratar ou adotar os sistemas de IA de alto risco, o 
+poder público deve garantir:
+I – o acesso aos bancos de dados e a plena portabilidade de dados dos cidadãos 
+brasileiros e da gestão pública, nos termos da Lei nº 13.709, de 14 de agosto de 2018 (Lei 
+Geral de Proteção de Dados Pessoais);
+II – a padronização mínima dos sistemas em termos de sua arquitetura de dados e 
+metadados, a fim de promover interoperabilidade entre sistemas e boa governança de dados.
+Art. 23. Adicionalmente às medidas de governança estabelecidas neste Capítulo, 
+todos os entes da Administração Pública direta e indireta, ao desenvolver ou utilizar sistemas 
+de IA de alto risco, adotarão as seguintes medidas:
+I – definição de protocolos de acesso e de utilização do sistema que permitam o 
+registro de quem o utilizou, para qual situação concreta e com qual finalidade;
+15
+II – garantia facilitada e efetiva ao cidadão, perante o poder público, de direito à 
+explicação e à revisão humanas de decisão por sistemas de IA que gerem efeitos jurídicos 
+relevantes ou que impactem significativamente os interesses do afetado, a ser promovida pelo 
+agente público competente;
+III – publicização em veículos de fácil acesso, preferencialmente em seus sítios 
+eletrônicos, das avaliações preliminares dos sistemas de IA de alto risco desenvolvidos, 
+implementados ou utilizados pelo poder público da União, dos Estados, do Distrito Federal e
+dos Municípios.
+§ 1º A utilização de sistemas biométricos para fins de identificação deverá observar 
+os princípios e as medidas de governança previstos nesta Lei e será precedida de avaliação de 
+impacto algorítmico, observadas as garantias para o exercício dos direitos de pessoas ou 
+grupos afetados e a proteção contra a discriminação direta, indireta, ilegal ou abusiva.
+§ 2º Na impossibilidade de eliminação ou mitigação substantiva dos riscos 
+associados ao sistema de IA identificados na avaliação de impacto algorítmico prevista na
+Seção IV deste Capítulo, sua utilização será descontinuada.
+§ 3º As medidas previstas neste artigo aplicam-se também a sistemas de IA 
+utilizados por empresas responsáveis pela gestão ou pela execução de serviços públicos.
+§ 4º Sistemas de IA de alto risco já implementados pelo poder público quando da 
+publicação desta Lei deverão se adequar em prazo razoável, a ser definido pela autoridade 
+competente.
+§ 5º As disposições previstas no caput deste artigo abrangem órgãos dos Poderes 
+Legislativo e Judiciário, quando no desempenho das funções administrativas, e pessoas 
+jurídicas de direito privado responsáveis pela gestão ou pela execução de serviços públicos, 
+quando afetas a essas atividades.
+Art. 24. Caberá ao Poder Executivo federal fixar padrões mínimos de 
+transparência para os sistemas de IA utilizados por órgãos e entidades do setor público federal, 
+além de monitorar regularmente o cumprimento dessas obrigações. 
+Parágrafo único. O Poder Executivo federal fomentará a transparência nos 
+sistemas de IA utilizados por órgãos e entidades públicas visando promover e consolidar 
+práticas de governança responsável e aberta.
+Seção IV
+Da Avaliação de Impacto Algorítmico
+Art. 25. A avaliação de impacto algorítmico de sistemas de IA é obrigação do 
+desenvolvedor ou do aplicador que introduzir ou colocar sistema de IA em circulação no 
+mercado, sempre que o sistema ou o seu uso forem de alto risco, considerando o papel e a 
+participação do agente na cadeia.
+§ 1º O desenvolvedor de sistema de IA de alto risco deverá, nos termos de 
+regulamento, compartilhar com a autoridade setorial as avaliações preliminares e de impacto 
+algorítmico, cuja metodologia considerará e registrará, ao menos, avaliação dos riscos e 
+16
+benefícios aos direitos fundamentais, medidas de atenuação e efetividade dessas medidas de 
+gerenciamento.
+§ 2º O agente de IA poderá requerer junto aos demais agentes da cadeia, 
+respeitados os segredos industriais e comerciais, as informações necessárias para a realização 
+da avaliação de impacto algorítmico.
+§ 3º A avaliação deverá ser realizada em momento prévio e de acordo com o 
+contexto específico da introdução ou colocação em circulação no mercado do sistema de IA.
+§ 4º Caberá à autoridade setorial definir as hipóteses em que a avaliação de impacto 
+algorítmico será flexibilizada, levando em consideração o contexto de atuação e o papel de 
+cada um dos agentes de IA e as normas gerais da autoridade competente.
+§ 5º A autoridade competente, a partir das diretrizes do Cria, estabelecerá critérios 
+gerais e elementos para a elaboração de avaliação de impacto algorítmico e a periodicidade 
+de sua atualização, considerando o ciclo de vida dos sistemas de IA de alto risco.
+§ 6º Caberá à autoridade setorial, a partir do estado da arte do desenvolvimento 
+tecnológico e das melhores práticas, a regulamentação dos critérios e da periodicidade de 
+atualização das avaliações de impacto algorítmico, considerando o ciclo de vida dos sistemas 
+de IA de alto risco.
+§ 7º Os agentes de IA que, posteriormente à introdução de sistema de IA no 
+mercado ou à sua utilização em serviço, tiverem conhecimento de risco ou impacto inesperado 
+e relevante que o sistema apresente a direitos de pessoas naturais comunicarão o fato 
+imediatamente à autoridade setorial e aos outros agentes na cadeia para que sejam tomadas 
+todas as medidas cabíveis, inclusive, quando necessário, a de notificar pessoas e grupos 
+afetados pelo sistema de IA.
+§ 8º Caberá à autoridade competente e às autoridades setoriais estabelecer as 
+hipóteses em que a participação pública será necessária, assim como as hipóteses em que 
+poderá ser realizada de maneira simplificada, indicando os critérios para essa participação.
+Art. 26. A avaliação de impacto algorítmico será realizada em momento anterior 
+à introdução ou à colocação em circulação no mercado de sistema de IA, bem como consistirá 
+em processo interativo contínuo, executado ao longo de todo o ciclo de vida dos sistemas de 
+IA de alto risco, requeridas atualizações periódicas.
+Parágrafo único. Considerando eventual regulamentação setorial existente, caberá 
+à autoridade competente, em colaboração com as demais entidades do SIA, definir:
+I – parâmetros gerais acerca da periodicidade de atualização das avaliações de 
+impacto algorítmico, que devem ser realizadas ao menos quando da existência de alterações 
+significativas nos sistemas, nos termos de regulamento;
+II – as hipóteses em que a avaliação de impacto algorítmico será simplificada, 
+considerando o tipo de agentes de sistemas de IA.
+Art. 27. Caso o agente de IA tenha que elaborar relatório de impacto à proteção de 
+dados pessoais, nos termos da Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção 
+de Dados Pessoais), a avaliação de impacto algorítmico poderá ser realizada em conjunto com 
+o referido documento.
+17
+Art. 28. As conclusões da avaliação de impacto algorítmico serão públicas, 
+observados os segredos industrial e comercial, nos termos de regulamento.
+Seção V
+Das Medidas de Governança para Sistemas de Inteligência Artificial de Propósito 
+Geral e Generativa
+Art. 29. O desenvolvedor de sistemas de IA de propósito geral e generativa deverá 
+realizar, além da documentação pertinente sobre o desenvolvimento do sistema, sua avaliação 
+preliminar, a fim de identificar seus respectivos níveis de risco esperados, inclusive potencial 
+risco sistêmico.
+Parágrafo único. A avaliação preliminar deverá considerar as finalidades de uso 
+razoavelmente esperadas e os critérios previstos, nos termos da Seção III do Capítulo III desta 
+Lei. 
+Art. 30. O desenvolvedor de sistemas de IA de propósito geral e generativa com 
+risco sistêmico, deve, antes de sua disponibilização ou introdução no mercado para fins 
+comerciais, garantir o cumprimento dos seguintes requisitos:
+I – descrever o modelo de IA de finalidade geral;
+II – documentar os testes e as análises realizados, a fim de identificar e gerenciar 
+riscos razoavelmente previsíveis, conforme apropriado e tecnicamente viável;
+III – documentar os riscos não mitigáveis remanescentes após o desenvolvimento;
+IV – processar e incorporar apenas conjuntos de dados coletados e tratados em 
+conformidade com as exigências legais e sujeitos a uma adequada governança de dados, em 
+especial quando se tratar de dados pessoais, de acordo com a Lei nº 13.709, de 14 de agosto 
+de 2018 (Lei Geral de Proteção de Dados Pessoais) e o Capítulo II desta Lei;
+V – publicar resumo do conjunto de dados utilizados no treinamento do sistema, 
+nos termos de regulamentação;
+VI – conceber e desenvolver os sistemas de IA de propósito geral e generativa 
+recorrendo às normas aplicáveis para, considerando o contexto de uso, reduzir a utilização de 
+energia, a utilização de recursos e os resíduos, bem como para aumentar a eficiência 
+energética e a eficiência global do sistema; 
+VII – elaborar documentação técnica e instruções de utilização inteligíveis, a fim 
+de permitir que os desenvolvedores, distribuidores e aplicadores tenham clareza sobre o 
+funcionamento do sistema.
+§ 1º O cumprimento dos requisitos estabelecidos neste artigo independe de o 
+sistema ser fornecido como modelo autônomo ou incorporado a outro sistema de IA ou a 
+produto, ou fornecido sob licenças gratuitas e de código aberto, como serviço, assim como 
+por meio de outros canais de distribuição.
+§ 2º Os desenvolvedores de sistemas de IA de propósito geral e generativa poderão 
+formular códigos de boas práticas, ou aderir a eles, para demonstrar conformidade às 
+obrigações estipuladas neste artigo.
+18
+Art. 32. Os desenvolvedores de sistemas de IA de propósito geral e generativa 
+disponibilizados como recurso para desenvolvimento de serviços por terceiros, como aqueles 
+fornecidos por meio de API ou outros modelos de integração, devem cooperar, na medida de 
+sua participação, com os demais agentes de IA ao longo do período em que esse serviço é 
+prestado e apoiado, a fim de permitir uma mitigação adequada dos riscos e o cumprimento 
+dos direitos estabelecidos nesta Lei.
+Art. 33. Caberá à autoridade competente, em colaboração com as demais entidades 
+do SIA, definir em quais hipóteses as obrigações previstas nesta Seção serão simplificadas ou 
+dispensadas, de acordo com o risco envolvido e o estado da arte do desenvolvimento 
+tecnológico.
+Parágrafo único. Aplica-se, no que couber, o disposto no Capítulo VI, cabendo à 
+autoridade competente a aprovação de códigos de conduta e de autorregulação de sistemas de 
+IA de propósito geral.
+Seção VI
+Da Acreditação, Certificação e Avaliação de Conformidade
+Art. 34. A autoridade competente e as autoridades setoriais poderão acreditar 
+organismos de avaliação de conformidade nacionais ou internacionais especializados em 
+governança de sistemas de IA para avaliar o cumprimento das medidas de governança e 
+processos internos exigidos pelos órgãos reguladores.
+§ 1º O SIA deverá estabelecer o período de validade da acreditação e os requisitos 
+para sua renovação, em conformidade com normas técnicas nacionais e internacionais 
+aplicáveis.
+§ 2º A avaliação da conformidade do uso de sistemas de IA deverá adotar 
+procedimento eficiente e compatível com a dinâmica do mercado, sem comprometer a 
+qualidade e a confiabilidade do processo.
+§ 3º Os critérios gerais para acreditação dos organismos de avaliação da 
+conformidade deverão ser estabelecidos pela autoridade competente, e os critérios 
+específicos, conjuntamente com as autoridades setoriais, em consonância com as normas 
+técnicas internacionais e considerando as especificidades dos sistemas de IA.
+§ 4º A autoridade competente manterá registro público e atualizado dos 
+organismos de avaliação da conformidade acreditados, incluindo o escopo de sua acreditação.
+§ 5º Os organismos de avaliação da conformidade acreditados estarão sujeitos a 
+monitoramento contínuo e reavaliações periódicas para assegurar a manutenção de sua 
+competência técnica e a conformidade com os requisitos de acreditação.
+§ 6º A avaliação da conformidade poderá ser realizada em diferentes níveis, 
+considerando a complexidade e o risco potencial dos sistemas de IA, conforme definido em 
+regulamentação específica.
+§ 7º A autoridade competente e as autoridades setoriais poderão, conjuntamente, 
+estabelecer acordos de cooperação e de reconhecimento mútuo com organismos de 
+19
+acreditação internacionais, visando facilitar o reconhecimento das avaliações de 
+conformidade realizadas em outros países.
+CAPÍTULO V
+DA RESPONSABILIDADE CIVIL
+Art. 35. A responsabilidade civil decorrente de danos causados por sistemas de IA 
+no âmbito das relações de consumo permanece sujeita às regras de responsabilidade previstas 
+na Lei nº 8.078, de 11 de setembro de 1990 (Código de Defesa do Consumidor), e na 
+legislação pertinente, sem prejuízo da aplicação das demais normas desta Lei.
+Art. 36. A responsabilidade civil decorrente de danos causados por sistemas de IA 
+explorados, empregados ou utilizados por agentes de IA permanece sujeita às regras de 
+responsabilidade previstas na Lei nº 10.406, de 10 de janeiro de 2002 (Código Civil), e na 
+legislação especial, sem prejuízo da aplicação das demais normas desta Lei.
+Parágrafo único. A definição, em concreto, do regime de responsabilidade civil 
+aplicável aos danos causados por sistemas de IA deve levar em consideração os seguintes 
+critérios, salvo disposição legal em sentido contrário:
+I – o nível de autonomia do sistema de IA e o seu grau de risco, nos termos 
+disciplinados por esta Lei;
+II – a natureza dos agentes envolvidos e a consequente existência de regime de 
+responsabilidade civil próprio na legislação.
+Art. 37. O juiz inverterá o ônus da prova quando a vítima for hipossuficiente ou 
+quando as características de funcionamento do sistema de IA tornarem excessivamente 
+oneroso para a vítima provar os requisitos da responsabilidade civil.
+Art. 38. Os participantes no ambiente de testagem da regulamentação da IA 
+continuam a ser responsáveis, nos termos da legislação aplicável, por quaisquer danos 
+infligidos a terceiros como resultado da experimentação que ocorre no ambiente de testagem.
+Art. 39. As hipóteses de responsabilização previstas por legislação específica 
+permanecem em vigor.
+CAPÍTULO VI
+DAS BOAS PRÁTICAS E GOVERNANÇA
+Seção I
+Do Código de Conduta
+Art. 40. Os agentes de IA poderão, individualmente ou por meio de associações, 
+formular códigos de boas práticas e de governança que estabeleçam as condições de 
+organização, o regime de funcionamento, os procedimentos, inclusive sobre reclamações das 
+pessoas afetadas, as normas de segurança, os padrões técnicos, as obrigações específicas para 
+cada contexto setorial de implementação, as ações educativas, os mecanismos internos de 
+20
+supervisão e de mitigação de riscos e as medidas de segurança técnicas e organizacionais 
+apropriadas para a gestão dos riscos decorrentes da aplicação dos sistemas de IA no seu 
+respectivo domínio de atividade.
+§ 1º Ao se estabelecerem regras de boas práticas, serão consideradas a finalidade, 
+a probabilidade e a gravidade dos riscos e dos benefícios decorrentes da aplicação dos 
+sistemas de IA e os possíveis impactos a grupos vulneráveis, a exemplo da metodologia 
+disposta na Seção IV do Capítulo IV.
+§ 2º Os desenvolvedores e aplicadores de sistemas de IA, poderão implementar 
+programa de governança que, de acordo com o estado da arte do desenvolvimento 
+tecnológico:
+I – demonstre o seu comprometimento em adotar processos e políticas internas que 
+assegurem o cumprimento, de forma abrangente, de normas e boas práticas relativas à não 
+maleficência e proporcionalidade entre os métodos empregados e as finalidades determinadas 
+e legítimas dos sistemas de IA;
+II – seja adaptado à estrutura, à escala e ao volume de suas operações, bem como 
+ao seu potencial danoso e de benefícios;
+III – tenha o objetivo de estabelecer relação de confiança com pessoas e grupos 
+afetados, por meio de atuação transparente e que assegure mecanismos de participação, a 
+exemplo do disposto na Seção IV do Capítulo IV desta Lei;
+IV – esteja integrado à sua estrutura geral de governança e estabeleça e aplique 
+mecanismos de supervisão internos e externos;
+V – conte com planos de resposta para reversão dos possíveis resultados 
+prejudiciais do sistema de IA;
+VI – seja atualizado constantemente com base em informações obtidas a partir de 
+monitoramento contínuo e de avaliações periódicas;
+VII – disponha de mecanismos e procedimentos internos de integridade, de 
+auditoria, de incentivo à denúncia de irregularidades e de aplicação efetiva de códigos de 
+ética.
+§ 3º A adesão voluntária a código de boas práticas e a elaboração de medidas de 
+governança podem ser consideradas indicativo de boa-fé por parte do agente e serão levadas
+em consideração pela autoridade competente e pelas demais autoridades setoriais para fins de 
+aplicação de sanções administrativas.
+§ 4º Cabe às autoridades setoriais:
+I – aprovar códigos de boas condutas quanto à esfera de competência outorgada 
+por lei, devendo sempre informar a autoridade competente;
+II – observar as diretrizes e normas gerais para o procedimento de análise, 
+publicização e atualização periódica do código de conduta emitidas pela autoridade 
+competente.
+Seção II
+Da Autorregulação
+21
+Art. 41. Os agentes de IA podem associar-se voluntariamente sob a forma de 
+pessoa jurídica de direito privado sem fins lucrativos para promover a autorregulação com o 
+objetivo de incentivar e assegurar melhores práticas de governança ao longo de todo o ciclo 
+de vida de sistemas de IA.
+§ 1º A autorregulação pode compreender as seguintes funções:
+I – estabelecimento de critérios técnicos dos sistemas de IA aplicada, inclusive de 
+padronização, prudenciais e de atuação concertada dos entes associados, desde que não 
+impeçam o desenvolvimento tecnológico e que estejam em conformidade com esta Lei e com 
+as normas vinculantes do SIA;
+II – compartilhamento de experiências sobre o uso de IA, sendo vedado o 
+compartilhamento de informações concorrencialmente sensíveis, nos termos da legislação 
+pertinente;
+III – definição contextual de estruturas de governança previstas nesta Lei;
+IV – critérios para provocar a autoridade competente e demais autoridades 
+integrantes do SIA para o emprego de medida cautelar;
+V – criação de canal de recebimento de informações relevantes sobre riscos do uso 
+de IA por seus associados ou qualquer interessado;
+VI – adoção de padrões, melhores práticas e modelos de certificação reconhecidos 
+internacionalmente.
+§ 2º A associação entre agentes de IA para fins de autorregulação deverá observar 
+os preceitos da Lei nº 12.529, de 30 de novembro de 2011 (Lei de Defesa da Concorrência), 
+vedada qualquer atuação que possa restringir a livre concorrência.
+CAPÍTULO VII
+DA COMUNICAÇÃO DE INCIDENTE GRAVE
+Art. 42. O agente de IA comunicará, em prazo a ser estabelecido, à autoridade 
+setorial a ocorrência de grave incidente de segurança, incluindo quando houver risco à vida e 
+à integridade física de pessoas, a interrupção de funcionamento de operações críticas de 
+infraestrutura e graves danos à propriedade ou ao meio ambiente, bem como graves violações 
+aos direitos fundamentais, à integridade da informação, à liberdade de expressão e ao processo 
+democrático, nos termos de regulamento.
+§ 1º A comunicação será devida após a autoridade setorial definir o prazo e os 
+critérios de determinação da gravidade do incidente, observadas as características dos 
+sistemas de IA de acordo com o estado da arte do desenvolvimento tecnológico.
+§ 2º A autoridade setorial verificará a gravidade do incidente e poderá, caso 
+necessário, determinar ao agente a adoção de providências e medidas para reverter ou mitigar 
+os efeitos do incidente.
+Art. 43. Os agentes de IA, adicionalmente às disposições desta Lei, permanecem 
+sujeitos à legislação específica relativa à cibersegurança e à proteção de infraestruturas 
+críticas, à vida e à integridade física de pessoas, aos danos à propriedade e ao meio ambiente, 
+aos direitos fundamentais e ao processo democrático.
+22
+CAPÍTULO VIII
+DA BASE DE DADOS PÚBLICA DE INTELIGÊNCIA ARTIFICIAL DE ALTO RISCO
+Art. 44. Cabe à autoridade competente, em colaboração com as autoridades 
+setoriais, a criação e a manutenção de base de dados de IA de alto risco, acessível ao público, 
+que contenha os documentos públicos das avaliações de impacto, respeitados os segredos 
+comercial e industrial, nos termos de regulamento e em conformidade com a legislação 
+pertinente, em especial a Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de 
+Dados Pessoais), e a Lei nº 12.527, de 18 de novembro de 2011 (Lei de Acesso à Informação).
+Parágrafo único. A criação da base de dados central não impede a criação de bases 
+de IA de alto risco setoriais, devendo ser mantidas em formato interoperável e com dados 
+estruturados para facilitar o uso compartilhado.
+CAPÍTULO IX
+DA SUPERVISÃO E FISCALIZAÇÃO
+Seção I
+Do Sistema Nacional de Regulação e Governança de Inteligência Artificial
+Art. 45. O Poder Executivo é autorizado a estabelecer o Sistema Nacional de 
+Regulação e Governança de Inteligência Artificial (SIA).
+§ 1º Integram o SIA:
+I – a Autoridade Nacional de Proteção de Dados (ANPD), autoridade competente 
+que coordenará o SIA;
+II – as autoridades setoriais;
+III – o Conselho Permanente de Cooperação Regulatória de Inteligência Artificial 
+(Cria), observado e limitado ao disposto na Seção IV deste Capítulo;
+IV – o Comitê de Especialistas e Cientistas de Inteligência Artificial (Cecia), 
+observado e limitado ao disposto na Seção V deste Capítulo.
+§ 2º Ato do Poder Executivo federal definirá lista dos órgãos e entidades que irão 
+integrar o SIA, em conformidade com os incisos II, III e IV do § 1º deste artigo.
+§ 3º O SIA tem por objetivos e fundamentos:
+I – valorizar e reforçar as competências regulatória, sancionatória e normativa das 
+autoridades setoriais em harmonia com as competências correlatas gerais da autoridade 
+competente que coordena o SIA; e
+II – buscar a harmonização e a colaboração com órgãos reguladores de temas 
+transversais.
+§ 4º A autoridade competente coordenará o Cria, conforme disposto na Seção IV
+deste Capítulo, a fim de harmonizar e facilitar as competências regulatória, fiscalizatória e 
+sancionatória.
+23
+Art. 46. Na qualidade de coordenadora do SIA e sem prejuízo das competências 
+previstas na Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados 
+Pessoais), cabe à autoridade competente:
+I – atuar na representação do Brasil perante organismos internacionais de IA, sob 
+a coordenação do Poder Executivo;
+II – expedir, em colaboração com os demais integrantes do SIA, normas 
+vinculantes de caráter geral sobre os seguintes temas:
+a) forma e requisitos das informações a serem publicizadas sobre a utilização de 
+sistemas de IA, respeitados os segredos industrial e comercial;
+b) procedimentos e requisitos para elaboração da avaliação de impacto 
+algorítmico;
+c) procedimentos para a comunicação de incidentes graves, notadamente quando 
+afetarem direitos fundamentais;
+III – expedir regras gerais sobre IA no País, dando suporte aos órgãos setoriais, 
+aos quais cabe a edição de regras específicas;
+IV – celebrar com os integrantes do SIA acordos regulatórios para definir regras e 
+procedimentos específicos de coordenação de competências;
+V – expedir orientações normativas gerais sobre certificados e acreditação de 
+organismos de certificação com o objetivo de incentivar e assegurar as melhores práticas de 
+governança ao longo de todo o ciclo de vida de sistemas de IA;
+VI – incentivar a adoção de padrões, melhores práticas e certificações reconhecidas 
+internacionalmente;
+VII – receber e tratar denúncias anônimas, estabelecendo mecanismos de reserva 
+de identidade do denunciante;
+VIII – elaborar relatórios anuais acerca de suas atividades.
+Parágrafo único. Nos ambientes regulatórios experimentais (sandboxes
+regulatórios) que envolvam sistemas de IA, conduzidos por autoridades setoriais, a autoridade 
+competente será cientificada, podendo manifestar-se quanto ao cumprimento das finalidades 
+e dos princípios desta Lei.
+Art. 47. Na qualidade de regulador residual, a autoridade competente exercerá 
+competência normativa, regulatória, fiscalizatória e sancionatória plena para 
+desenvolvimento, implementação e uso de sistemas de IA para atividades econômicas em que 
+não haja órgão ou ente regulador setorial específico.
+Art. 48. Compete à autoridade setorial:
+I – exercer competência regulatória, fiscalizatória e sancionatória, conforme sua 
+esfera de competência outorgada por lei, para desenvolvimento, implementação e uso de 
+sistemas de IA;
+II – expedir regras específicas para a aplicação de IA, incluindo aspectos 
+relacionados a atividades de alto risco, observadas as normas gerais expedidas pela autoridade 
+competente;
+III – promover e incentivar o disposto no Capítulo VI desta Lei para sistemas de 
+IA que se inserem em sua esfera de competência outorgada por lei;
+24
+IV – quanto à sua esfera de competência outorgada por lei, incentivar a adoção de 
+padrões, melhores práticas e modelos de certificação e acreditação reconhecidos 
+internacionalmente; 
+V – supervisionar as medidas de governança adequadas a cada aplicação ou uso de 
+sistemas de IA que classifique como de alto risco, de forma a promover:
+a) a harmonização com a legislação nacional e com normas internacionais para 
+permitir a interoperabilidade técnica e jurisdicional dos sistemas e das aplicações 
+desenvolvidas e implementadas no País;
+b) a adoção de instrumentos regulatórios que promovam a inovação responsável, 
+como ambientes regulatórios experimentais (sandboxes regulatórios), autorregulação e 
+certificações de boas práticas e governança;
+VI – celebrar, a qualquer momento, compromisso com agentes de IA para eliminar 
+irregularidade, incerteza jurídica ou situação contenciosa no âmbito de processos 
+administrativos, de acordo com o previsto no Decreto-Lei nº 4.657, de 4 de setembro de 1942
+(Lei de Introdução às Normas do Direito Brasileiro).
+Seção II
+Das Atribuições e Poderes da Autoridade Competente
+Art. 49. Cabe à autoridade competente:
+I – zelar pela proteção a direitos fundamentais e a demais direitos afetados pela 
+utilização de sistemas de IA;
+II – promover e incentivar o disposto no Capítulo VI desta Lei;
+III – promover ações de cooperação com autoridades de proteção e de fomento ao 
+desenvolvimento e à utilização dos sistemas de IA de outros países, de natureza internacional 
+ou transnacional;
+IV – solicitar, a qualquer momento, às entidades do poder público que 
+desenvolvam ou utilizem sistemas de IA, informe específico sobre o âmbito e a natureza dos 
+dados e demais detalhes do tratamento realizado, com a possibilidade de emitir parecer 
+técnico complementar para garantir o cumprimento desta Lei;
+V – celebrar, em conjunto com as autoridades setoriais, a qualquer momento, 
+compromisso com agentes de IA para eliminar irregularidade, incerteza jurídica ou situação 
+contenciosa no âmbito de processos administrativos, de acordo com o previsto no DecretoLei nº 4.657, de 4 de setembro de 1942 (Lei de Introdução às Normas do Direito Brasileiro);
+VI – elaborar relatórios anuais acerca de suas atividades;
+VII – realizar ou determinar auditorias de sistemas de IA de alto risco ou que 
+produzam efeitos jurídicos relevantes quando necessárias para a aferição de conformidade 
+com esta Lei, garantido o tratamento confidencial das informações, em atenção aos segredos 
+comercial e industrial;
+VIII – credenciar instituições, mediante critérios estabelecidos em regulamento 
+sujeito a consulta pública, para acesso a dados para fins de auditorias e pesquisa, garantida a 
+confidencialidade das informações, em atenção aos segredos comercial e industrial;
+25
+IX – credenciar instituições de pesquisa, mediante critérios estabelecidos em 
+regulamento sujeito a consulta pública, para acesso a dados para fins de pesquisa, observados 
+os segredos comercial e industrial, a anonimização e a proteção de dados pessoais, conforme 
+a Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais).
+§ 1º Tanto a autoridade competente quanto eventuais entidades por ela 
+credenciadas para a realização de auditoria e para fins de pesquisa devem cumprir requisitos 
+de segurança e confidencialidade das informações e de proteção de dados pessoais, nos termos 
+da Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais), em 
+atenção aos segredos comercial e industrial.
+§ 2º A autoridade competente, em conjunto com as autoridades setoriais, poderá
+realizar investigações sobre os sistemas de IA de alto risco, em caso de suspeita de violação 
+aos princípios, direitos e deveres previstos nesta Lei ou na legislação setorial aplicável.
+§ 3º Os órgãos e as entidades integrantes do SIA devem comunicar imediatamente 
+ao Conselho Administrativo de Defesa Econômica (Cade) quaisquer informações 
+identificadas no decurso das atividades de fiscalização que possam ser de interesse para a 
+aplicação da Lei nº 12.529, de 30 de novembro de 2011 (Lei de Defesa da Concorrência).
+§ 4º No exercício das suas atribuições e sempre no limite do que for pertinente e 
+necessário à apuração de indícios concretos de infrações à ordem econômica, o Cade poderá 
+ordenar aos desenvolvedores que seja concedido acesso aos conjuntos de dados de treino, 
+validação e teste utilizados para o desenvolvimento dos sistemas de IA de alto risco.
+Seção III
+Das Sanções Administrativas
+Art. 50. Os agentes de IA, em razão das infrações cometidas contra as normas 
+previstas nesta Lei, ficam sujeitos às seguintes sanções administrativas aplicáveis:
+I – advertência;
+II – multa simples, limitada, no total, a R$ 50.000.000,00 (cinquenta milhões de 
+reais) por infração, sendo, no caso de pessoa jurídica de direito privado, de até 2% (dois por 
+cento) de seu faturamento bruto, de seu grupo ou conglomerado no Brasil no seu último 
+exercício, excluídos os tributos;
+III – publicização da infração após devidamente apurada e confirmada a sua 
+ocorrência;
+IV – proibição ou restrição para participar do regime de sandbox regulatório 
+previsto nesta Lei, por até 5 (cinco) anos;
+V – suspensão parcial ou total, temporária ou definitiva, do desenvolvimento, 
+fornecimento ou operação do sistema de IA;
+VI – proibição de tratamento de determinadas bases de dados.
+§ 1º As sanções serão aplicadas após procedimento administrativo que possibilite 
+a oportunidade da ampla defesa, de forma gradativa, isolada ou cumulativa, de acordo com 
+as peculiaridades do caso concreto e considerados os seguintes parâmetros e critérios:
+I – a gravidade e a natureza das infrações e a eventual violação de direitos;
+26
+II – a boa-fé do infrator;
+III – a vantagem auferida ou pretendida pelo infrator;
+IV – a condição econômica do infrator;
+V – a reincidência;
+VI – o grau do dano;
+VII – a cooperação do infrator;
+VIII – a adoção reiterada e demonstrada de mecanismos e procedimentos internos 
+capazes de minimizar riscos, inclusive a análise de impacto algorítmico e a efetiva 
+implementação de código de ética;
+IX – a adoção de política de boas práticas e governança;
+X – a pronta adoção de medidas corretivas;
+XI – a proporcionalidade entre a gravidade da falta e a intensidade da sanção;
+XII – a cumulação com outras sanções administrativas eventualmente já aplicadas 
+em definitivo para o mesmo ato ilícito.
+§ 2º Antes ou durante o processo administrativo de que trata o § 1º deste artigo, 
+poderá a autoridade competente adotar medidas preventivas, incluída multa cominatória, 
+observado o limite total a que se refere o inciso II do caput, quando houver indício ou fundado 
+receio de que o agente de IA:
+I – cause ou possa causar lesão irreparável ou de difícil reparação; ou
+II – torne ineficaz o resultado final do processo.
+§ 3º O disposto neste artigo não substitui a aplicação de sanções administrativas, 
+civis ou penais definidas na Lei nº 8.078, de 11 de setembro de 1990 (Código de Defesa do 
+Consumidor), na Lei nº 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados 
+Pessoais), e em legislação específica.
+§ 4º No caso do desenvolvimento, fornecimento ou utilização de sistemas de IA 
+de risco excessivo, haverá, no mínimo, aplicação de multa e, no caso de pessoa jurídica, 
+suspensão parcial ou total, provisória ou definitiva, de suas atividades.
+§ 5º A aplicação das sanções previstas neste artigo não exclui, em qualquer 
+hipótese, a obrigação da reparação integral do dano.
+§ 6º A autoridade competente definirá, por meio de regulamento próprio, o 
+procedimento de apuração e os critérios de aplicação das sanções administrativas a infrações 
+a esta Lei, que serão objeto de:
+I – consulta pública e de análise de impacto regulatório, sem prejuízo das 
+disposições do Decreto-Lei nº 4.657, de 4 de setembro de 1942 (Lei de Introdução às Normas 
+do Direito Brasileiro), da Lei nº 9.784, de 29 de janeiro de 1999 (Lei Geral do Processo 
+Administrativo), e das demais disposições legais pertinentes;
+II – publicação de metodologias que apresentará objetivamente as formas e as 
+dosimetrias das sanções, devendo conter fundamentação detalhada de todos os seus elementos 
+e demonstração da observância dos critérios previstos nesta Lei.
+§ 7º O disposto nos incisos I, III, IV, V e VI do caput deste artigo poderá ser 
+aplicado às entidades e aos órgãos públicos, sem prejuízo do disposto na Lei nº 8.112, de 11 
+de dezembro de 1990 (Estatuto do Servidor Público Federal), na Lei nº 8.429, de 2 de junho 
+27
+de 1992 (Lei da Improbidade Administrativa), e na Lei nº 12.527, de 18 de novembro de 2011
+(Lei de Acesso à Informação).
+Art. 51. A autoridade competente e as autoridades setoriais poderão realizar 
+investigações conjuntas sobre os sistemas de IA de alto risco em casos de suspeita de violação 
+aos princípios, direitos e deveres previstos nesta Lei ou na legislação setorial aplicável.
+Art. 52. Os órgãos e entidades integrantes do SIA devem comunicar 
+imediatamente ao Conselho Administrativo de Defesa Econômica (Cade) quaisquer 
+informações identificadas no decurso das atividades de fiscalização que possam ter interesse 
+potencial para a aplicação da Lei nº 12.529, de 30 de novembro de 2011 (Lei de Defesa da 
+Concorrência).
+Parágrafo único. No exercício das suas atribuições e sempre no limite do que for 
+pertinente e necessário à apuração de indícios concretos de infrações à ordem econômica, o 
+Cade poderá ordenar aos desenvolvedores que seja concedido acesso aos conjuntos de dados 
+de treinamento, validação e teste utilizados para o desenvolvimento dos sistemas de IA de 
+alto risco.
+Seção IV
+Do Conselho Permanente de Cooperação Regulatória de Inteligência Artificial
+Art. 53. É criado o Conselho Permanente de Cooperação Regulatória de 
+Inteligência Artificial (Cria), que terá como atribuição a produção de diretrizes e será fórum 
+permanente de colaboração, inclusive por meio de acordos de cooperação técnica, com as 
+autoridades setoriais e com a sociedade civil, a fim de harmonizar e facilitar o exercício das 
+atribuições da autoridade competente.
+Parágrafo único. Compete ao Cria:
+I – sugerir ações a serem realizadas pelo SIA;
+II – elaborar estudos e realizar debates públicos sobre IA;
+III – disseminar o conhecimento sobre IA.
+Seção V
+Do Comitê de Especialistas e Cientistas de Inteligência Artificial
+Art. 54. É criado o Comitê de Especialistas e Cientistas de Inteligência Artificial 
+(Cecia) com o objetivo de orientar e supervisionar técnica e cientificamente o 
+desenvolvimento e a aplicação da IA de forma responsável, nos termos definidos por 
+regulamento.
+CAPÍTULO X
+DO FOMENTO À INOVAÇÃO SUSTENTÁVEL
+Seção I
+Do Ambiente Regulatório Experimental (Sandbox Regulatório)
+28
+Art. 55. A autoridade competente e as autoridades setoriais que compõem o SIA 
+deverão promover e autorizar o funcionamento de ambiente regulatório experimental para 
+inovação em inteligência artificial (sandbox regulatório de IA) por conta própria ou para as 
+entidades que o requererem e preencherem os requisitos especificados por esta Lei e em 
+regulamentação, inclusive em regime de cooperação público-privado.
+§ 1º O sandbox regulatório visa a facilitar o desenvolvimento, a testagem e a 
+validação de sistemas inovadores de IA por um período limitado antes da sua colocação no 
+mercado ou colocação em serviço de acordo com um plano específico, a fim de desenvolver 
+negócios inovadores de maneira segura.
+§ 2º A autoridade competente e as autoridades setoriais poderão, individualmente 
+ou em colaboração, no âmbito de programas de ambiente regulatório experimental (sandbox 
+regulatório), afastar a incidência de normas sob sua competência em relação à entidade 
+regulada ou aos grupos de entidades reguladas.
+Art. 56. A autoridade competente e as autoridades setoriais que compõem o SIA 
+regulamentarão os procedimentos para a solicitação e a autorização de funcionamento de 
+sandboxes regulatórios, podendo limitar ou interromper o seu funcionamento e emitir 
+recomendações, levando em consideração, entre outros aspectos, a preservação de direitos 
+fundamentais e de direitos dos consumidores potencialmente afetados, a segurança e a
+proteção.
+§ 1º As autoridades setoriais deverão proporcionar a micro e pequenas empresas, 
+startups e Instituições Científica, Tecnológicas e de Inovação (ICTs) públicas e privadas 
+acesso prioritário aos ambientes de testagem, na medida em que cumpram as condições de 
+elegibilidade, os critérios de seleção e demais regulamentos.
+§ 2º A autoridade competente e as autoridades setoriais poderão criar mecanismos 
+para reduzir os custos regulatórios das entidades qualificadas na forma do § 1º do caput deste 
+artigo.
+Art. 57. Os participantes no ambiente de testagem da regulamentação da IA 
+continuam a ser responsáveis, nos termos da legislação aplicável, por quaisquer danos 
+infligidos a terceiros em resultado da experimentação que ocorre no ambiente de testagem.
+Seção II
+Das Diretrizes para proteção ao trabalho e aos trabalhadores
+Art. 58. A autoridade competente, as autoridades setoriais que compõem o SIA e 
+o Conselho Permanente de Cooperação Regulatória de Inteligência Artificial (Cria), em 
+cooperação com o Ministério do Trabalho, deverão desenvolver diretrizes para, entre outros 
+objetivos:
+I – mitigar os potenciais impactos negativos aos trabalhadores, em especial os 
+riscos de deslocamento de emprego e oportunidades de carreira relacionadas à IA;
+II – potencializar os impactos positivos aos trabalhadores, em especial para 
+melhoria da saúde e segurança do local de trabalho;
+29
+III – valorizar os instrumentos de negociações e convenções coletivas;
+IV – fomentar o desenvolvimento de programas de treinamento e a capacitação 
+contínua para os trabalhadores em atividade, promovendo a valorização e o aprimoramento 
+profissional.
+Seção III
+Das Medidas de Incentivo e Sustentabilidade
+Art. 59. A administração pública no âmbito da União, dos Estados, do Distrito 
+Federal e dos Municípios poderá fomentar a inovação e o desenvolvimento produtivo e 
+tecnológico em IA.
+Parágrafo único. As medidas de fomento referidas no caput serão pautadas pelas 
+seguintes diretrizes:
+I – promoção da inovação nos setores produtivos, inclusive por meio da 
+contratação de soluções inovadoras pelo Estado e da celebração de parcerias público-privadas 
+nos termos da Lei nº 11.079, de 30 de dezembro de 2004;
+II – investimento em pesquisa para o desenvolvimento de IA no País, voltada ao 
+contexto socioeconômico brasileiro, prezando pela autonomia tecnológica e de dados do País 
+e sua inserção e competitividade nos mercados interno e internacional;
+III – financiamento de recursos físicos e tecnológicos de IA de difícil acesso para 
+pequenas e médias empresas e centros de pesquisa que promovam práticas sustentáveis;
+IV – incentivo à ampliação da disponibilidade de data centers sustentáveis de alta 
+capacidade de processamento de dados para sistemas de IA, com o adensamento dessa cadeia 
+produtiva e dos serviços digitais relacionados no Brasil, com o objetivo de apoiar o setor 
+produtivo e a pesquisa e o desenvolvimento técnico-científicos;
+V – incentivo à criação de centros multidisciplinares de pesquisa, desenvolvimento 
+e inovação em IA.
+Art. 60. Entidades públicas e privadas devem priorizar a utilização de sistemas e 
+aplicações de IA que visem à eficiência energética e à racionalização do consumo de recursos 
+naturais.
+Art. 61. O Cria, em cooperação com o Ministério do Meio Ambiente e Mudança 
+do Clima, fomentará a pesquisa e o desenvolvimento de programas de certificação para 
+redução do impacto ambiental de sistemas de IA.
+Seção IV
+Dos Direitos de Autor e Conexos
+Art. 62. O desenvolvedor de IA que utilizar conteúdo protegido por direitos de 
+autor e conexos deverá informar sobre os conteúdos protegidos utilizados nos processos de 
+desenvolvimento dos sistemas de IA, por meio da publicação de sumário em sítio eletrônico 
+de fácil acesso, observados os segredos comercial e industrial, nos termos de regulamento 
+específico.
+30
+Parágrafo único. Para fins deste Capítulo, o desenvolvimento compreende as 
+etapas de mineração, treinamento, retreinamento, testagem, validação e aplicação de sistemas 
+de IA.
+Art. 63. Não constitui ofensa aos direitos de autor e conexos a utilização 
+automatizada de conteúdos protegidos em processos de mineração de textos e dados para os 
+fins de pesquisa e desenvolvimento de sistemas de IA por organizações e instituições 
+científicas, de pesquisa e educacionais, museus, arquivos públicos e bibliotecas, desde que 
+observadas as seguintes condições:
+I – o acesso tenha se dado de forma lícita;
+II – não tenha fins comerciais;
+III – a utilização de conteúdos protegidos por direitos de autor e conexos seja feita 
+na medida necessária para o objetivo a ser alcançado, sem prejuízo dos interesses econômicos 
+dos titulares e sem concorrência com a exploração normal das obras e conteúdos protegidos.
+§ 1º Cópias de conteúdos protegidos por direitos de autor e conexos utilizadas nos 
+sistemas de IA deverão ser armazenadas em condições de segurança, e unicamente pelo tempo 
+necessário para a realização da atividade ou para a finalidade específica de verificação dos 
+resultados.
+§ 2º É vedada a exibição ou a disseminação das obras e conteúdos protegidos por 
+direitos de autor e conexos utilizados no desenvolvimento de sistemas de IA.
+§ 3º Este artigo não se aplica a instituições vinculadas, coligadas ou controladas 
+por entidade com fins lucrativos que forneçam sistemas de IA ou que tenham, entre elas, 
+participação acionária.
+§ 4º Aplica-se o disposto no caput deste artigo à mineração de dados, por entidades 
+públicas ou privadas, no contexto de sistemas de IA para combate a ilícitos civis e criminais, 
+que atentem contra direitos de autor e conexos.
+Art. 64. O titular de direitos de autor e conexos poderá proibir a utilização dos 
+conteúdos de sua titularidade no desenvolvimento de sistemas de IA nas hipóteses não 
+contempladas pelo art. 63 desta Lei.
+Parágrafo único. A proibição do uso de obras e conteúdos protegidos nas bases de 
+dados de um sistema de IA posterior ao processo de treinamento não exime o agente de IA de 
+responder por perdas e danos morais e materiais, nos termos da legislação aplicável.
+Art. 65. O agente de IA que utilizar conteúdos protegidos por direitos de autor e 
+conexos em processos de mineração, treinamento ou desenvolvimento de sistemas de IA deve 
+remunerar os titulares desses conteúdos em virtude dessa utilização, devendo-se assegurar:
+I – que os titulares de direitos de autor e conexos tenham condições efetivas de 
+negociar coletivamente, nos termos do Título VI da Lei nº 9.610, de 19 de fevereiro de 1998 
+(Lei dos Direitos Autorais), ou diretamente a utilização dos conteúdos dos quais são titulares, 
+podendo fazê-lo de forma gratuita ou onerosa;
+II – que o cálculo da remuneração a que se refere o caput considere os princípios 
+da razoabilidade e da proporcionalidade e elementos relevantes, tais como o porte do agente 
+de IA e os efeitos concorrenciais dos resultados em relação aos conteúdos originais utilizados;
+31
+III – a livre negociação na utilização dos conteúdos protegidos, visando à 
+promoção de ambiente de pesquisa e experimentação que possibilite o desenvolvimento de 
+práticas inovadoras, e que não restrinjam a liberdade de pactuação entre as partes envolvidas,
+nos termos dos arts. 156, 157, 421, 422, 478 e 479 da Lei nº 10.406, de 10 de janeiro de 2002 
+(Código Civil), e o art. 4º da Lei nº 9.610, de 19 de fevereiro de 1998 (Lei dos Direitos 
+Autorais).
+§ 1º A remuneração a que se refere o caput deste artigo é devida somente:
+I – aos titulares de direitos de autor e conexos nacionais ou estrangeiros 
+domiciliados no Brasil;
+II – a pessoas domiciliadas em país que assegure a reciprocidade na proteção, em 
+termos equivalentes a este artigo, aos direitos de autor e conexos de brasileiros, conforme 
+disposto nos arts. 2º, parágrafo único, e 97, § 4º, da Lei nº 9.610, de 19 de fevereiro de 1998 
+(Lei dos Direitos Autorais), sendo vedada a cobrança nos casos em que a reciprocidade não 
+estiver assegurada.
+§ 2º O titular do direito de remuneração previsto no caput que optar pela 
+negociação e autorização direta, nos termos do inciso I do caput, poderá exercê-lo 
+independentemente de regulamentação posterior.
+Art. 66. A utilização de conteúdos de imagem, áudio, voz ou vídeo que retratem 
+ou identifiquem pessoas naturais pelos sistemas de IA deverá respeitar os direitos da 
+personalidade, na forma prevista na Lei nº 10.406, de 10 de janeiro de 2002 (Código Civil), e 
+na legislação pertinente.
+Seção V
+Do Incentivo a Microempresas, Empresas de Pequeno Porte e Startups
+Art. 67. As autoridades setoriais deverão definir critérios diferenciados para 
+sistemas de IA ofertados por microempresas, empresas de pequeno porte e startups que 
+promovam o desenvolvimento da indústria tecnológica nacional.
+Parágrafo único. Critérios diferenciados devem considerar o impacto 
+concorrencial das atividades econômicas correlatas, o número de usuários afetados e a 
+natureza das atividades econômicas exercidas.
+CAPÍTULO XI
+DA ATUAÇÃO DO PODER PÚBLICO
+Seção I
+Disposições Gerais
+Art. 68. Constituem diretrizes para a atuação da União, dos Estados, do Distrito 
+Federal e dos Municípios no desenvolvimento da IA no Brasil:
+I – estabelecimento de mecanismos de governança multiparticipativa, 
+multissetorial transparente, colaborativa e democrática, com a participação do governo, do 
+32
+setor empresarial, do terceiro setor e da comunidade acadêmica, especialmente considerando 
+os grupos vulneráveis;
+II – promoção da confiança nas tecnologias de IA, com disseminação de 
+informações e de conhecimento sobre seus usos éticos e responsáveis;
+III – estímulo à capacitação e à preparação das pessoas para a reestruturação do 
+mercado de trabalho;
+IV – promoção da interoperabilidade entre sistemas de IA, inclusive entre os 
+diferentes âmbitos federativos e diversos setores da sociedade, com decisões que busquem 
+evitar a dependência tecnológica e propiciar a continuidade do emprego dos sistemas 
+desenvolvidos ou contratados;
+V – publicidade e disseminação de dados, de forma aberta, estruturada e segura;
+VI – proteção ao meio ambiente e desenvolvimento sustentável;
+VII – promoção da cooperação internacional, mediante estímulo ao 
+compartilhamento do conhecimento sobre sistemas de IA, de modo a facilitar a 
+interoperabilidade regulatória e tecnológica;
+VIII – promoção de investimento em IA voltada para a solução dos problemas do 
+País, promovendo seu desenvolvimento socioeconômico, cultural e ambiental, e para o 
+desenvolvimento do sistema produtivo nacional e regional, prezando pela autonomia 
+tecnológica do País e sua inserção e competitividade nos mercados interno e internacional.
+Art. 69. Os sistemas de IA de entes do poder público devem buscar:
+I – acessibilidade das pessoas, independentemente de suas capacidades físicomotoras, perceptivas, sensoriais, intelectuais, mentais, culturais e sociais, resguardados os 
+aspectos de sigilo e restrições administrativas e legais;
+II – compatibilidade tanto com a leitura humana quanto com o tratamento 
+automatizado das informações;
+III – facilidade de uso dos serviços de governo eletrônico que utilizem sistemas de 
+IA;
+IV – garantia de transparência quanto ao uso de sistemas de IA;
+V – promoção da cultura e da língua portuguesa;
+VI – estímulo ao desenvolvimento de sistemas de IA nacionais, com especial 
+atenção para questões nacionais e nuances culturais, de idioma e de contexto socioeconômico.
+Seção II
+Da Formação, da Capacitação e da Educação
+Art. 70. A administração pública, no âmbito da União, dos Estados, do Distrito 
+Federal e dos Municípios, implementará programas de:
+I – educação, formação, capacitação, qualificação e requalificação técnica e 
+superior em IA alinhados às demandas do mercado e do setor público;
+II – letramento digital para uso significativo, responsável e com equidade dos 
+sistemas de IA disponíveis, priorizando-se a educação básica;
+33
+III – apoio para trabalhadores impactados e possivelmente afetados pela adoção da 
+IA, com foco na promoção do bem-estar, requalificação, adaptação às novas exigências do 
+mercado de trabalho e reinserção profissional;
+IV – conscientização e capacitação em sustentabilidade no campo das tecnologias 
+digitais avançadas, com ênfase em práticas responsáveis na utilização de recursos; e
+V – incentivo às instituições de ensino para incluir em seus currículos disciplinas 
+sobre impacto ambiental e sustentabilidade no desenvolvimento e operação de sistemas e 
+aplicações de IA e outras tecnologias digitais avançadas.
+§ 1º Os programas de que trata o caput buscarão reduzir as desigualdades, 
+sobretudo entre as diferentes regiões do País.
+§ 2º As medidas de letramento de que trata o inciso II do caput incluirão noções e 
+competências básicas sobre os sistemas de IA e o seu funcionamento, incluindo os diferentes 
+tipos de produtos e utilizações, os seus riscos e os seus benefícios.
+Art. 71. O Estado deve, periodicamente, formular e fomentar estudos, bem como 
+fixar metas, estratégias, planos e cronogramas, referentes ao uso e ao desenvolvimento da IA 
+no País.
+CAPÍTULO XII
+DISPOSIÇÕES FINAIS E TRANSITÓRIAS
+Art. 72. Os direitos e princípios expressos nesta Lei não excluem outros previstos 
+no ordenamento jurídico pátrio ou nos tratados internacionais de que a República Federativa 
+do Brasil seja parte.
+Art. 73. A fim de promover o desenvolvimento tecnológico nacional, o SIA 
+regulamentará regimes simplificados, envolvendo flexibilização de obrigações regulatórias 
+previstas nesta Lei, nos seguintes casos:
+I – padrões e formatos abertos e livres, com exceção daqueles considerados de alto 
+risco ou que se enquadrarem na Seção V do Capítulo IV desta Lei;
+II – fomento nacional;
+III – incentivo à inovação e à pesquisa científica e tecnológica no ambiente 
+produtivo, com vistas à capacitação tecnológica, ao alcance da autonomia tecnológica e ao 
+desenvolvimento do sistema produtivo nacional e regional do País;
+IV – projetos de interesse público e aqueles que atendam às prioridades das 
+políticas industrial e de ciência, tecnologia e inovação e que sejam relacionados à solução dos 
+problemas brasileiros;
+V – projetos realizados em parceria público-privada, ou em parcerias estratégicas, 
+em Instituição Científica, Tecnológica e de Inovação (ICT), Núcleo de Inovação Tecnológica 
+(NIT), fundação de apoio, parques tecnológicos ou polos tecnológicos.
+Parágrafo único. O Poder Executivo disporá acerca de incentivos econômicos nos 
+casos previstos no caput deste artigo.
+Art. 74. Em conformidade com o Capítulo IX desta Lei, o Poder Executivo:
+34
+I – fornecerá, no prazo de 2 (dois) anos, os recursos necessários à ANPD, inclusive 
+para sua reestruturação administrativa, a fim de garantir segurança jurídica e eficiência na 
+supervisão e fiscalização do cumprimento desta Lei;
+II – definirá a lista de órgãos e entidades que figurarão como autoridades setoriais 
+integrantes do SIA;
+III – definirá a composição detalhada do Cria;
+IV – definirá a atuação da Câmara de Mediação e de Conciliação da Administração 
+Pública Federal; e
+V – definirá a composição e as competências do Cecia.
+Art. 75. O caput do art. 3º da Lei nº 14.533, de 11 de janeiro de 2023 (Política 
+Nacional de Educação Digital), passa a vigorar acrescido do seguinte inciso VI:
+“Art. 3º ....................................................................................................
+..........................................................................................................................
+VI – letramento algorítmico crítico e computação crítica, que envolve a 
+leitura sobre as implicações sociais e humanas das tecnologias, considerando 
+especialmente a inteligência artificial.
+...............................................................................................................” (NR)
+Art. 76. O art. 12 da Lei nº 11.540, de 12 de novembro de 2007, passa a vigorar 
+acrescido do seguinte § 6º:
+“Art. 12. ..................................................................................................
+..........................................................................................................................
+§ 6º Nas hipóteses do inciso I do caput, alíneas “a”, “b” e “d”, será 
+priorizada a execução de pesquisas e projetos de inteligência artificial por 
+parte dos diversos atores nos setores público e privado, ou por meio de 
+parceria público-privada.” (NR)
+Art. 77. A regulação de aspectos associados à circulação de conteúdo online e que 
+possam afetar a liberdade de expressão, inclusive o uso de IA para moderação e recomendação 
+de conteúdo, somente poderá ser feita por meio de legislação específica.
+Art. 78. A implementação desta Lei observará o ato jurídico perfeito, o direito 
+adquirido e a coisa julgada.
+Art. 79. Considerando o impacto da transformação tecnológica, caberá ao SIA, a 
+cada quadriênio, promover estudos e emitir parecer opinativo a ser enviado ao Congresso 
+Nacional quanto à necessidade de aprimoramento das normas estabelecidas nesta Lei.
+Art. 80. Esta Lei entra em vigor após decorridos 730 (setecentos e trinta) dias de 
+sua publicação oficial.
+§ 1º Entram em vigor após 180 (cento e oitenta) dias da publicação desta Lei:
+I – o art. 13;
+II – as regras previstas na Seção V do Capítulo IV; e
+III – as regras previstas na Seção IV do Capítulo X, salvo o art. 62, que possui 
+vigência imediata.
+§ 2º Entram em vigor na data de publicação desta Lei:
+I – as disposições do Capítulo IX, com exceção do art. 50;
+II – as seguintes Seções do Capítulo X:
+a) Seção III; e
+b) Seção V.
+Senado Federal, em de de .
+Senador Rodrigo Pacheco
+Presidente do Senado Federal
+ivb/pl23-2338rev
+

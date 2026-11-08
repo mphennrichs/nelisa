@@ -27,7 +27,7 @@ func (e *env) confirmContent() *app.ConfirmContent {
 	return app.NewConfirmContent(e.w.Repos(), e.w.Claims(), e.w.Tx(), e.w.Audit(), e.clk)
 }
 func (e *env) createVersion() *app.CreateVersion {
-	return app.NewCreateVersion(e.w.Repos(), e.w.Claims(), e.w.Tx(), e.w.Audit(), e.clk)
+	return app.NewCreateVersion(e.w.Repos(), e.w.Claims(), e.w.StructuringScheduler(), e.w.Tx(), e.w.Audit(), e.clk)
 }
 func (e *env) editorial() *app.Editorial { return app.NewEditorial(e.w.Repos(), e.clk) }
 
