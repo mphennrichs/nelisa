@@ -173,6 +173,11 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 	pr := propReviews{r: reports}
 	re := reviewEditorial{e: editorial}
 	qp := queuePeople{d: directory}
+	moderation := contribapp.ModerationDeps{
+		Contributions: p.contributions, Sources: p.officialSources, Props: contribProps{c: catalog},
+		Progress: contribProgress{uc: progressapp.NewManualEntries(p.entries, clk)},
+		Tx:       p.tx, Audit: contribAudit{record: p.audit}, Clock: clk,
+	}
 	return contentUseCases{
 		prop: prophttp.UseCases{
 			ListPropositions:     propapp.NewListPropositions(p.props, p.links),
@@ -210,9 +215,10 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			WithdrawErratum: reviewapp.NewWithdrawErratum(corrections),
 		},
 		queue: queuehttp.UseCases{
-			Claim:     queueapp.NewClaim(p.claims, queueProps{e: editorial}, qp, p.tx, clk),
-			Release:   queueapp.NewRelease(p.claims, qp, p.tx, queueAudit{record: p.audit}, clk),
-			ListQueue: queueapp.NewListQueue(queueProps{e: editorial}, queueReviewWork{r: reports}, p.claims, qp, clk),
+			Claim:   queueapp.NewClaim(p.claims, queueProps{e: editorial}, qp, p.tx, clk),
+			Release: queueapp.NewRelease(p.claims, qp, p.tx, queueAudit{record: p.audit}, clk),
+			ListQueue: queueapp.NewListQueue(queueProps{e: editorial}, queueReviewWork{r: reports},
+				queueContributions{uc: contribapp.NewListPending(p.contributions)}, p.claims, qp, clk),
 		},
 		ingest: ingesthttp.UseCases{
 			SearchSources: ingestapp.NewSearchSources(p.sources, ic),
@@ -224,6 +230,12 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			ListOfficialSources:  contribapp.NewListOfficialSources(p.officialSources),
 			CreateOfficialSource: contribapp.NewCreateOfficialSource(p.officialSources, p.tx, contribAudit{record: p.audit}, clk),
 			DeleteOfficialSource: contribapp.NewDeleteOfficialSource(p.officialSources, p.tx, contribAudit{record: p.audit}),
+			GetContribution:      contribapp.NewGetContribution(moderation),
+			AcceptContribution:   contribapp.NewAcceptContribution(moderation),
+			RejectContribution:   contribapp.NewRejectContribution(moderation),
+			CorrectSphere:        contribapp.NewCorrectSphere(moderation),
+			LinkProposition:      contribapp.NewLinkProposition(moderation),
+			DeleteProgressEntry:  contribapp.NewDeleteProgressEntry(moderation),
 		},
 		syncLink: ingestapp.NewSyncLink(p.sources, ic, pw, p.tx),
 		syncAll:  ingestapp.NewSyncAll(ic, p.scheduler),
@@ -285,6 +297,7 @@ func (t timelineReader) Timeline(ctx context.Context, propositionID string) ([]p
 		out = append(out, propapp.TimelineEntry{
 			Chamber: e.Chamber, At: e.At, Body: e.Body, Description: e.Description,
 			Situation: e.Situation, Dispatch: e.Dispatch,
+			Manual: e.Manual, SourceURL: e.SourceURL, ContributionID: e.ContributionID(),
 		})
 	}
 	return out, nil

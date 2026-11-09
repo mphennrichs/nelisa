@@ -74,8 +74,44 @@ func TestRecordEntriesRejectsHostileInput(t *testing.T) {
 	if _, err := rec.Execute(ctx, app.RecordEntriesInput{PropositionID: "p", Chamber: "camara", Entries: many}); !errors.Is(err, app.ErrTooManyEntries) {
 		t.Errorf("too many: %v", err)
 	}
+	// A fonte não se passa por evento manual.
+	if _, err := rec.Execute(ctx, app.RecordEntriesInput{PropositionID: "p", Chamber: "camara", Entries: []app.EntryInput{{ExternalKey: "contribution:x", At: t0}}}); !errors.Is(err, domain.ErrInvalidEntry) {
+		t.Errorf("manual key from source: %v", err)
+	}
 	e, err := domain.NewEntry("p", "camara", "k", t0, "PLEN", strings.Repeat("x", 9_000), "", "")
 	if err != nil || len(e.Description) != 5_000 {
 		t.Errorf("long description not truncated: %v %d", err, len(e.Description))
+	}
+}
+
+func TestManualEntries(t *testing.T) {
+	repo := fakes.NewEntries()
+	uc := app.NewManualEntries(repo, &clock.Fixed{T: t0})
+	ctx := context.Background()
+	in := app.ManualEntryInput{PropositionID: "p", Chamber: "camara", ContributionID: "c1", At: t0, Description: "Votação adiada", SourceURL: "https://g1.globo.com/x"}
+	if err := uc.Record(ctx, in); err != nil {
+		t.Fatal(err)
+	}
+	if err := uc.Record(ctx, in); !errors.Is(err, domain.ErrManualEntryExists) {
+		t.Errorf("de novo: %v", err)
+	}
+	tl, _ := app.NewTimeline(repo).Execute(ctx, "p")
+	if len(tl) != 1 || !tl[0].Manual || tl[0].SourceURL != in.SourceURL || tl[0].ContributionID() != "c1" || tl[0].ExternalKey != "contribution:c1" {
+		t.Fatalf("timeline = %+v", tl)
+	}
+	for _, bad := range []app.ManualEntryInput{
+		{PropositionID: "p", Chamber: "camara", ContributionID: "c2", At: t0, Description: "x"},
+		{PropositionID: "p", Chamber: "camara", ContributionID: "c2", At: t0, SourceURL: "https://a.b"},
+		{PropositionID: "p", Chamber: "camara", At: t0, Description: "x", SourceURL: "https://a.b"},
+	} {
+		if err := uc.Record(ctx, bad); !errors.Is(err, domain.ErrInvalidEntry) {
+			t.Errorf("%+v: %v", bad, err)
+		}
+	}
+	if ok, err := uc.Delete(ctx, "c1"); err != nil || !ok {
+		t.Errorf("delete = %v, %v", ok, err)
+	}
+	if ok, err := uc.Delete(ctx, "c1"); err != nil || ok {
+		t.Errorf("delete de novo = %v, %v", ok, err)
 	}
 }

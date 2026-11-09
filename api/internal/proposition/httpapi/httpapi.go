@@ -139,6 +139,12 @@ type timelineDTO struct {
 	Description string `json:"description"`
 	Situation   string `json:"situation"`
 	Dispatch    string `json:"dispatch"`
+	// Manual: evento de uma Atualização de tramitação aceita; source_url
+	// é o link de fonte (vazio nos eventos da fonte oficial).
+	Manual    bool   `json:"manual"`
+	SourceURL string `json:"source_url"`
+	// ContributionID: só para a equipe (apagar o evento manual).
+	ContributionID *string `json:"contribution_id,omitempty"`
 }
 
 type teamPropositionDetailDTO struct {
@@ -199,13 +205,18 @@ func toTeamDTO(tp app.TeamProposition) teamPropositionDTO {
 	return out
 }
 
-func toTimelineDTO(es []app.TimelineEntry) []timelineDTO {
+func toTimelineDTO(es []app.TimelineEntry, team bool) []timelineDTO {
 	out := make([]timelineDTO, 0, len(es))
 	for _, e := range es {
-		out = append(out, timelineDTO{
+		d := timelineDTO{
 			Chamber: e.Chamber, At: ts(e.At), Body: e.Body, Description: e.Description,
-			Situation: e.Situation, Dispatch: e.Dispatch,
-		})
+			Situation: e.Situation, Dispatch: e.Dispatch, Manual: e.Manual, SourceURL: e.SourceURL,
+		}
+		if team && e.ContributionID != "" {
+			id := e.ContributionID
+			d.ContributionID = &id
+		}
+		out = append(out, d)
 	}
 	return out
 }
@@ -233,7 +244,7 @@ func (h *Handlers) get(w http.ResponseWriter, r *http.Request) {
 	out := teamPropositionDetailDTO{
 		teamPropositionDTO: toTeamDTO(d.TeamProposition),
 		Attached:           make([]attachedRefDTO, 0, len(d.Attached)),
-		Timeline:           toTimelineDTO(d.Timeline),
+		Timeline:           toTimelineDTO(d.Timeline, true),
 	}
 	if d.Principal != nil && out.AttachedTo != nil {
 		out.AttachedTo.Name = d.Principal.Name()
@@ -439,7 +450,7 @@ func (h *Handlers) getPublic(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", publicCache)
 	httpx.WriteJSON(w, http.StatusOK, publicPropositionDetailDTO{
 		publicPropositionDTO: toPublicDTO(d.PublicProposition),
-		Timeline:             toTimelineDTO(d.Timeline),
+		Timeline:             toTimelineDTO(d.Timeline, false),
 		Errata:               toPublicErrataDTO(d.Errata),
 		AnnotatedText:        toPublicAnnotated(d.AnnotatedText),
 	})

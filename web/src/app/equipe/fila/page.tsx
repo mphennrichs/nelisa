@@ -6,7 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import type { components } from "@/lib/api/schema";
 import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FormError, RequireTeam } from "@/lib/team/ui";
-import { SPHERE_LABEL, fmtDateTime } from "@/lib/labels";
+import { CONTRIBUTION_KIND_LABEL, SPHERE_LABEL, fmtDateTime } from "@/lib/labels";
 
 type QueueItem = components["schemas"]["QueueItem"];
 type Sphere = components["schemas"]["Sphere"];
@@ -18,6 +18,7 @@ const REASON_LABEL: Record<QueueItem["reason"], string> = {
   second_review: "Segunda revisão pendente",
   minor_fix_check: "Correção a conferir",
   erratum: "Errata",
+  contribution: "Contribuição",
 };
 
 // O que falta em cada item que não é de revisão de Versão.
@@ -25,6 +26,7 @@ const REASON_HINT: Partial<Record<QueueItem["reason"], string>> = {
   second_review: "Aprovada sem quatro olhos: falta outra pessoa confirmar a revisão.",
   minor_fix_check: "Correção menor já publicada: falta um Revisor que não a fez conferir o antes e o depois.",
   erratum: "Errata proposta: falta outro Revisor aprovar ou recusar. Até lá o site mostra o texto antigo.",
+  contribution: "Mandada por um leitor: aceite ou rejeite. Nada muda no site até a decisão.",
 };
 
 function isSphere(s: string | null): s is Sphere {
@@ -79,34 +81,45 @@ function Queue() {
       {items?.length === 0 && (
         <p className="card text-stone-700">
           Nada esperando revisão{sphere ? ` na Esfera ${SPHERE_LABEL[sphere].toLowerCase()}` : ""}. Proposições enviadas para
-          revisão, Correções a conferir e Erratas aparecem aqui.
+          revisão, Correções a conferir, Erratas e Contribuições de leitores aparecem aqui.
         </p>
       )}
       {items && items.length > 0 && (
         <ul className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
           {items.map((it) => (
-            <li key={`${it.proposition_id}-${it.reason}`} className="space-y-2 px-4 py-4">
+            <li key={it.contribution ? it.contribution.id : `${it.proposition_id}-${it.reason}`} className="space-y-2 px-4 py-4">
               <p className="flex flex-wrap items-center gap-2">
-                <Link href={`/equipe/proposicoes/${it.proposition_id}`} className="text-lg font-semibold hover:underline">
-                  {it.name}
+                <Link
+                  href={it.contribution ? `/equipe/contribuicoes/${it.contribution.id}` : `/equipe/proposicoes/${it.proposition_id}`}
+                  className="text-lg font-semibold [overflow-wrap:anywhere] hover:underline"
+                >
+                  {it.contribution ? `${CONTRIBUTION_KIND_LABEL[it.contribution.kind]}: ${it.name}` : it.name}
                 </Link>
                 <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs font-medium text-stone-700">{SPHERE_LABEL[it.sphere]}</span>
                 <span
                   className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                    it.reason === "second_review" || it.reason === "erratum" ? "bg-amber-100 text-amber-900" : "bg-sky-100 text-sky-900"
+                    it.reason === "second_review" || it.reason === "erratum"
+                      ? "bg-amber-100 text-amber-900"
+                      : it.reason === "contribution"
+                        ? "bg-violet-100 text-violet-900"
+                        : "bg-sky-100 text-sky-900"
                   }`}
                 >
                   {REASON_LABEL[it.reason]}
                 </span>
               </p>
-              <p className="text-sm text-stone-700">
-                Versão {it.version.seq}: {it.version.label} · na Fila desde {fmtDateTime(it.since)}
-              </p>
-              <p className="text-sm text-stone-700">
-                {it.claim
-                  ? `Com ${it.claim.holder_name} desde ${fmtDateTime(it.claim.claimed_at)}`
-                  : "Ninguém assumiu ainda"}
-              </p>
+              {it.version ? (
+                <p className="text-sm text-stone-700">
+                  Versão {it.version.seq}: {it.version.label} · na Fila desde {fmtDateTime(it.since)}
+                </p>
+              ) : (
+                <p className="text-sm text-stone-700">Enviada em {fmtDateTime(it.since)}</p>
+              )}
+              {!it.contribution && (
+                <p className="text-sm text-stone-700">
+                  {it.claim ? `Com ${it.claim.holder_name} desde ${fmtDateTime(it.claim.claimed_at)}` : "Ninguém assumiu ainda"}
+                </p>
+              )}
               {it.reason === "review" &&
                 (it.missing.length > 0 ? (
                   <div className="text-sm">

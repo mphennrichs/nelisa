@@ -109,6 +109,27 @@ type ReviewWork interface {
 	PendingCorrections(ctx context.Context) ([]PendingCorrection, error)
 }
 
+// PendingContribution é uma Contribuição esperando moderação.
+type PendingContribution struct {
+	ID string
+	// Kind: indication, progress_update ou source_request.
+	Kind string
+	// Sphere: a da Proposição (Atualização) ou a escolhida pelo Leitor e
+	// corrigida pela equipe.
+	Sphere domain.Sphere
+	// PropositionID: só na Atualização de tramitação.
+	PropositionID string
+	// Subject: o domínio pedido ou o host do link.
+	Subject     string
+	SubmittedAt time.Time
+}
+
+// Contributions são as Contribuições pendentes (módulo contribution,
+// ligado no main).
+type Contributions interface {
+	Pending(ctx context.Context) ([]PendingContribution, error)
+}
+
 // TxRunner abre uma transação levada no contexto.
 type TxRunner interface {
 	WithinTx(ctx context.Context, fn func(ctx context.Context) error) error

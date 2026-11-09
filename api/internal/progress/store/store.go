@@ -58,7 +58,30 @@ func (s *Store) ListByProposition(ctx context.Context, propositionID string) ([]
 		out = append(out, domain.Entry{
 			PropositionID: r.PropositionID, Chamber: r.Chamber, ExternalKey: r.ExternalKey, At: r.At.UTC(),
 			Body: r.Body, Description: r.Description, Situation: r.Situation, Dispatch: r.Dispatch,
+			Manual: r.Manual, SourceURL: r.SourceUrl,
 		})
 	}
 	return out, nil
+}
+
+func (s *Store) InsertManual(ctx context.Context, e domain.Entry, now time.Time) error {
+	n, err := s.q(ctx).InsertManualEntry(ctx, dbgen.InsertManualEntryParams{
+		PropositionID: e.PropositionID, Chamber: e.Chamber, ExternalKey: e.ExternalKey, At: e.At,
+		Body: e.Body, Description: e.Description, SourceUrl: e.SourceURL, Now: now,
+	})
+	if err != nil {
+		return fmt.Errorf("gravando evento manual: %w", err)
+	}
+	if n == 0 {
+		return domain.ErrManualEntryExists
+	}
+	return nil
+}
+
+func (s *Store) DeleteManual(ctx context.Context, externalKey string) (bool, error) {
+	n, err := s.q(ctx).DeleteManualEntry(ctx, externalKey)
+	if err != nil {
+		return false, fmt.Errorf("apagando evento manual: %w", err)
+	}
+	return n > 0, nil
 }

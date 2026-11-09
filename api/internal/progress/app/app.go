@@ -25,6 +25,11 @@ type EntryRepo interface {
 	Upsert(ctx context.Context, es []domain.Entry, now time.Time) (inserted int, err error)
 	// ListByProposition devolve a linha do tempo, já ordenada.
 	ListByProposition(ctx context.Context, propositionID string) ([]domain.Entry, error)
+	// InsertManual grava um evento manual; ErrManualEntryExists se a
+	// chave já existe.
+	InsertManual(ctx context.Context, e domain.Entry, now time.Time) error
+	// DeleteManual apaga o evento manual com a chave; false se não há.
+	DeleteManual(ctx context.Context, externalKey string) (bool, error)
 }
 
 // EntryInput é um evento como a fonte o descreve.
@@ -109,4 +114,44 @@ func (uc *Timeline) Execute(ctx context.Context, propositionID string) ([]domain
 	}
 	domain.SortTimeline(es)
 	return es, nil
+}
+
+// ManualEntryInput é o evento manual de uma Atualização de tramitação
+// aceita, já revisado pela equipe.
+type ManualEntryInput struct {
+	PropositionID  string
+	Chamber        string
+	ContributionID string
+	At             time.Time
+	Description    string
+	SourceURL      string
+}
+
+// ManualEntries grava e apaga eventos manuais. Operação de sistema: o
+// módulo contribution autoriza e audita, na transação do contexto.
+type ManualEntries struct {
+	repo  EntryRepo
+	clock clock.Clock
+}
+
+func NewManualEntries(repo EntryRepo, clk clock.Clock) *ManualEntries {
+	return &ManualEntries{repo: repo, clock: clk}
+}
+
+// Record grava o evento; ErrManualEntryExists se a Contribuição já gravou
+// o dela.
+func (uc *ManualEntries) Record(ctx context.Context, in ManualEntryInput) error {
+	e, err := domain.NewManualEntry(in.PropositionID, in.Chamber, in.ContributionID, in.At, in.Description, in.SourceURL)
+	if err != nil {
+		return err
+	}
+	return uc.repo.InsertManual(ctx, e, uc.clock.Now())
+}
+
+// Delete apaga o evento manual da Contribuição; false se não há.
+func (uc *ManualEntries) Delete(ctx context.Context, contributionID string) (bool, error) {
+	if contributionID == "" {
+		return false, nil
+	}
+	return uc.repo.DeleteManual(ctx, domain.ManualKey(contributionID))
 }

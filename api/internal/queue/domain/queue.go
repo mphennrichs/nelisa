@@ -107,13 +107,19 @@ const (
 	ReasonMinorFixCheck Reason = "minor_fix_check"
 	// ReasonErratum: Errata pendente.
 	ReasonErratum Reason = "erratum"
+	// ReasonContribution: Contribuição pendente de moderação.
+	ReasonContribution Reason = "contribution"
 )
 
 // Item é uma entrada da Fila.
 type Item struct {
+	// PropositionID: a Proposição do item ("" numa Contribuição que não é
+	// de Proposição, como Indicação e Pedido de fonte oficial).
 	PropositionID string
-	Sphere        Sphere
-	Reason        Reason
+	// ContributionID: só nos itens de Contribuição.
+	ContributionID string
+	Sphere         Sphere
+	Reason         Reason
 	// VoteAt é a votação marcada mais próxima. Ainda não há esse dado: todo
 	// item cai em "sem votação" (nil), mas a ordem já o respeita.
 	VoteAt *time.Time
@@ -145,7 +151,10 @@ func Sort[T any](items []T, key func(T) Item) {
 		if a.PropositionID != b.PropositionID {
 			return a.PropositionID < b.PropositionID
 		}
-		return a.Reason < b.Reason
+		if a.Reason != b.Reason {
+			return a.Reason < b.Reason
+		}
+		return a.ContributionID < b.ContributionID
 	})
 }
 

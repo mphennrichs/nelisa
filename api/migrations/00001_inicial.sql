@@ -277,8 +277,14 @@ CREATE TABLE progress.entries (
     description    text NOT NULL DEFAULT '',
     situation      text NOT NULL DEFAULT '',
     dispatch       text NOT NULL DEFAULT '',
+    -- Evento manual: veio de uma Atualização de tramitação aceita pela
+    -- equipe (external_key = contribution:<id>), sempre com link de fonte.
+    manual         boolean NOT NULL DEFAULT false,
+    source_url     text NOT NULL DEFAULT '',
     created_at     timestamptz NOT NULL,
-    updated_at     timestamptz NOT NULL
+    updated_at     timestamptz NOT NULL,
+    CHECK (manual = (external_key LIKE 'contribution:%')),
+    CHECK (manual = (source_url <> ''))
 );
 CREATE UNIQUE INDEX entries_source_key ON progress.entries (proposition_id, chamber, external_key);
 CREATE INDEX entries_timeline_idx ON progress.entries (proposition_id, at, chamber, external_key);
@@ -407,7 +413,10 @@ CREATE TABLE contribution.contributions (
     CHECK ((kind = 'progress_update') = (proposition_id IS NOT NULL)),
     CHECK ((state = 'pending') = (decided_at IS NULL)),
     CHECK ((state = 'pending') = (decided_by IS NULL)),
-    CHECK (state <> 'rejected' OR public_reason <> '')
+    CHECK (state <> 'rejected' OR public_reason <> ''),
+    CHECK (state = 'rejected' OR public_reason = ''),
+    -- Só a Indicação aceita aponta a Proposição criada a partir dela.
+    CHECK (created_proposition_id IS NULL OR (kind = 'indication' AND state = 'accepted'))
 );
 CREATE INDEX contributions_pending_idx ON contribution.contributions (submitted_at) WHERE state = 'pending';
 

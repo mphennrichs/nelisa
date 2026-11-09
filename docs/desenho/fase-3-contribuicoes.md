@@ -179,8 +179,15 @@ Nada do Leitor além do formulário.
    tem um limite provisório em memória (5/h por IP) e a consulta, 30/h.
    A Atualização de tramitação só parte da página da Proposição (o Leitor
    não digita o slug).
-2. **Moderação:** Contribuições na Fila, aceitar e rejeitar, Tramitação
-   manual. Deploy desligado.
+2. **Moderação** (feito, #25): Contribuições na Fila, aceitar e rejeitar,
+   Tramitação manual. Deploy desligado. Detalhes da implementação:
+   - A Indicação aceita leva à Importação com `?contribuicao=<id>`; a
+     Proposição importada (ou uma já existente, pelo botão "Ligar") fica
+     apontada na Contribuição.
+   - O evento manual só aceita as Casas que a Importação conhece (Câmara e
+     Senado); uma Casa estadual ou municipal entra junto com a Importação
+     dela.
+   - O evento manual se apaga na página da Proposição, na equipe.
 3. **Anti-abuso:** Turnstile, IP confiável, rate limit, teto. Deploy e
    ligamos.
 4. **Beta (#28):** checklist da issue.

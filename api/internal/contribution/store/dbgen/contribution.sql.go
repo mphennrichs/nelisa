@@ -39,12 +39,62 @@ func (q *Queries) DeleteOfficialSource(ctx context.Context, id string) (Contribu
 	return i, err
 }
 
+const getContribution = `-- name: GetContribution :one
+SELECT id, kind, state, tracking_hash, proposition_id, sphere, payload, submitted_at, decided_by, decided_at, public_reason, internal_note, created_proposition_id FROM contribution.contributions WHERE id = $1
+`
+
+func (q *Queries) GetContribution(ctx context.Context, id string) (ContributionContribution, error) {
+	row := q.db.QueryRow(ctx, getContribution, id)
+	var i ContributionContribution
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.State,
+		&i.TrackingHash,
+		&i.PropositionID,
+		&i.Sphere,
+		&i.Payload,
+		&i.SubmittedAt,
+		&i.DecidedBy,
+		&i.DecidedAt,
+		&i.PublicReason,
+		&i.InternalNote,
+		&i.CreatedPropositionID,
+	)
+	return i, err
+}
+
 const getContributionByTrackingHash = `-- name: GetContributionByTrackingHash :one
 SELECT id, kind, state, tracking_hash, proposition_id, sphere, payload, submitted_at, decided_by, decided_at, public_reason, internal_note, created_proposition_id FROM contribution.contributions WHERE tracking_hash = $1
 `
 
 func (q *Queries) GetContributionByTrackingHash(ctx context.Context, trackingHash string) (ContributionContribution, error) {
 	row := q.db.QueryRow(ctx, getContributionByTrackingHash, trackingHash)
+	var i ContributionContribution
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.State,
+		&i.TrackingHash,
+		&i.PropositionID,
+		&i.Sphere,
+		&i.Payload,
+		&i.SubmittedAt,
+		&i.DecidedBy,
+		&i.DecidedAt,
+		&i.PublicReason,
+		&i.InternalNote,
+		&i.CreatedPropositionID,
+	)
+	return i, err
+}
+
+const getContributionForUpdate = `-- name: GetContributionForUpdate :one
+SELECT id, kind, state, tracking_hash, proposition_id, sphere, payload, submitted_at, decided_by, decided_at, public_reason, internal_note, created_proposition_id FROM contribution.contributions WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetContributionForUpdate(ctx context.Context, id string) (ContributionContribution, error) {
+	row := q.db.QueryRow(ctx, getContributionForUpdate, id)
 	var i ContributionContribution
 	err := row.Scan(
 		&i.ID,
@@ -175,4 +225,78 @@ func (q *Queries) ListOfficialSources(ctx context.Context) ([]ContributionOffici
 		return nil, err
 	}
 	return items, nil
+}
+
+const listPendingContributions = `-- name: ListPendingContributions :many
+SELECT id, kind, state, tracking_hash, proposition_id, sphere, payload, submitted_at, decided_by, decided_at, public_reason, internal_note, created_proposition_id FROM contribution.contributions WHERE state = 'pending' ORDER BY submitted_at, id
+`
+
+func (q *Queries) ListPendingContributions(ctx context.Context) ([]ContributionContribution, error) {
+	rows, err := q.db.Query(ctx, listPendingContributions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ContributionContribution
+	for rows.Next() {
+		var i ContributionContribution
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.State,
+			&i.TrackingHash,
+			&i.PropositionID,
+			&i.Sphere,
+			&i.Payload,
+			&i.SubmittedAt,
+			&i.DecidedBy,
+			&i.DecidedAt,
+			&i.PublicReason,
+			&i.InternalNote,
+			&i.CreatedPropositionID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateContribution = `-- name: UpdateContribution :execrows
+UPDATE contribution.contributions
+SET state = $2, sphere = $3, decided_by = $4, decided_at = $5, public_reason = $6,
+    internal_note = $7, created_proposition_id = $8
+WHERE id = $1
+`
+
+type UpdateContributionParams struct {
+	ID                   string
+	State                string
+	Sphere               string
+	DecidedBy            *string
+	DecidedAt            *time.Time
+	PublicReason         string
+	InternalNote         string
+	CreatedPropositionID *string
+}
+
+// Moderação: só os campos que a equipe muda.
+func (q *Queries) UpdateContribution(ctx context.Context, arg UpdateContributionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateContribution,
+		arg.ID,
+		arg.State,
+		arg.Sphere,
+		arg.DecidedBy,
+		arg.DecidedAt,
+		arg.PublicReason,
+		arg.InternalNote,
+		arg.CreatedPropositionID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

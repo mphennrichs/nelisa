@@ -200,6 +200,17 @@ pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
 - Os links do Leitor são só validados como texto (https, host DNS, sem
   usuário nem porta); o Nelisa nunca os abre.
 - `CONTRIBUTIONS_ENABLED` liga a rota de envio; desligada, ela nem existe.
+- **Moderação (#25):** as pendentes entram na Fila pela porta
+  `Contributions` do `queue` (item `reason: contribution`, sem Posse), na
+  mesma ordem dos outros itens. Aceitar, rejeitar, corrigir a Esfera, apontar
+  a Proposição criada e apagar o evento manual são do `contribution`: Editor
+  ou acima, sem quatro olhos, linha travada (`FOR UPDATE`) e Auditoria na
+  mesma transação (`contribution.*`).
+- **Evento manual de Tramitação:** aceitar uma Atualização chama o
+  `progress` pela porta `ProgressEntries` (`wire_contribution.go`). A chave
+  é `contribution:<id>`, com `manual = true` e `source_url`; o banco amarra
+  as três coisas, e a Sincronização recusa essa chave vinda da fonte, então
+  nunca sobrescreve o manual. A data vira meio-dia de Brasília.
 
 ### HTTP
 

@@ -23,22 +23,33 @@ type QueueItem struct {
 	Claim *ClaimView
 	// Missing é o que falta para aprovar (só nos itens de revisão).
 	Missing []Missing
+	// Contribution: só nos itens de Contribuição (Version fica vazia).
+	Contribution *ContributionItem
+}
+
+// ContributionItem é o que a Fila mostra de uma Contribuição pendente.
+type ContributionItem struct {
+	ID      string
+	Kind    string
+	Subject string
 }
 
 // ListQueue monta a Fila, sempre por Esfera: Proposições "em revisão" com
 // Versão em análise, Proposições prontas com Segunda revisão pendente, com
 // Correção menor a conferir (um item por Proposição, desde a mais antiga)
-// e com Errata pendente.
+// e com Errata pendente; e as Contribuições pendentes (desenho da fase 3,
+// "Moderação pela Fila"), na mesma ordem.
 type ListQueue struct {
-	props   Propositions
-	reviews ReviewWork
-	claims  ClaimRepo
-	people  People
-	clock   clock.Clock
+	props    Propositions
+	reviews  ReviewWork
+	contribs Contributions
+	claims   ClaimRepo
+	people   People
+	clock    clock.Clock
 }
 
-func NewListQueue(props Propositions, reviews ReviewWork, claims ClaimRepo, people People, clk clock.Clock) *ListQueue {
-	return &ListQueue{props: props, reviews: reviews, claims: claims, people: people, clock: clk}
+func NewListQueue(props Propositions, reviews ReviewWork, contribs Contributions, claims ClaimRepo, people People, clk clock.Clock) *ListQueue {
+	return &ListQueue{props: props, reviews: reviews, contribs: contribs, claims: claims, people: people, clock: clk}
 }
 
 func (uc *ListQueue) Execute(ctx context.Context, in ListQueueInput) ([]QueueItem, error) {
@@ -123,8 +134,57 @@ func (uc *ListQueue) Execute(ctx context.Context, in ListQueueInput) ([]QueueIte
 	if err := uc.attachClaims(ctx, items, uc.clock.Now()); err != nil {
 		return nil, err
 	}
+	contribs, err := uc.contributionItems(ctx, sphere)
+	if err != nil {
+		return nil, err
+	}
+	items = append(items, contribs...)
 	domain.Sort(items, func(i QueueItem) domain.Item { return i.Item })
 	return items, nil
+}
+
+// contributionItems monta os itens das Contribuições pendentes. A Posse
+// não vale para elas: moderar não edita a Proposição.
+func (uc *ListQueue) contributionItems(ctx context.Context, sphere domain.Sphere) ([]QueueItem, error) {
+	cs, err := uc.contribs.Pending(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, c := range cs {
+		if c.PropositionID != "" {
+			ids = append(ids, c.PropositionID)
+		}
+	}
+	byID := map[string]Proposition{}
+	if len(ids) > 0 {
+		described, err := uc.props.Describe(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range described {
+			byID[p.ID] = p
+		}
+	}
+	var out []QueueItem
+	for _, c := range cs {
+		if sphere != "" && c.Sphere != sphere {
+			continue
+		}
+		it := QueueItem{
+			Item: domain.Item{
+				PropositionID: c.PropositionID, ContributionID: c.ID, Sphere: c.Sphere,
+				Reason: domain.ReasonContribution, Since: c.SubmittedAt,
+			},
+			Name: c.Subject, Missing: []Missing{},
+			Contribution: &ContributionItem{ID: c.ID, Kind: c.Kind, Subject: c.Subject},
+		}
+		if p, ok := byID[c.PropositionID]; ok {
+			it.Name, it.Slug = p.Name, p.Slug
+		}
+		out = append(out, it)
+	}
+	return out, nil
 }
 
 // attachClaims põe em cada item a Posse que vale, com o nome de quem a

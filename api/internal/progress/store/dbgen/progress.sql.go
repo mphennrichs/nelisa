@@ -10,8 +10,56 @@ import (
 	"time"
 )
 
+const deleteManualEntry = `-- name: DeleteManualEntry :execrows
+DELETE FROM progress.entries WHERE external_key = $1 AND manual
+`
+
+func (q *Queries) DeleteManualEntry(ctx context.Context, externalKey string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteManualEntry, externalKey)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const insertManualEntry = `-- name: InsertManualEntry :execrows
+INSERT INTO progress.entries (proposition_id, chamber, external_key, at, body, description, manual, source_url, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8, $8)
+ON CONFLICT (proposition_id, chamber, external_key) DO NOTHING
+`
+
+type InsertManualEntryParams struct {
+	PropositionID string
+	Chamber       string
+	ExternalKey   string
+	At            time.Time
+	Body          string
+	Description   string
+	SourceUrl     string
+	Now           time.Time
+}
+
+// Evento manual (Atualização de tramitação aceita). Se a chave já existe,
+// nada muda: 0 linhas.
+func (q *Queries) InsertManualEntry(ctx context.Context, arg InsertManualEntryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, insertManualEntry,
+		arg.PropositionID,
+		arg.Chamber,
+		arg.ExternalKey,
+		arg.At,
+		arg.Body,
+		arg.Description,
+		arg.SourceUrl,
+		arg.Now,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const listEntriesByProposition = `-- name: ListEntriesByProposition :many
-SELECT proposition_id, chamber, external_key, at, body, description, situation, dispatch
+SELECT proposition_id, chamber, external_key, at, body, description, situation, dispatch, manual, source_url
 FROM progress.entries
 WHERE proposition_id = $1
 ORDER BY at, chamber, external_key
@@ -26,6 +74,8 @@ type ListEntriesByPropositionRow struct {
 	Description   string
 	Situation     string
 	Dispatch      string
+	Manual        bool
+	SourceUrl     string
 }
 
 func (q *Queries) ListEntriesByProposition(ctx context.Context, propositionID string) ([]ListEntriesByPropositionRow, error) {
@@ -46,6 +96,8 @@ func (q *Queries) ListEntriesByProposition(ctx context.Context, propositionID st
 			&i.Description,
 			&i.Situation,
 			&i.Dispatch,
+			&i.Manual,
+			&i.SourceUrl,
 		); err != nil {
 			return nil, err
 		}

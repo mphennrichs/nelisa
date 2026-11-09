@@ -73,16 +73,25 @@ type missingDTO struct {
 	Message string `json:"message"`
 }
 
+type contributionDTO struct {
+	ID      string `json:"id"`
+	Kind    string `json:"kind"`
+	Subject string `json:"subject"`
+}
+
+// itemDTO: num item de Contribuição, version é null e proposition_id
+// também, se a Contribuição não é de uma Proposição.
 type itemDTO struct {
-	PropositionID string       `json:"proposition_id"`
-	Name          string       `json:"name"`
-	Slug          string       `json:"slug"`
-	Sphere        string       `json:"sphere"`
-	Reason        string       `json:"reason"`
-	Version       versionDTO   `json:"version"`
-	Since         string       `json:"since"`
-	Claim         *claimDTO    `json:"claim"`
-	Missing       []missingDTO `json:"missing"`
+	PropositionID *string          `json:"proposition_id"`
+	Name          string           `json:"name"`
+	Slug          string           `json:"slug"`
+	Sphere        string           `json:"sphere"`
+	Reason        string           `json:"reason"`
+	Version       *versionDTO      `json:"version"`
+	Since         string           `json:"since"`
+	Claim         *claimDTO        `json:"claim"`
+	Missing       []missingDTO     `json:"missing"`
+	Contribution  *contributionDTO `json:"contribution"`
 }
 
 func (h *Handlers) list(w http.ResponseWriter, r *http.Request) {
@@ -94,10 +103,18 @@ func (h *Handlers) list(w http.ResponseWriter, r *http.Request) {
 	out := make([]itemDTO, 0, len(items))
 	for _, it := range items {
 		d := itemDTO{
-			PropositionID: it.PropositionID, Name: it.Name, Slug: it.Slug, Sphere: string(it.Sphere),
+			Name: it.Name, Slug: it.Slug, Sphere: string(it.Sphere),
 			Reason: string(it.Reason), Since: ts(it.Since), Claim: toClaimDTO(it.Claim),
-			Version: versionDTO{ID: it.Version.ID, Seq: it.Version.Seq, Label: it.Version.Label},
 			Missing: make([]missingDTO, 0, len(it.Missing)),
+		}
+		if it.PropositionID != "" {
+			id := it.PropositionID
+			d.PropositionID = &id
+		}
+		if c := it.Contribution; c != nil {
+			d.Contribution = &contributionDTO{ID: c.ID, Kind: c.Kind, Subject: c.Subject}
+		} else {
+			d.Version = &versionDTO{ID: it.Version.ID, Seq: it.Version.Seq, Label: it.Version.Label}
 		}
 		for _, m := range it.Missing {
 			d.Missing = append(d.Missing, missingDTO(m))

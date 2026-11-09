@@ -28,6 +28,10 @@ type World struct {
 	inTx          bool
 	// Public são as Proposições públicas, por slug.
 	Public map[string]app.PublicProposition
+	// Team são todas as Proposições que a equipe vê, por id.
+	Team map[string]app.TeamProposition
+	// Manual são os eventos manuais da Tramitação, por id da Contribuição.
+	Manual map[string]app.ManualEvent
 }
 
 func New() *World {
@@ -35,6 +39,8 @@ func New() *World {
 		Contributions: map[string]domain.Contribution{},
 		Sources:       map[string]domain.OfficialSource{},
 		Public:        map[string]app.PublicProposition{},
+		Team:          map[string]app.TeamProposition{},
+		Manual:        map[string]app.ManualEvent{},
 	}
 }
 
@@ -75,6 +81,65 @@ func (r Contributions) CountPending(context.Context) (int, error) {
 		}
 	}
 	return n, nil
+}
+
+func (r Contributions) Find(_ context.Context, id string) (domain.Contribution, error) {
+	r.W.mu.Lock()
+	defer r.W.mu.Unlock()
+	c, ok := r.W.Contributions[id]
+	if !ok {
+		return domain.Contribution{}, domain.ErrContributionNotFound
+	}
+	return c, nil
+}
+
+func (r Contributions) FindForUpdate(ctx context.Context, id string) (domain.Contribution, error) {
+	return r.Find(ctx, id)
+}
+
+func (r Contributions) ListPending(context.Context) ([]domain.Contribution, error) {
+	r.W.mu.Lock()
+	defer r.W.mu.Unlock()
+	var out []domain.Contribution
+	for _, c := range r.W.Contributions {
+		if c.State == domain.StatePending {
+			out = append(out, c)
+		}
+	}
+	slices.SortFunc(out, func(a, b domain.Contribution) int { return a.SubmittedAt.Compare(b.SubmittedAt) })
+	return out, nil
+}
+
+func (r Contributions) Update(_ context.Context, c domain.Contribution) error {
+	r.W.mu.Lock()
+	defer r.W.mu.Unlock()
+	if _, ok := r.W.Contributions[c.ID]; !ok {
+		return domain.ErrContributionNotFound
+	}
+	r.W.Contributions[c.ID] = c
+	return nil
+}
+
+// --- ProgressEntries ---
+
+type Progress struct{ W *World }
+
+func (p Progress) RecordManual(_ context.Context, e app.ManualEvent) error {
+	p.W.mu.Lock()
+	defer p.W.mu.Unlock()
+	if _, ok := p.W.Manual[e.ContributionID]; ok {
+		return app.ErrProgressEntryExists
+	}
+	p.W.Manual[e.ContributionID] = e
+	return nil
+}
+
+func (p Progress) DeleteManual(_ context.Context, contributionID string) (bool, error) {
+	p.W.mu.Lock()
+	defer p.W.mu.Unlock()
+	_, ok := p.W.Manual[contributionID]
+	delete(p.W.Manual, contributionID)
+	return ok, nil
 }
 
 // --- OfficialSourceRepo ---
@@ -150,13 +215,22 @@ func (p Props) PublicByID(_ context.Context, id string) (*app.PublicProposition,
 	return nil, nil
 }
 
+func (p Props) ByID(_ context.Context, id string) (*app.TeamProposition, error) {
+	p.W.mu.Lock()
+	defer p.W.mu.Unlock()
+	if v, ok := p.W.Team[id]; ok {
+		return &v, nil
+	}
+	return nil, nil
+}
+
 // --- Tx e Auditoria ---
 
 type Tx struct{ W *World }
 
 func (t Tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) error {
 	t.W.mu.Lock()
-	contribs, sources, events := maps.Clone(t.W.Contributions), maps.Clone(t.W.Sources), slices.Clone(t.W.Events)
+	contribs, sources, events, manual := maps.Clone(t.W.Contributions), maps.Clone(t.W.Sources), slices.Clone(t.W.Events), maps.Clone(t.W.Manual)
 	t.W.inTx = true
 	t.W.mu.Unlock()
 	err := fn(ctx)
@@ -164,7 +238,7 @@ func (t Tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	defer t.W.mu.Unlock()
 	t.W.inTx = false
 	if err != nil {
-		t.W.Contributions, t.W.Sources, t.W.Events = contribs, sources, events
+		t.W.Contributions, t.W.Sources, t.W.Events, t.W.Manual = contribs, sources, events, manual
 	}
 	return err
 }

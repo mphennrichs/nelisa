@@ -2672,7 +2672,8 @@ export interface paths {
          *     (`reason: second_review`), com Correção menor a conferir
          *     (`reason: minor_fix_check`, um item por Proposição, desde a mais
          *     antiga) e com Errata pendente (`reason: erratum`); estes três só
-         *     da Versão vigente. Ordem: Esfera (federal > estadual >
+         *     da Versão vigente; e Contribuições pendentes (`reason:
+         *     contribution`, sem Posse nem Versão). Ordem: Esfera (federal > estadual >
          *     municipal), depois votação mais próxima (ainda sem dado: todas "sem
          *     votação"), depois mais antigo na fila primeiro.
          */
@@ -3131,6 +3132,454 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/contributions/{contributionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contributionId: components["parameters"]["ContributionID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Abre uma Contribuição para moderar (Editor ou acima)
+         * @description As pendentes aparecem na Fila (`GET /api/team/queue`, `reason:
+         *     contribution`). O texto do Leitor vem como ele mandou: a tela o
+         *     mostra como texto puro, e o Nelisa nunca abre o link.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: components["parameters"]["ContributionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A Contribuição */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamContribution"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `contribution_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/contributions/{contributionId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contributionId: components["parameters"]["ContributionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Aceita uma Contribuição pendente (Editor ou acima)
+         * @description Sem quatro olhos (a Contribuição não publica conteúdo editorial),
+         *     mas auditado (`contribution.accept`). Conforme o tipo:
+         *     - `progress_update`: `event` é obrigatório, revisado pela equipe;
+         *       grava um evento **manual** na Tramitação da Proposição, com o
+         *       link de fonte. A data vira meio-dia de Brasília.
+         *     - `source_request`: cadastra o domínio como Fonte oficial, com a
+         *       Esfera atual (também auditado como `official_source.create`).
+         *     - `indication`: só marca aceita; a equipe importa a Proposição e
+         *       depois aponta a criada (`PUT .../proposition`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: components["parameters"]["ContributionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Nunca pública */
+                        internal_note?: string;
+                        event?: {
+                            chamber: components["schemas"]["Chamber"];
+                            /**
+                             * Format: date
+                             * @description AAAA-MM-DD, até um ano à frente
+                             */
+                            date: string;
+                            description: string;
+                            /** @description https, host DNS */
+                            source_url: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description A Contribuição depois da mudança */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamContribution"];
+                    };
+                };
+                /** @description `invalid_json`, `event_required`, `invalid_chamber`, `invalid_event_date`, `invalid_event_text`, `invalid_link` ou `internal_note_too_long` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `contribution_not_found` ou `proposition_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `contribution_decided`, `progress_entry_exists` ou `official_source_exists` (rejeite como `already_registered`) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/contributions/{contributionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contributionId: components["parameters"]["ContributionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rejeita uma Contribuição pendente (Editor ou acima)
+         * @description O motivo é público (o Leitor o vê ao consultar o código); a nota
+         *     interna nunca é. Auditado (`contribution.reject`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: components["parameters"]["ContributionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: components["schemas"]["RejectReason"];
+                        internal_note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description A Contribuição depois da mudança */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamContribution"];
+                    };
+                };
+                /** @description `invalid_json`, `invalid_reason` ou `internal_note_too_long` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `contribution_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `contribution_decided` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/contributions/{contributionId}/sphere": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contributionId: components["parameters"]["ContributionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Corrige a Esfera de uma Indicação ou Pedido de fonte oficial pendente
+         * @description A Esfera manda na ordem da Fila. A Atualização de tramitação herda
+         *     a da Proposição e não se corrige. Auditado
+         *     (`contribution.sphere_change`).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: components["parameters"]["ContributionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        sphere: components["schemas"]["Sphere"];
+                    };
+                };
+            };
+            responses: {
+                /** @description A Contribuição depois da mudança */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamContribution"];
+                    };
+                };
+                /** @description `invalid_json`, `invalid_sphere` ou `sphere_fixed` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `contribution_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `contribution_decided` */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/contributions/{contributionId}/proposition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contributionId: components["parameters"]["ContributionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Aponta a Proposição criada a partir de uma Indicação aceita
+         * @description Uma vez só. A consulta do Leitor passa a mostrar o link quando a
+         *     Proposição for pública. Auditado (`contribution.link_proposition`).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: components["parameters"]["ContributionID"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        proposition_id: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description A Contribuição depois da mudança */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeamContribution"];
+                    };
+                };
+                /** @description `invalid_json` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `contribution_not_found` ou `proposition_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `not_linkable`: não é Indicação aceita, ou já aponta uma Proposição */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/contributions/{contributionId}/progress-entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contributionId: components["parameters"]["ContributionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Apaga o evento manual de uma Atualização de tramitação aceita
+         * @description Por exemplo, quando a Sincronização já trouxe o evento oficial. A
+         *     Contribuição continua aceita. Auditado
+         *     (`contribution.progress_entry_delete`).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    contributionId: components["parameters"]["ContributionID"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Apagado */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `contribution_not_found` ou `progress_entry_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/contributions/availability": {
         parameters: {
             query?: never;
@@ -3364,6 +3813,47 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        /**
+         * @description Motivo público da rejeição
+         * @enum {string}
+         */
+        RejectReason: "source_not_confirmed" | "out_of_scope" | "already_registered" | "duplicate" | "incorrect" | "other";
+        PropositionRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            slug: string;
+        };
+        TeamContribution: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ContributionKind"];
+            /** @enum {string} */
+            state: "pending" | "accepted" | "rejected";
+            sphere: components["schemas"]["Sphere"];
+            /** Format: date-time */
+            submitted_at: string;
+            /** @description Indicação: link da Proposição; Atualização: fonte; Pedido: evidência */
+            link: string;
+            /** @description Domínio do link */
+            link_host: string;
+            event_type: components["schemas"]["ProgressEventType"] | null;
+            /** Format: date */
+            event_date: string | null;
+            /** @description Domínio pedido como Fonte oficial */
+            domain: string | null;
+            source_name: string | null;
+            /** @description Texto do Leitor: mostrar como texto puro */
+            note: string;
+            /** @description A Proposição da Atualização de tramitação */
+            proposition: components["schemas"]["PropositionRef"] | null;
+            /** @description A Proposição criada a partir da Indicação */
+            created_proposition: components["schemas"]["PropositionRef"] | null;
+            /** Format: date-time */
+            decided_at: string | null;
+            public_reason: components["schemas"]["RejectReason"] | null;
+            internal_note: string;
+        };
         Version: {
             version: string;
             commit: string;
@@ -3538,6 +4028,15 @@ export interface components {
             description: string;
             situation: string;
             dispatch: string;
+            /** @description Evento de uma Atualização de tramitação aceita pela equipe, não da fonte oficial */
+            manual: boolean;
+            /** @description Link de fonte do evento manual (vazio nos da fonte oficial) */
+            source_url: string;
+            /**
+             * Format: uuid
+             * @description Só na resposta da equipe, nos eventos manuais (para apagá-los)
+             */
+            contribution_id?: string;
         };
         TeamProposition: {
             /** Format: uuid */
@@ -4016,19 +4515,24 @@ export interface components {
             review_badge: 1 | 2;
         };
         QueueItem: {
-            /** Format: uuid */
-            proposition_id: string;
+            /**
+             * Format: uuid
+             * @description null numa Contribuição que não é de uma Proposição (Indicação, Pedido de fonte oficial)
+             */
+            proposition_id: string | null;
+            /** @description Nome da Proposição; na Indicação e no Pedido, o domínio */
             name: string;
             slug: string;
             sphere: components["schemas"]["Sphere"];
             /** @enum {string} */
-            reason: "review" | "second_review" | "minor_fix_check" | "erratum";
+            reason: "review" | "second_review" | "minor_fix_check" | "erratum" | "contribution";
+            /** @description null nos itens de Contribuição */
             version: {
                 /** Format: uuid */
                 id: string;
                 seq: number;
                 label: string;
-            };
+            } | null;
             /**
              * Format: date-time
              * @description Desde quando está na Fila
@@ -4037,6 +4541,14 @@ export interface components {
             claim: components["schemas"]["Claim"] | null;
             /** @description O que falta no conteúdo para aprovar (itens de revisão) */
             missing: components["schemas"]["Blocker"][];
+            /** @description Só nos itens de Contribuição */
+            contribution: {
+                /** Format: uuid */
+                id: string;
+                kind: components["schemas"]["ContributionKind"];
+                /** @description O domínio pedido ou o host do link */
+                subject: string;
+            } | null;
         };
     };
     responses: {
@@ -4123,6 +4635,7 @@ export interface components {
         };
     };
     parameters: {
+        ContributionID: string;
         UserID: string;
         PropositionID: string;
         VersionID: string;

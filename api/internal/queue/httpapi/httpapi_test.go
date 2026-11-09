@@ -45,7 +45,7 @@ func newServer() (*fakes.World, http.Handler) {
 	h := httpapi.New(httpapi.UseCases{
 		Claim:     app.NewClaim(w.Claims(), w.Props(), w.Directory(), w.Tx(), clk),
 		Release:   app.NewRelease(w.Claims(), w.Directory(), w.Tx(), w.Audit(), clk),
-		ListQueue: app.NewListQueue(w.Props(), w.Reviews(), w.Claims(), w.Directory(), clk),
+		ListQueue: app.NewListQueue(w.Props(), w.Reviews(), w.Contribs(), w.Claims(), w.Directory(), clk),
 	}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	r := chi.NewRouter()
 	r.Route("/api/team", func(r chi.Router) {

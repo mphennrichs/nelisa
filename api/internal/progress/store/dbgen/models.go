@@ -55,6 +55,8 @@ type ProgressEntry struct {
 	Description   string
 	Situation     string
 	Dispatch      string
+	Manual        bool
+	SourceUrl     string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

@@ -32,6 +32,13 @@ type UseCases struct {
 	ListOfficialSources  *app.ListOfficialSources
 	CreateOfficialSource *app.CreateOfficialSource
 	DeleteOfficialSource *app.DeleteOfficialSource
+
+	GetContribution     *app.GetContribution
+	AcceptContribution  *app.AcceptContribution
+	RejectContribution  *app.RejectContribution
+	CorrectSphere       *app.CorrectSphere
+	LinkProposition     *app.LinkProposition
+	DeleteProgressEntry *app.DeleteProgressEntry
 }
 
 // Options vêm da configuração.
@@ -74,6 +81,14 @@ func (h *Handlers) RegisterTeam(r chi.Router) {
 		r.Get("/official-sources", h.listSources)
 		r.Post("/official-sources", h.createSource)
 		r.With(auth.RequireRole(auth.RoleAdmin)).Delete("/official-sources/{id}", h.deleteSource)
+
+		// Moderação (#25): as pendentes aparecem na Fila (módulo queue).
+		r.Get("/contributions/{id}", h.getContribution)
+		r.Post("/contributions/{id}/accept", h.acceptContribution)
+		r.Post("/contributions/{id}/reject", h.rejectContribution)
+		r.Put("/contributions/{id}/sphere", h.correctSphere)
+		r.Put("/contributions/{id}/proposition", h.linkProposition)
+		r.Delete("/contributions/{id}/progress-entry", h.deleteProgressEntry)
 	})
 }
 
@@ -230,6 +245,197 @@ func (h *Handlers) deleteSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// --- Moderação ---
+
+type propRefDTO struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+func toPropRef(p *app.TeamProposition) *propRefDTO {
+	if p == nil {
+		return nil
+	}
+	return &propRefDTO{ID: p.ID, Name: p.Name, Slug: p.Slug}
+}
+
+// contributionDTO é a Contribuição para a equipe: o texto do Leitor vai
+// como veio, e a tela o mostra como texto puro.
+type contributionDTO struct {
+	ID                 string      `json:"id"`
+	Kind               string      `json:"kind"`
+	State              string      `json:"state"`
+	Sphere             string      `json:"sphere"`
+	SubmittedAt        string      `json:"submitted_at"`
+	Link               string      `json:"link"`
+	LinkHost           string      `json:"link_host"`
+	EventType          *string     `json:"event_type"`
+	EventDate          *string     `json:"event_date"`
+	Domain             *string     `json:"domain"`
+	SourceName         *string     `json:"source_name"`
+	Note               string      `json:"note"`
+	Proposition        *propRefDTO `json:"proposition"`
+	CreatedProposition *propRefDTO `json:"created_proposition"`
+	DecidedAt          *string     `json:"decided_at"`
+	PublicReason       *string     `json:"public_reason"`
+	InternalNote       string      `json:"internal_note"`
+}
+
+func toContributionDTO(v app.ContributionView) contributionDTO {
+	host := ""
+	if l, err := domain.ParseLink(v.Payload.Link); err == nil {
+		host = l.Host
+	}
+	d := contributionDTO{
+		ID: v.ID, Kind: string(v.Kind), State: string(v.State), Sphere: string(v.Sphere), SubmittedAt: ts(v.SubmittedAt),
+		Link: v.Payload.Link, LinkHost: host, EventType: optional(string(v.Payload.EventType)),
+		EventDate: optional(v.Payload.EventDate), Domain: optional(v.Payload.Domain),
+		SourceName: optional(v.Payload.SourceName), Note: v.Payload.Note,
+		Proposition: toPropRef(v.Proposition), CreatedProposition: toPropRef(v.CreatedProposition),
+		PublicReason: optional(v.PublicReason), InternalNote: v.InternalNote,
+	}
+	if v.DecidedAt != nil {
+		d.DecidedAt = optional(ts(*v.DecidedAt))
+	}
+	return d
+}
+
+func (h *Handlers) writeContribution(w http.ResponseWriter, v app.ContributionView) {
+	noStore(w)
+	httpx.WriteJSON(w, http.StatusOK, toContributionDTO(v))
+}
+
+func (h *Handlers) getContribution(w http.ResponseWriter, r *http.Request) {
+	v, err := h.uc.GetContribution.Execute(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		h.writeTeamErr(w, r, err)
+		return
+	}
+	h.writeContribution(w, v)
+}
+
+type eventRequest struct {
+	Chamber     string `json:"chamber"`
+	Date        string `json:"date"`
+	Description string `json:"description"`
+	SourceURL   string `json:"source_url"`
+}
+
+type acceptRequest struct {
+	InternalNote string        `json:"internal_note"`
+	Event        *eventRequest `json:"event"`
+}
+
+func (h *Handlers) acceptContribution(w http.ResponseWriter, r *http.Request) {
+	var req acceptRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	in := app.AcceptInput{ID: chi.URLParam(r, "id"), InternalNote: req.InternalNote}
+	if req.Event != nil {
+		in.Event = &app.ProgressEventInput{
+			Chamber: req.Event.Chamber, Date: req.Event.Date, Description: req.Event.Description, SourceURL: req.Event.SourceURL,
+		}
+	}
+	v, err := h.uc.AcceptContribution.Execute(r.Context(), in)
+	if err != nil {
+		h.writeTeamErr(w, r, err)
+		return
+	}
+	h.writeContribution(w, v)
+}
+
+type rejectRequest struct {
+	Reason       string `json:"reason"`
+	InternalNote string `json:"internal_note"`
+}
+
+func (h *Handlers) rejectContribution(w http.ResponseWriter, r *http.Request) {
+	var req rejectRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	v, err := h.uc.RejectContribution.Execute(r.Context(), app.RejectInput{
+		ID: chi.URLParam(r, "id"), Reason: domain.RejectReason(req.Reason), InternalNote: req.InternalNote,
+	})
+	if err != nil {
+		h.writeTeamErr(w, r, err)
+		return
+	}
+	h.writeContribution(w, v)
+}
+
+type sphereRequest struct {
+	Sphere string `json:"sphere"`
+}
+
+func (h *Handlers) correctSphere(w http.ResponseWriter, r *http.Request) {
+	var req sphereRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	v, err := h.uc.CorrectSphere.Execute(r.Context(), app.CorrectSphereInput{ID: chi.URLParam(r, "id"), Sphere: domain.Sphere(req.Sphere)})
+	if err != nil {
+		h.writeTeamErr(w, r, err)
+		return
+	}
+	h.writeContribution(w, v)
+}
+
+type linkRequest struct {
+	PropositionID string `json:"proposition_id"`
+}
+
+func (h *Handlers) linkProposition(w http.ResponseWriter, r *http.Request) {
+	var req linkRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	v, err := h.uc.LinkProposition.Execute(r.Context(), app.LinkPropositionInput{ID: chi.URLParam(r, "id"), PropositionID: req.PropositionID})
+	if err != nil {
+		h.writeTeamErr(w, r, err)
+		return
+	}
+	h.writeContribution(w, v)
+}
+
+func (h *Handlers) deleteProgressEntry(w http.ResponseWriter, r *http.Request) {
+	if err := h.uc.DeleteProgressEntry.Execute(r.Context(), chi.URLParam(r, "id")); err != nil {
+		h.writeTeamErr(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// writeTeamErr: as mensagens da moderação. Contribuição inexistente aqui
+// não é "confira o código" (isso é da consulta do Leitor).
+func (h *Handlers) writeTeamErr(w http.ResponseWriter, r *http.Request, err error) {
+	bad, conflict := http.StatusBadRequest, http.StatusConflict
+	for _, m := range []errMapping{
+		{domain.ErrContributionNotFound, http.StatusNotFound, "contribution_not_found", "Contribuição não encontrada."},
+		{app.ErrPropositionGone, http.StatusNotFound, "proposition_not_found", "Proposição não encontrada."},
+		{domain.ErrNotPending, conflict, "contribution_decided", "Esta Contribuição já foi decidida. Recarregue a página."},
+		{domain.ErrNotLinkable, conflict, "not_linkable", "Só uma Indicação aceita, ainda sem Proposição, aponta a Proposição criada."},
+		{domain.ErrNoProgressEntry, http.StatusNotFound, "progress_entry_not_found", "Esta Contribuição não tem evento na Tramitação (ou ele já foi apagado)."},
+		{app.ErrProgressEntryExists, conflict, "progress_entry_exists", "O evento desta Contribuição já está na Tramitação."},
+		{domain.ErrSphereFixed, bad, "sphere_fixed", "A Esfera de uma Atualização de tramitação vem da Proposição."},
+		{domain.ErrInvalidReason, bad, "invalid_reason", "Escolha o motivo da rejeição."},
+		{domain.ErrInternalNoteLen, bad, "internal_note_too_long", "A nota interna passa de 1.000 caracteres."},
+		{app.ErrEventRequired, bad, "event_required", "Revise o evento antes de aceitar."},
+		{domain.ErrInvalidChamber, bad, "invalid_chamber", "Escolha a Casa onde o evento aconteceu."},
+		{domain.ErrInvalidEventText, bad, "invalid_event_text", "Descreva o evento (até 1.000 caracteres)."},
+		{domain.ErrInvalidLink, bad, "invalid_link", "O link da fonte precisa ser completo, começando com https://"},
+		{domain.ErrOfficialSourceExists, conflict, "official_source_exists", "Este domínio já é Fonte oficial. Rejeite o pedido como \"já cadastrado\"."},
+	} {
+		if errors.Is(err, m.err) {
+			httpx.WriteError(w, m.status, m.code, m.message)
+			return
+		}
+	}
+	h.writeErr(w, r, err)
 }
 
 type errMapping struct {

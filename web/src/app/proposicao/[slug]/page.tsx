@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import AnnotatedText from "./AnnotatedText";
 import PublicShell, { TopicList, UnderReviewBadge } from "@/components/PublicShell";
 import { getContributionAvailability, getPublicProposition, type PublicPropositionDetail } from "@/lib/public/api";
-import { chamberLabel, fmtDate, officialText, chamberIn, paragraphs, reviewBadgeLabel } from "@/lib/labels";
+import { chamberLabel, fmtDate, officialText, chamberIn, paragraphs, reviewBadgeLabel, hostOf } from "@/lib/labels";
 
 // Renderiza sob demanda (a API não existe no build da imagem); os dados
 // ficam 60s no cache do fetch (lib/public/api.ts).
@@ -25,9 +25,23 @@ function Timeline({ entries }: { entries: Entry[] }) {
           </p>
           <p className="font-medium">{e.description}</p>
           {e.dispatch && e.dispatch !== e.description && <p className="text-stone-700 [overflow-wrap:anywhere]">{e.dispatch}</p>}
+          {e.manual && <ManualSource url={e.source_url} />}
         </li>
       ))}
     </ol>
+  );
+}
+
+// Evento manual: veio de uma Contribuição de Leitor, conferida pela equipe.
+// O link não é da fonte oficial; o domínio fica à vista.
+function ManualSource({ url }: { url: string }) {
+  return (
+    <p className="text-sm text-stone-700">
+      Informado por leitor e conferido pela equipe. Fonte:{" "}
+      <a href={url} className="link [overflow-wrap:anywhere]" rel="noopener noreferrer nofollow">
+        {hostOf(url) || url}
+      </a>
+    </p>
   );
 }
 

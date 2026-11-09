@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { components } from "@/lib/api/schema";
 import { ApiError, useTeamSession } from "@/lib/team/session";
 import { FormError, RequireTeam } from "@/lib/team/ui";
-import { REVIEW_STATE_LABEL, chamberLabel, fmtDate, fmtDateTime, officialText, chamberIn } from "@/lib/labels";
+import { REVIEW_STATE_LABEL, chamberLabel, fmtDate, fmtDateTime, officialText, chamberIn, hostOf } from "@/lib/labels";
 import Editorial from "./Editorial";
 import Structuring from "./Structuring";
 
@@ -22,6 +22,7 @@ function PropositionDetail({ id }: { id: string }) {
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState<string>();
   const [showAll, setShowAll] = useState(false);
+  const [confirming, setConfirming] = useState<string>();
 
   const load = useCallback(async () => {
     try {
@@ -44,12 +45,12 @@ function PropositionDetail({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function act(key: string, path: string, done: string) {
+  async function act(key: string, path: string, done: string, method = "POST") {
     setBusy(key);
     setError(undefined);
     setNotice(undefined);
     try {
-      await api(path, { method: "POST" });
+      await api(path, { method });
       setNotice(done);
       await load();
     } catch (e) {
@@ -66,6 +67,55 @@ function PropositionDetail({ id }: { id: string }) {
   const base = `/api/team/propositions/${encodeURIComponent(p.id)}`;
   const timeline = [...p.timeline].reverse();
   const shown = showAll ? timeline : timeline.slice(0, TIMELINE_PAGE);
+
+  // Evento manual: de uma Contribuição aceita, com o link de fonte. A
+  // equipe pode apagá-lo (por exemplo, quando chega o evento oficial).
+  function ManualEntry({ entry: e }: { entry: Detail["timeline"][number] }) {
+    const cid = e.contribution_id;
+    return (
+      <div className="mt-1 space-y-2 text-sm text-stone-700">
+        <p>
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">Manual</span> De uma
+          Contribuição aceita. Fonte:{" "}
+          <a href={e.source_url} className="link [overflow-wrap:anywhere]" rel="noopener noreferrer nofollow">
+            {hostOf(e.source_url) || e.source_url}
+          </a>
+          {cid && (
+            <>
+              {" · "}
+              <Link href={`/equipe/contribuicoes/${cid}`} className="link">
+                Ver a Contribuição
+              </Link>
+            </>
+          )}
+        </p>
+        {cid &&
+          (confirming === cid ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn min-h-11 px-4"
+                disabled={busy !== undefined}
+                onClick={() =>
+                  act(`del-${cid}`, `/api/team/contributions/${cid}/progress-entry`, "Evento manual apagado da Tramitação.", "DELETE").then(
+                    () => setConfirming(undefined),
+                  )
+                }
+              >
+                {busy === `del-${cid}` ? "Apagando…" : "Confirmar: apagar evento"}
+              </button>
+              <button type="button" className="btn-ghost min-h-11 px-4" onClick={() => setConfirming(undefined)}>
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn-ghost min-h-11 px-4" onClick={() => setConfirming(cid)}>
+              Apagar evento manual
+            </button>
+          ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -163,6 +213,7 @@ function PropositionDetail({ id }: { id: string }) {
               <p className="text-sm text-stone-600">{fmtDate(e.at)} · {chamberLabel(e.chamber)}{e.body && ` · ${e.body}`}</p>
               <p className="font-medium">{e.description}</p>
               {e.dispatch && e.dispatch !== e.description && <p className="text-stone-700 [overflow-wrap:anywhere]">{e.dispatch}</p>}
+              {e.manual && <ManualEntry entry={e} />}
             </li>
           ))}
         </ol>
