@@ -180,7 +180,7 @@ Nada do Leitor além do formulário.
    ligamos.
 4. **Beta (#28):** checklist da issue.
 
-## Decisões (a confirmar)
+## Decisões (confirmadas em 2026-11-09)
 
 - Anexo fica para depois da v1, e a v1 aceita só link.
 - Código guardado só como hash; consulta por `POST`.

@@ -269,7 +269,7 @@ _Evitar_: Log (é técnico; Auditoria é do domínio)
 **Contribuição**:
 Algo enviado por um Leitor sem login. Tem estado próprio — **pendente** →
 **aceita** ou **rejeitada** — e nunca altera a Proposição enquanto pendente. Exige
-fonte (link ou anexo) e passa por captcha e rate limit. O Leitor recebe um
+fonte (link; anexo só depois da v1) e passa por captcha e rate limit. O Leitor recebe um
 **código de acompanhamento** para consultar o status numa página pública; o
 Nelisa não coleta e-mail nem dado pessoal (o IP serve só ao rate limit e some
 em 24h). Avaliada por Editor ou Revisor.
