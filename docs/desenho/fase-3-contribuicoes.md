@@ -135,9 +135,10 @@ ser recuperado.
     "tente de novo", nunca aceita sem checagem.
 - **IP do Leitor:**
   - O IP vem de `CF-Connecting-IP` **só** se a conexão chegou de um proxy
-    confiável. A lista fica em `TRUSTED_PROXY_CIDRS`, que é a rede do
-    `cloudflared` no stack. Fora disso, vale o `RemoteAddr`.
-  - Sem a lista configurada, o cabeçalho é ignorado.
+    confiável (`platform/clientip`, o mesmo do limite do login). A lista
+    vem de `TRUSTED_PROXY_CIDRS`; sem ela, valem as redes privadas e o
+    loopback, que cobrem o Next e o `cloudflared` no stack. Fora disso,
+    vale o `RemoteAddr`.
 - **Rate limit:**
   - 5 Contribuições por hora por IP (`CONTRIBUTION_RATE_PER_HOUR`).
   - O contador fica no Postgres, para valer com mais de uma instância da
@@ -172,8 +173,12 @@ Nada do Leitor além do formulário.
 
 ## Passos
 
-1. **Envio:** módulo `contribution`, Fonte oficial, formulário, código e
-   consulta, tudo atrás de `CONTRIBUTIONS_ENABLED`. Deploy desligado.
+1. **Envio** (feito, #24, PR #40): módulo `contribution`, Fonte oficial,
+   formulário, código e consulta, tudo atrás de `CONTRIBUTIONS_ENABLED`.
+   No ar desligado desde 2026-11-09. Enquanto o passo 3 não chega, o envio
+   tem um limite provisório em memória (5/h por IP) e a consulta, 30/h.
+   A Atualização de tramitação só parte da página da Proposição (o Leitor
+   não digita o slug).
 2. **Moderação:** Contribuições na Fila, aceitar e rejeitar, Tramitação
    manual. Deploy desligado.
 3. **Anti-abuso:** Turnstile, IP confiável, rate limit, teto. Deploy e
