@@ -24,3 +24,20 @@ func TestCleanSinglePageKeepsEverything(t *testing.T) {
 		t.Errorf("página única não tem como saber o que é cabeçalho: %q", got)
 	}
 }
+
+func TestCleanKeepsRepeatedProvisionLinesAndDropsStamps(t *testing.T) {
+	// "........" e "Parágrafo único." repetidos em 3 páginas são texto, não
+	// rodapé; o rodapé do gabinete em 3 de 6 páginas sai; carimbo sai mesmo
+	// aparecendo uma vez.
+	page := func(extra string) string {
+		return "Gabinete da Deputada Fulana\n..........\nParágrafo único. Igual.\n" + extra
+	}
+	pages := []string{page("Art. 1º Um."), page("Art. 2º Dois."), page("*CD230955946600* PEC n.9/2026\nArt. 3º Três."), "Assinaturas", "Assinaturas", "Assinaturas"}
+	got := Clean(pages)
+	if strings.Contains(got, "Gabinete") || strings.Contains(got, "*CD") {
+		t.Errorf("rodapé ou carimbo ficou: %q", got)
+	}
+	if strings.Count(got, "..........") != 3 || strings.Count(got, "Parágrafo único. Igual.") != 3 {
+		t.Errorf("texto repetido sumiu: %q", got)
+	}
+}

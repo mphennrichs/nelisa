@@ -215,3 +215,31 @@ FROM jsonb_to_recordset(sqlc.arg(rows)::jsonb) AS a(
 
 -- name: ListProvisions :many
 SELECT * FROM proposition.provisions WHERE version_id = $1 ORDER BY position;
+
+-- Comentários.
+
+-- name: CreateComment :exec
+INSERT INTO proposition.comments (
+    id, version_id, provision_address, body, needs_confirmation, copied_from, authors, revision,
+    created_by, created_at, updated_by, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+
+-- name: GetCommentForUpdate :one
+SELECT * FROM proposition.comments WHERE id = $1 FOR UPDATE;
+
+-- name: ListComments :many
+-- Todos, inclusive apagados (a cópia para a Versão nova precisa saber o
+-- que já foi trazido); quem lê filtra.
+SELECT * FROM proposition.comments WHERE version_id = ANY(sqlc.arg(version_ids)::uuid[])
+ORDER BY version_id, provision_address, created_at, id;
+
+-- name: UpdateComment :execrows
+UPDATE proposition.comments
+SET body = sqlc.arg(body),
+    needs_confirmation = sqlc.arg(needs_confirmation),
+    authors = sqlc.arg(authors),
+    revision = sqlc.arg(revision),
+    updated_by = sqlc.arg(updated_by),
+    updated_at = sqlc.arg(updated_at),
+    deleted_at = sqlc.arg(deleted_at)
+WHERE id = sqlc.arg(id) AND revision = sqlc.arg(prev_revision);

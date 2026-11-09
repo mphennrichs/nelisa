@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AnnotatedText from "./AnnotatedText";
 import PublicShell, { TopicList, UnderReviewBadge } from "@/components/PublicShell";
 import { getPublicProposition, type PublicPropositionDetail } from "@/lib/public/api";
 import { chamberLabel, fmtDate, officialText, chamberIn, paragraphs, reviewBadgeLabel } from "@/lib/labels";
@@ -128,6 +129,10 @@ export default async function PropositionPage({ params }: Props) {
               ))}
             </ul>
           </section>
+        )}
+
+        {reviewed && p.annotated_text && p.annotated_text.length > 0 && (
+          <AnnotatedText provisions={p.annotated_text} officialUrl={p.official_text_url} />
         )}
 
         <section aria-labelledby="dados" className="card space-y-3">

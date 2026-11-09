@@ -89,6 +89,9 @@ type editorialDTO struct {
 	CurrentStructuring     *structuringDTO   `json:"current_structuring"`
 	CanEditStructuring     bool              `json:"can_edit_structuring"`
 	CanRetryStructuring    bool              `json:"can_retry_structuring"`
+	PendingComments        []teamCommentDTO  `json:"pending_comments"`
+	CurrentComments        []teamCommentDTO  `json:"current_comments"`
+	CanComment             bool              `json:"can_comment"`
 	MinorFixes             []minorFixDTO     `json:"minor_fixes"`
 	PendingErratum         *erratumDTO       `json:"pending_erratum"`
 	Errata                 []erratumDTO      `json:"errata"`
@@ -146,6 +149,37 @@ func toStructuringDTO(v app.StructuringView) structuringDTO {
 			Address: p.Address, Parent: p.Parent, Kind: string(p.Kind), Label: p.Label, Text: p.Text, Depth: p.Depth,
 			Commentable: p.Kind.Commentable(),
 		})
+	}
+	return out
+}
+
+// teamCommentDTO é um Comentário para a equipe (o Leitor só vê o texto).
+type teamCommentDTO struct {
+	ID                string   `json:"id"`
+	VersionID         string   `json:"version_id"`
+	ProvisionAddress  string   `json:"provision_address"`
+	Body              string   `json:"body"`
+	NeedsConfirmation bool     `json:"needs_confirmation"`
+	Authors           []string `json:"authors"`
+	Revision          int      `json:"revision"`
+	CreatedBy         string   `json:"created_by"`
+	CreatedAt         string   `json:"created_at"`
+	UpdatedBy         *string  `json:"updated_by"`
+	UpdatedAt         string   `json:"updated_at"`
+}
+
+func toTeamCommentDTO(c domain.Comment) teamCommentDTO {
+	return teamCommentDTO{
+		ID: c.ID, VersionID: c.VersionID, ProvisionAddress: c.ProvisionAddress, Body: c.Body,
+		NeedsConfirmation: c.NeedsConfirmation, Authors: nonNil(c.Authors), Revision: c.Revision,
+		CreatedBy: c.CreatedBy, CreatedAt: ts(c.CreatedAt), UpdatedBy: strPtr(c.UpdatedBy), UpdatedAt: ts(c.UpdatedAt),
+	}
+}
+
+func toTeamComments(cs []domain.Comment) []teamCommentDTO {
+	out := make([]teamCommentDTO, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, toTeamCommentDTO(c))
 	}
 	return out
 }
@@ -232,6 +266,7 @@ func toEditorialDTO(ed app.TeamEditorial, actor string) editorialDTO {
 		ApprovalBreaksFourEyes: ed.Review.ApprovalBreaksFourEyes, CanSecondReview: ed.Review.CanSecondReview,
 		CanMinorFix: ed.CanMinorFix, CanProposeErratum: ed.Review.CanProposeErratum,
 		CanEditStructuring: ed.CanEditStructuring, CanRetryStructuring: ed.CanRetryStructuring,
+		PendingComments: []teamCommentDTO{}, CurrentComments: []teamCommentDTO{}, CanComment: ed.CanComment,
 		MinorFixes: make([]minorFixDTO, 0, len(ed.Review.MinorFixes)), Errata: make([]erratumDTO, 0, len(ed.Review.Errata)),
 		People: ed.People,
 	}
@@ -270,12 +305,14 @@ func toEditorialDTO(ed app.TeamEditorial, actor string) editorialDTO {
 			d := toStructuringDTO(st)
 			out.CurrentStructuring = &d
 		}
+		out.CurrentComments = toTeamComments(ed.Comments[current.ID])
 	}
 	if pending != nil {
 		if st, ok := ed.Structurings[pending.ID]; ok {
 			d := toStructuringDTO(st)
 			out.PendingStructuring = &d
 		}
+		out.PendingComments = toTeamComments(ed.Comments[pending.ID])
 	}
 	for _, t := range ed.Topics {
 		out.Topics = append(out.Topics, toTopicDTO(t))
@@ -441,6 +478,87 @@ func (h *Handlers) retryStructuring(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, toStructuringDTO(v))
+}
+
+// --- Comentários ---
+
+type createCommentRequest struct {
+	ProvisionAddress string `json:"provision_address"`
+	Body             string `json:"body"`
+}
+
+func (h *Handlers) createComment(w http.ResponseWriter, r *http.Request) {
+	var req createCommentRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	c, err := h.uc.CreateComment.Execute(r.Context(), app.CreateCommentInput{
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"),
+		ProvisionAddress: req.ProvisionAddress, Body: req.Body,
+	})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, toTeamCommentDTO(c))
+}
+
+type updateCommentRequest struct {
+	Body     string `json:"body"`
+	Revision *int   `json:"revision"`
+}
+
+func (h *Handlers) updateComment(w http.ResponseWriter, r *http.Request) {
+	var req updateCommentRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.Revision == nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_json", "Informe a revisão lida (revision).")
+		return
+	}
+	c, err := h.uc.UpdateComment.Execute(r.Context(), app.UpdateCommentInput{
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"),
+		CommentID: chi.URLParam(r, "commentId"), Body: req.Body, Revision: *req.Revision,
+	})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, toTeamCommentDTO(c))
+}
+
+// commentAction lê {revision} e chama apagar ou confirmar.
+func (h *Handlers) commentAction(w http.ResponseWriter, r *http.Request, run func(app.CommentActionInput) (domain.Comment, error)) {
+	var req confirmContentRequest
+	if !httpx.DecodeJSON(w, r, &req) {
+		return
+	}
+	if req.Revision == nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_json", "Informe a revisão lida (revision).")
+		return
+	}
+	c, err := run(app.CommentActionInput{
+		PropositionID: chi.URLParam(r, "id"), VersionID: chi.URLParam(r, "versionId"),
+		CommentID: chi.URLParam(r, "commentId"), Revision: *req.Revision,
+	})
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, toTeamCommentDTO(c))
+}
+
+func (h *Handlers) deleteComment(w http.ResponseWriter, r *http.Request) {
+	h.commentAction(w, r, func(in app.CommentActionInput) (domain.Comment, error) {
+		return h.uc.DeleteComment.Execute(r.Context(), in)
+	})
+}
+
+func (h *Handlers) confirmComment(w http.ResponseWriter, r *http.Request) {
+	h.commentAction(w, r, func(in app.CommentActionInput) (domain.Comment, error) {
+		return h.uc.ConfirmComment.Execute(r.Context(), in)
+	})
 }
 
 // --- Temas ---

@@ -239,12 +239,13 @@ type Missing struct {
 
 // Códigos do que falta para aprovar (estáveis: vão para a API).
 const (
-	MissingSummary           = "summary"
-	MissingShortSummary      = "short_summary"
-	MissingTopics            = "topics"
-	MissingInactiveTopics    = "inactive_topics"
-	MissingNeedsConfirmation = "needs_confirmation"
-	MissingStructuring       = "structuring_pending"
+	MissingSummary             = "summary"
+	MissingShortSummary        = "short_summary"
+	MissingTopics              = "topics"
+	MissingInactiveTopics      = "inactive_topics"
+	MissingNeedsConfirmation   = "needs_confirmation"
+	MissingStructuring         = "structuring_pending"
+	MissingCommentsUnconfirmed = "comments_unconfirmed"
 )
 
 // MissingForApproval lista o que impede a aprovação: Resumo e Resumo curto

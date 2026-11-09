@@ -110,7 +110,15 @@ func (uc *ReprocessStructuring) Execute(ctx context.Context, in ReprocessStructu
 			if err != nil {
 				return nil, err
 			}
-			if err := uc.d.Repos.Structurings.ReplaceProvisions(ctx, v.ID, domain.ProvisionsFrom(v.ID, r)); err != nil {
+			ps := domain.ProvisionsFrom(v.ID, r)
+			cs, err := uc.d.Repos.Comments.ListByVersions(ctx, []string{v.ID})
+			if err != nil {
+				return nil, err
+			}
+			if gone := domain.RemovedAnchors(cs, ps); len(gone) > 0 {
+				return nil, &domain.AnchorsRemovedError{Addresses: gone}
+			}
+			if err := uc.d.Repos.Structurings.ReplaceProvisions(ctx, v.ID, ps); err != nil {
 				return nil, err
 			}
 			// Metadado só: nunca o texto.
@@ -131,8 +139,14 @@ func NewConfirmStructuring(d StructuringEdit) *ConfirmStructuring { return &Conf
 
 func (uc *ConfirmStructuring) Execute(ctx context.Context, in ConfirmStructuringInput) (StructuringView, error) {
 	return uc.d.edit(ctx, in.PropositionID, in.VersionID, &in.Revision, ActionStructuringConfirm, true,
-		func(_ context.Context, actorID string, _ domain.Version, s *domain.Structuring) (map[string]any, error) {
-			return map[string]any{}, s.Confirm(actorID, uc.d.Clock.Now())
+		func(ctx context.Context, actorID string, v domain.Version, s *domain.Structuring) (map[string]any, error) {
+			if err := s.Confirm(actorID, uc.d.Clock.Now()); err != nil {
+				return nil, err
+			}
+			// Versão nova: os Comentários da vigente em Dispositivos que
+			// não mudaram vêm a confirmar.
+			n, err := uc.d.carryComments(ctx, v)
+			return map[string]any{"carried_comments": n}, err
 		})
 }
 

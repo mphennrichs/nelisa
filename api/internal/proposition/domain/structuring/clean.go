@@ -13,6 +13,13 @@ var (
 	digitsRe  = regexp.MustCompile(`\d+`)
 	spacesRe  = regexp.MustCompile(`[ \t\x{00A0}\x{2007}\x{202F}]+`)
 	pageNumRe = regexp.MustCompile(`^\s*\d{1,3}\s*$`)
+	// stampRe são os carimbos de página conhecidos das Casas, removidos
+	// mesmo quando aparecem uma vez só: código de autenticação e
+	// assinatura eletrônica da Câmara, código LexEdit e avulso do Senado.
+	stampRe = regexp.MustCompile(`(?i)^(\*CD\d{6,}\*|apresenta[çc][ãa]o: \d{2}/\d{2}/\d{4}|assinado eletronicamente pel|para verificar as assinaturas|SF/\d{5}\.\d{5}-\d{2}|avulso d[ao] )`)
+	// markerRe: linha que começa um Dispositivo nunca é tratada como
+	// cabeçalho repetido, mesmo que se repita.
+	markerRe = regexp.MustCompile(`(?i)^(Art\.|§|Par[áa]grafo [úu]nico|[IVXLCDM]+\s*[–—-]|[a-z]\)|\.{5,}|["“”])`)
 )
 
 // Clean junta as páginas extraídas de um PDF num texto só, sem cabeçalho e
@@ -33,7 +40,7 @@ func Clean(pages []string) string {
 	var lines []string
 	for _, pl := range pageLines {
 		for _, l := range pl {
-			if repeated[repeatKey(l)] || pageNumRe.MatchString(l) {
+			if repeated[repeatKey(l)] || pageNumRe.MatchString(l) || stampRe.MatchString(l) {
 				continue
 			}
 			lines = append(lines, l)
@@ -48,8 +55,10 @@ func repeatKey(l string) string {
 	return digitsRe.ReplaceAllString(strings.ToLower(l), "#")
 }
 
-// repeatedLines acha as linhas que aparecem em mais da metade das páginas
-// (no mínimo duas): cabeçalho, rodapé, carimbo de assinatura.
+// repeatedLines acha as linhas iguais em várias páginas: cabeçalho,
+// rodapé, carimbo de assinatura. Conta como repetida a que aparece em
+// mais da metade das páginas ou em 3 delas (o rodapé do gabinete pode vir
+// só nas páginas do texto, não nas de assinaturas), nunca menos de 2.
 func repeatedLines(pageLines [][]string) map[string]bool {
 	out := map[string]bool{}
 	if len(pageLines) < 2 {
@@ -67,11 +76,14 @@ func repeatedLines(pageLines [][]string) map[string]bool {
 		}
 	}
 	min := len(pageLines)/2 + 1
+	if min > 3 {
+		min = 3
+	}
 	if min < 2 {
 		min = 2
 	}
 	for k, n := range count {
-		if n >= min {
+		if n >= min && !markerRe.MatchString(k) {
 			out[k] = true
 		}
 	}

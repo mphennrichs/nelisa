@@ -39,6 +39,7 @@ type World struct {
 	structurings map[string]domain.Structuring
 	provisions   map[string][]domain.Provision
 	structQueue  []string
+	comments     map[string]domain.Comment
 	inTx         bool
 
 	// Statuses e Badges são o que o módulo review responderia.
@@ -63,6 +64,7 @@ func NewWorld() *World {
 		claims: map[string]app.ClaimInfo{}, Statuses: map[string]app.ReviewStatus{}, Badges: map[string]int{},
 		Names:        map[string]string{},
 		structurings: map[string]domain.Structuring{}, provisions: map[string][]domain.Provision{},
+		comments: map[string]domain.Comment{},
 	}
 }
 
@@ -123,6 +125,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 	versions, contents, topics := maps.Clone(w.versions), maps.Clone(w.contents), maps.Clone(w.topics)
 	claims := maps.Clone(w.claims)
 	structurings, provisions, structQueue := maps.Clone(w.structurings), maps.Clone(w.provisions), slices.Clone(w.structQueue)
+	comments := maps.Clone(w.comments)
 	w.inTx = true
 	w.mu.Unlock()
 
@@ -135,6 +138,7 @@ func (t tx) WithinTx(ctx context.Context, fn func(ctx context.Context) error) er
 		w.props, w.links, w.events, w.scheduled = props, links, events, scheduled
 		w.versions, w.contents, w.topics, w.claims = versions, contents, topics, claims
 		w.structurings, w.provisions, w.structQueue = structurings, provisions, structQueue
+		w.comments = comments
 	}
 	return err
 }

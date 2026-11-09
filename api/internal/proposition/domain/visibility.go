@@ -88,6 +88,21 @@ type PublicProposition struct {
 	// Errata são as notas das Erratas aprovadas da Versão vigente, da mais
 	// nova para a mais antiga. Sem nomes: nem quem propôs nem quem aprovou.
 	Errata []PublicErratum
+	// AnnotatedText é o Documento comentado da Versão vigente: os
+	// Dispositivos na ordem de leitura, com os Comentários. nil sem
+	// Estruturação confirmada (o Leitor vê só o link oficial).
+	AnnotatedText []PublicProvision
+}
+
+// PublicProvision é um Dispositivo como o Leitor o vê, com os Comentários
+// (só o texto: sem autor, sem data de edição).
+type PublicProvision struct {
+	Address  string
+	Label    string
+	Kind     string
+	Text     string
+	Depth    int
+	Comments []string
 }
 
 // PublicErratum é a nota pública de uma Errata aprovada: "Em <data>:
@@ -118,6 +133,12 @@ type Editorial struct {
 	// Errata são as Erratas aprovadas conhecidas (o módulo review só manda
 	// aprovadas); a regra só usa as da Versão vigente.
 	Errata []PublicErratum
+	// Estruturação, Dispositivos (por Versão) e Comentários conhecidos; a
+	// regra só usa os da vigente, confirmada, e Comentários vivos e
+	// confirmados.
+	Structurings []Structuring
+	Provisions   map[string][]Provision
+	Comments     []Comment
 }
 
 // PublicView aplica a regra de visibilidade. ok é false para o que o
@@ -216,4 +237,39 @@ func applyEditorial(out *PublicProposition, p Proposition, ed Editorial) {
 		}
 	}
 	sort.SliceStable(out.Errata, func(i, j int) bool { return out.Errata[i].ApprovedAt.After(out.Errata[j].ApprovedAt) })
+	out.AnnotatedText = annotatedText(current.ID, ed)
+}
+
+// annotatedText monta o Documento comentado da Versão vigente. O texto
+// fonte da Estruturação (source_text) e os avisos nunca saem.
+func annotatedText(versionID string, ed Editorial) []PublicProvision {
+	confirmed := false
+	for _, s := range ed.Structurings {
+		if s.VersionID == versionID && s.State == StructuringConfirmed {
+			confirmed = true
+		}
+	}
+	ps := ed.Provisions[versionID]
+	if !confirmed || len(ps) == 0 {
+		return nil
+	}
+	byAddr := map[string][]string{}
+	for _, c := range ed.Comments {
+		if c.VersionID == versionID && c.DeletedAt == nil && !c.NeedsConfirmation {
+			byAddr[c.ProvisionAddress] = append(byAddr[c.ProvisionAddress], c.Body)
+		}
+	}
+	sorted := append([]Provision(nil), ps...)
+	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Position < sorted[j].Position })
+	out := make([]PublicProvision, 0, len(sorted))
+	for _, p := range sorted {
+		cs := byAddr[p.Address]
+		if cs == nil || !p.Kind.Commentable() {
+			cs = []string{}
+		}
+		out = append(out, PublicProvision{
+			Address: p.Address, Label: p.Label, Kind: string(p.Kind), Text: p.Text, Depth: p.Depth, Comments: cs,
+		})
+	}
+	return out
 }

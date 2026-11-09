@@ -51,8 +51,8 @@ func fakeContent(logger *slog.Logger) contentModule {
 	w := propfakes.NewWorld()
 	p := contentPorts{
 		props: w.Props(), versions: w.Versions(), contents: w.Contents(), topics: w.Topics(), links: w.Links(),
-		structurings: w.Structurings(),
-		approvals:    reviewfakes.NewWorld().Approvals(), claims: queuefakes.NewWorld().Claims(), users: fakes.NewWorld().Users(),
+		structurings: w.Structurings(), comments: w.Comments(),
+		approvals: reviewfakes.NewWorld().Approvals(), claims: queuefakes.NewWorld().Claims(), users: fakes.NewWorld().Users(),
 		entries: progressfakes.NewEntries(), tx: w.Tx(),
 		audit:     func(context.Context, auditapp.RecordEventInput) error { return nil },
 		scheduler: noScheduler{}, sources: ingestapp.NewSources(),

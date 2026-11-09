@@ -121,7 +121,23 @@ func TestStructuringEndToEnd(t *testing.T) {
 	a.must(a.do("POST", path+"/confirm", "edu", fmt.Sprintf(`{"revision":%d}`, after.Revision)), 200, "confirm")
 	a.expectErr(a.do("POST", path+"/confirm", "edu", fmt.Sprintf(`{"revision":%d}`, after.Revision+1)), 409, "structuring_not_ready", "confirm twice")
 
-	// Confirmada: Rita aprova (Edu, autor do texto, não aprovaria).
+	// Confirmada: Edu comenta o art. 1º; o texto não pode mais perder o
+	// art. 1º enquanto o Comentário existir.
+	cpath := "/api/team/propositions/" + pid + "/versions/" + vid + "/comments"
+	a.expectErr(a.do("POST", cpath, "edu", `{"provision_address":"art-9","body":"x"}`), 400, "provision_not_found", "unknown provision")
+	a.must(a.do("POST", cpath, "edu", `{"provision_address":"art-1","body":"COMENTARIO-PUBLICO sobre o art. 1º."}`), 201, "comment")
+	var cur structuringView
+	_ = json.Unmarshal(a.must(a.do("GET", "/api/team/propositions/"+pid, "edu", ""), 200, "detail").Body.Bytes(), &struct {
+		P *structuringView `json:"pending_structuring"`
+	}{&cur})
+	noArt1 := strings.Replace(cur.SourceText, "Art. 1º", "Texto solto", 1)
+	a.expectErr(a.do("PUT", path, "edu", body(noArt1, cur.Revision)), 409, "anchors_removed", "drop commented provision")
+	if pub := a.must(a.do("GET", "/api/public/propositions/pec-9-2026", "", ""), 200, "public").Body.String(); strings.Contains(pub, "COMENTARIO-PUBLICO") ||
+		!strings.Contains(pub, `"annotated_text":null`) {
+		t.Errorf("rascunho de Comentário vazou: %s", pub)
+	}
+
+	// Rita aprova (Edu, autor do texto e do Comentário, não aprovaria).
 	d := a.detail(pid, "rita")
 	if !d.CanApprove {
 		t.Fatalf("rita: %+v", d)
@@ -134,9 +150,32 @@ func TestStructuringEndToEnd(t *testing.T) {
 		t.Errorf("structuring.confirm = %d", n)
 	}
 
+	if n := a.auditCount("comment.create"); n != 1 {
+		t.Errorf("comment.create = %d", n)
+	}
+
+	// Pronta: o Leitor vê o Documento comentado da vigente, sem o texto
+	// fonte nem nomes da equipe.
 	pub := a.must(a.do("GET", "/api/public/propositions/pec-9-2026", "", ""), 200, "public").Body.String()
-	if strings.Contains(pub, "promulgam") || strings.Contains(pub, "source_text") || strings.Contains(pub, "corrigido") {
-		t.Errorf("texto da Estruturação vazou no público: %s", pub)
+	var pd struct {
+		AnnotatedText []struct {
+			Address  string `json:"address"`
+			Text     string `json:"text"`
+			Comments []struct {
+				Body string `json:"body"`
+			} `json:"comments"`
+		} `json:"annotated_text"`
+	}
+	if err := json.Unmarshal([]byte(pub), &pd); err != nil || len(pd.AnnotatedText) != 5 {
+		t.Fatalf("annotated_text: %v %s", err, pub)
+	}
+	if a1 := pd.AnnotatedText[2]; a1.Address != "art-1" || len(a1.Comments) != 1 || !strings.HasPrefix(a1.Comments[0].Body, "COMENTARIO-PUBLICO") {
+		t.Fatalf("art-1: %+v", a1)
+	}
+	for _, leak := range []string{"source_text", "warnings", "Edu", "edu@", a.ids["edu"], "PEC n.221/2019"} {
+		if strings.Contains(pub, leak) {
+			t.Errorf("vazou %q no público: %s", leak, pub)
+		}
 	}
 }
 

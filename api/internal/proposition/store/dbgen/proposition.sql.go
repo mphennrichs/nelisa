@@ -31,6 +31,48 @@ func (q *Queries) ConfirmLink(ctx context.Context, arg ConfirmLinkParams) (int64
 	return result.RowsAffected(), nil
 }
 
+const createComment = `-- name: CreateComment :exec
+
+INSERT INTO proposition.comments (
+    id, version_id, provision_address, body, needs_confirmation, copied_from, authors, revision,
+    created_by, created_at, updated_by, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+`
+
+type CreateCommentParams struct {
+	ID                string
+	VersionID         string
+	ProvisionAddress  string
+	Body              string
+	NeedsConfirmation bool
+	CopiedFrom        *string
+	Authors           []string
+	Revision          int32
+	CreatedBy         string
+	CreatedAt         time.Time
+	UpdatedBy         *string
+	UpdatedAt         time.Time
+}
+
+// Comentários.
+func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) error {
+	_, err := q.db.Exec(ctx, createComment,
+		arg.ID,
+		arg.VersionID,
+		arg.ProvisionAddress,
+		arg.Body,
+		arg.NeedsConfirmation,
+		arg.CopiedFrom,
+		arg.Authors,
+		arg.Revision,
+		arg.CreatedBy,
+		arg.CreatedAt,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createContent = `-- name: CreateContent :exec
 INSERT INTO proposition.version_contents (
     version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at
@@ -327,6 +369,33 @@ func (q *Queries) FindPropositionsByName(ctx context.Context, arg FindPropositio
 	return items, nil
 }
 
+const getCommentForUpdate = `-- name: GetCommentForUpdate :one
+SELECT id, version_id, provision_address, body, quote_start, quote_end, needs_confirmation, copied_from, authors, revision, created_by, created_at, updated_by, updated_at, deleted_at FROM proposition.comments WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetCommentForUpdate(ctx context.Context, id string) (PropositionComment, error) {
+	row := q.db.QueryRow(ctx, getCommentForUpdate, id)
+	var i PropositionComment
+	err := row.Scan(
+		&i.ID,
+		&i.VersionID,
+		&i.ProvisionAddress,
+		&i.Body,
+		&i.QuoteStart,
+		&i.QuoteEnd,
+		&i.NeedsConfirmation,
+		&i.CopiedFrom,
+		&i.Authors,
+		&i.Revision,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getContent = `-- name: GetContent :one
 SELECT version_id, summary, short_summary, topic_ids, needs_confirmation, authors, revision, updated_by, updated_at FROM proposition.version_contents WHERE version_id = $1
 `
@@ -603,6 +672,49 @@ func (q *Queries) ListAttachedTo(ctx context.Context, attachedTo *string) ([]Pro
 			&i.ReviewState,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listComments = `-- name: ListComments :many
+SELECT id, version_id, provision_address, body, quote_start, quote_end, needs_confirmation, copied_from, authors, revision, created_by, created_at, updated_by, updated_at, deleted_at FROM proposition.comments WHERE version_id = ANY($1::uuid[])
+ORDER BY version_id, provision_address, created_at, id
+`
+
+// Todos, inclusive apagados (a cópia para a Versão nova precisa saber o
+// que já foi trazido); quem lê filtra.
+func (q *Queries) ListComments(ctx context.Context, versionIds []string) ([]PropositionComment, error) {
+	rows, err := q.db.Query(ctx, listComments, versionIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PropositionComment
+	for rows.Next() {
+		var i PropositionComment
+		if err := rows.Scan(
+			&i.ID,
+			&i.VersionID,
+			&i.ProvisionAddress,
+			&i.Body,
+			&i.QuoteStart,
+			&i.QuoteEnd,
+			&i.NeedsConfirmation,
+			&i.CopiedFrom,
+			&i.Authors,
+			&i.Revision,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1110,6 +1222,48 @@ func (q *Queries) SlugExists(ctx context.Context, slug string) (bool, error) {
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const updateComment = `-- name: UpdateComment :execrows
+UPDATE proposition.comments
+SET body = $1,
+    needs_confirmation = $2,
+    authors = $3,
+    revision = $4,
+    updated_by = $5,
+    updated_at = $6,
+    deleted_at = $7
+WHERE id = $8 AND revision = $9
+`
+
+type UpdateCommentParams struct {
+	Body              string
+	NeedsConfirmation bool
+	Authors           []string
+	Revision          int32
+	UpdatedBy         *string
+	UpdatedAt         time.Time
+	DeletedAt         *time.Time
+	ID                string
+	PrevRevision      int32
+}
+
+func (q *Queries) UpdateComment(ctx context.Context, arg UpdateCommentParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateComment,
+		arg.Body,
+		arg.NeedsConfirmation,
+		arg.Authors,
+		arg.Revision,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+		arg.DeletedAt,
+		arg.ID,
+		arg.PrevRevision,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateContent = `-- name: UpdateContent :execrows

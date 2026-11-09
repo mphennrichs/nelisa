@@ -202,7 +202,8 @@ func TestParseRealDocuments(t *testing.T) {
 				if p.Kind == KindArticle {
 					n++
 				}
-				if strings.Contains(p.Text, "Assinado eletronicamente") || strings.Contains(p.Text, "Apresentação:") {
+				if strings.Contains(p.Text, "Assinado eletronicamente") || strings.Contains(p.Text, "Apresentação:") ||
+					strings.Contains(p.Text, "*CD") || strings.Contains(p.Text, "Anexo IV") || strings.Contains(p.Text, "LexEdit") {
 					t.Errorf("%s levou carimbo de página: %.120q", p.Address, p.Text)
 				}
 			}

@@ -29,7 +29,7 @@ type Reviews interface {
 func (w *World) Repos() app.EditorialRepos {
 	return app.EditorialRepos{
 		Props: w.Props(), Versions: w.Versions(), Contents: w.Contents(), Topics: w.Topics(),
-		Structurings: w.Structurings(),
+		Structurings: w.Structurings(), Comments: w.Comments(),
 	}
 }
 

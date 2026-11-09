@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -32,11 +33,16 @@ type UseCases struct {
 	ReprocessStructuring *app.ReprocessStructuring
 	ConfirmStructuring   *app.ConfirmStructuring
 	RetryStructuring     *app.RetryStructuring
-	ListTopics           *app.ListTopics
-	CreateTopic          *app.CreateTopic
-	UpdateTopic          *app.UpdateTopic
-	ListPublic           *app.ListPublicPropositions
-	GetPublic            *app.GetPublicProposition
+	// Comentários.
+	CreateComment  *app.CreateComment
+	UpdateComment  *app.UpdateComment
+	DeleteComment  *app.DeleteComment
+	ConfirmComment *app.ConfirmComment
+	ListTopics     *app.ListTopics
+	CreateTopic    *app.CreateTopic
+	UpdateTopic    *app.UpdateTopic
+	ListPublic     *app.ListPublicPropositions
+	GetPublic      *app.GetPublicProposition
 }
 
 // Handlers são os handlers HTTP do módulo.
@@ -64,6 +70,10 @@ func (h *Handlers) RegisterTeam(r chi.Router) {
 		r.Put("/propositions/{id}/versions/{versionId}/structuring", h.reprocessStructuring)
 		r.Post("/propositions/{id}/versions/{versionId}/structuring/confirm", h.confirmStructuring)
 		r.Post("/propositions/{id}/versions/{versionId}/structuring/retry", h.retryStructuring)
+		r.Post("/propositions/{id}/versions/{versionId}/comments", h.createComment)
+		r.Put("/propositions/{id}/versions/{versionId}/comments/{commentId}", h.updateComment)
+		r.Delete("/propositions/{id}/versions/{versionId}/comments/{commentId}", h.deleteComment)
+		r.Post("/propositions/{id}/versions/{versionId}/comments/{commentId}/confirm", h.confirmComment)
 		r.Get("/topics", h.listTopics)
 	})
 	r.Group(func(r chi.Router) {
@@ -322,6 +332,37 @@ type publicPropositionDetailDTO struct {
 	// Errata: as notas das Erratas aprovadas da Versão vigente. Sem
 	// nomes, sem estado, sem motivo: só data e nota.
 	Errata []publicErratumDTO `json:"errata"`
+	// AnnotatedText: o Documento comentado da Versão vigente (null sem
+	// Estruturação confirmada). Comentários só com o texto.
+	AnnotatedText []publicProvisionDTO `json:"annotated_text"`
+}
+
+type publicProvisionDTO struct {
+	Address  string             `json:"address"`
+	Label    string             `json:"label"`
+	Kind     string             `json:"kind"`
+	Text     string             `json:"text"`
+	Depth    int                `json:"depth"`
+	Comments []publicCommentDTO `json:"comments"`
+}
+
+type publicCommentDTO struct {
+	Body string `json:"body"`
+}
+
+func toPublicAnnotated(ps []domain.PublicProvision) []publicProvisionDTO {
+	if ps == nil {
+		return nil
+	}
+	out := make([]publicProvisionDTO, len(ps))
+	for i, p := range ps {
+		cs := make([]publicCommentDTO, len(p.Comments))
+		for j, b := range p.Comments {
+			cs[j] = publicCommentDTO{Body: b}
+		}
+		out[i] = publicProvisionDTO{Address: p.Address, Label: p.Label, Kind: p.Kind, Text: p.Text, Depth: p.Depth, Comments: cs}
+	}
+	return out
 }
 
 type publicErratumDTO struct {
@@ -400,6 +441,7 @@ func (h *Handlers) getPublic(w http.ResponseWriter, r *http.Request) {
 		publicPropositionDTO: toPublicDTO(d.PublicProposition),
 		Timeline:             toTimelineDTO(d.Timeline),
 		Errata:               toPublicErrataDTO(d.Errata),
+		AnnotatedText:        toPublicAnnotated(d.AnnotatedText),
 	})
 }
 
@@ -427,6 +469,12 @@ func errMappings() []errMapping {
 		{domain.ErrPendingVersionExists, http.StatusConflict, "pending_version_exists", "Já existe uma Versão em análise; aprove-a antes de registrar outra."},
 		{domain.ErrStaleContent, http.StatusConflict, "stale_content", "Outra pessoa gravou este conteúdo depois que você o abriu. Recarregue para ver a versão atual."},
 		{domain.ErrNothingToConfirm, http.StatusConflict, "nothing_to_confirm", "Não há conteúdo trazido da Versão anterior para confirmar."},
+		{domain.ErrCommentNotFound, http.StatusNotFound, "comment_not_found", "Comentário não encontrado."},
+		{domain.ErrEmptyComment, http.StatusBadRequest, "invalid_comment", "Escreva o Comentário."},
+		{domain.ErrCommentTooLong, http.StatusBadRequest, "invalid_comment", "O Comentário passa de 3.000 caracteres."},
+		{domain.ErrStructuringNotConfirmed, http.StatusConflict, "structuring_not_confirmed", "Confirme a Estruturação antes de comentar."},
+		{domain.ErrProvisionNotFound, http.StatusBadRequest, "provision_not_found", "Este Dispositivo não existe nesta Versão."},
+		{domain.ErrProvisionNotCommentable, http.StatusBadRequest, "provision_not_commentable", "Capítulos e Seções são só títulos: comente um artigo, parágrafo, inciso ou a ementa."},
 		{domain.ErrStructuringNotFound, http.StatusNotFound, "structuring_not_found", "Esta Versão não tem Estruturação."},
 		{domain.ErrEmptySourceText, http.StatusBadRequest, "invalid_source_text", "Cole ou escreva o texto da Versão."},
 		{domain.ErrSourceTextTooLong, http.StatusBadRequest, "invalid_source_text", "O texto passa de 500 mil caracteres."},
@@ -453,6 +501,13 @@ func writeErr(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err e
 			holder = "Outra pessoa"
 		}
 		httpx.WriteError(w, http.StatusConflict, "claim_taken", holder+" está com a posse desta Proposição.")
+		return
+	}
+	var anchors *domain.AnchorsRemovedError
+	if errors.As(err, &anchors) {
+		httpx.WriteError(w, http.StatusConflict, "anchors_removed",
+			"O texto novo apaga Dispositivos que têm Comentário ("+strings.Join(anchors.Addresses, ", ")+
+				"). Apague esses Comentários ou mantenha esses Dispositivos no texto.")
 		return
 	}
 	for _, m := range errMappings() {

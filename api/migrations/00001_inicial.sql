@@ -236,6 +236,33 @@ CREATE TABLE proposition.provisions (
 );
 CREATE UNIQUE INDEX provisions_position_key ON proposition.provisions (version_id, position);
 
+-- Comentário: análise pública presa a um Dispositivo de uma Versão. Sem
+-- chave estrangeira para provisions: reprocessar troca os Dispositivos, e
+-- o caso de uso garante que nenhum endereço comentado some. Apagar é
+-- soft (deleted_at): fica no banco, some da equipe e do público.
+CREATE TABLE proposition.comments (
+    id                 uuid PRIMARY KEY,
+    version_id         uuid NOT NULL REFERENCES proposition.structurings (version_id) ON DELETE CASCADE,
+    provision_address  text NOT NULL CHECK (provision_address <> ''),
+    body               text NOT NULL CHECK (body <> '' AND char_length(body) <= 3000),
+    -- Trecho dentro do Dispositivo (fora da tela da v1; ver o desenho).
+    quote_start        integer,
+    quote_end          integer,
+    needs_confirmation boolean NOT NULL DEFAULT false,
+    -- Comentário da Versão anterior de onde este veio (a confirmar).
+    copied_from        uuid,
+    authors            uuid[] NOT NULL DEFAULT '{}',
+    revision           integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
+    created_by         uuid NOT NULL,
+    created_at         timestamptz NOT NULL,
+    updated_by         uuid,
+    updated_at         timestamptz NOT NULL,
+    deleted_at         timestamptz,
+    CHECK ((quote_start IS NULL) = (quote_end IS NULL) AND (quote_start IS NULL OR quote_start < quote_end))
+);
+CREATE INDEX comments_version_idx ON proposition.comments (version_id, provision_address, created_at);
+CREATE UNIQUE INDEX comments_copied_key ON proposition.comments (version_id, copied_from) WHERE copied_from IS NOT NULL;
+
 -- progress: a Tramitação, um evento por linha, de todas as Casas.
 CREATE TABLE progress.entries (
     id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
