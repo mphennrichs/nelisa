@@ -141,6 +141,9 @@ importam o `team`.
 
 ### Módulos de conteúdo (fase 1)
 
+O que as APIs da Câmara e do Senado oferecem (usado e não usado) e as
+pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
+
 - `proposition` (Proposição, Vínculo de fonte, Revisão, camada pública),
   `progress` (Tramitação) e `ingest` (Importação, Sincronização e as fontes)
   não se importam. O `ingest` declara as portas `Catalog` e
