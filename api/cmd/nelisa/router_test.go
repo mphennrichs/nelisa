@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	auditapp "github.com/mphennrichs/nelisa/api/internal/audit/app"
+	contribfakes "github.com/mphennrichs/nelisa/api/internal/contribution/app/fakes"
 	ingestapp "github.com/mphennrichs/nelisa/api/internal/ingest/app"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/config"
@@ -29,7 +30,7 @@ func (f fakePinger) Ping(context.Context) error { return f.err }
 
 // testConfig é uma config mínima válida para montar o roteador.
 func testConfig() config.Config {
-	return config.Config{JWTSecret: strings.Repeat("s", 32), SecureCookies: true}
+	return config.Config{JWTSecret: strings.Repeat("s", 32), SecureCookies: true, ContributionsEnabled: true}
 }
 
 func fakeTeam(logger *slog.Logger) teamModule {
@@ -49,6 +50,7 @@ func (noScheduler) ScheduleStructuring(context.Context, string) error {
 
 func fakeContent(logger *slog.Logger) contentModule {
 	w := propfakes.NewWorld()
+	cw := contribfakes.New()
 	p := contentPorts{
 		props: w.Props(), versions: w.Versions(), contents: w.Contents(), topics: w.Topics(), links: w.Links(),
 		structurings: w.Structurings(), comments: w.Comments(),
@@ -56,8 +58,9 @@ func fakeContent(logger *slog.Logger) contentModule {
 		entries: progressfakes.NewEntries(), tx: w.Tx(),
 		audit:     func(context.Context, auditapp.RecordEventInput) error { return nil },
 		scheduler: noScheduler{}, sources: ingestapp.NewSources(),
+		contributions: contribfakes.Contributions{W: cw}, officialSources: contribfakes.Sources{W: cw},
 	}
-	return newContentModule(newContentUseCases(p, clock.System{}), logger)
+	return newContentModule(newContentUseCases(p, clock.System{}), contributionOptions(testConfig()), logger)
 }
 
 func serve(p Pinger, method, path string) *httptest.ResponseRecorder {

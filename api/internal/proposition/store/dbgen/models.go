@@ -20,6 +20,31 @@ type AuditEvent struct {
 	Metadata   []byte
 }
 
+type ContributionContribution struct {
+	ID                   string
+	Kind                 string
+	State                string
+	TrackingHash         string
+	PropositionID        *string
+	Sphere               string
+	Payload              []byte
+	SubmittedAt          time.Time
+	DecidedBy            *string
+	DecidedAt            *time.Time
+	PublicReason         string
+	InternalNote         string
+	CreatedPropositionID *string
+}
+
+type ContributionOfficialSource struct {
+	ID        string
+	Domain    string
+	Name      string
+	Sphere    string
+	CreatedBy string
+	CreatedAt time.Time
+}
+
 type ProgressEntry struct {
 	ID            int64
 	PropositionID string

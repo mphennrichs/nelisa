@@ -41,6 +41,10 @@ type Config struct {
 	// Vínculos de fonte confirmados (SYNC_INTERVAL, duração do Go; padrão
 	// 6h, mínimo 1 min).
 	SyncInterval time.Duration
+	// ContributionsEnabled liga o envio de Contribuições pelo Leitor
+	// (CONTRIBUTIONS_ENABLED=true). Desligado por padrão: só liga com o
+	// anti-abuso no ar (docs/desenho/fase-3-contribuicoes.md).
+	ContributionsEnabled bool
 }
 
 // DefaultSyncInterval é o intervalo da Sincronização periódica.
@@ -65,6 +69,8 @@ func Load(getenv Getenv, requireSecret bool) (Config, error) {
 		JWTSecret:      getenv("JWT_SECRET"),
 		BootstrapToken: getenv("BOOTSTRAP_TOKEN"),
 		SecureCookies:  getenv("COOKIE_INSECURE") != "true",
+
+		ContributionsEnabled: getenv("CONTRIBUTIONS_ENABLED") == "true",
 	}
 	if c.ListenAddr == "" {
 		c.ListenAddr = ":8080"

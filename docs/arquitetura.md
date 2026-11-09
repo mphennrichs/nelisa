@@ -186,6 +186,21 @@ pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
 - A regra pública lê só o conteúdo da Versão vigente com aprovação
   conhecida (`domain.PublicView` recebe todas as Versões e escolhe).
 
+### Contribuições (fase 3)
+
+- `contribution` (Contribuição, código de acompanhamento, Fonte oficial)
+  não importa nenhum outro módulo. Pergunta ao `proposition` só se uma
+  Proposição é pública (porta `Propositions`, ligada em
+  `cmd/nelisa/wire_contribution.go` ao `Catalog.PublicBySlug`/`PublicByID`,
+  que aplicam a regra de visibilidade).
+- O envio é anônimo: não tem Ator nem Auditoria e não muda nada além da
+  própria Contribuição. O banco guarda só o `sha256` do código de
+  acompanhamento; a consulta recebe o código no corpo (`POST`), nunca na URL,
+  e devolve só tipo, estado, datas, motivo público e a Proposição.
+- Os links do Leitor são só validados como texto (https, host DNS, sem
+  usuário nem porta); o Nelisa nunca os abre.
+- `CONTRIBUTIONS_ENABLED` liga a rota de envio; desligada, ela nem existe.
+
 ### HTTP
 
 - **chi** como roteador. Contrato em `openapi.yaml`; quem muda um endpoint

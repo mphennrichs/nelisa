@@ -51,6 +51,30 @@ func (c *Catalog) Proposition(ctx context.Context, id string) (domain.Propositio
 	return c.props.FindByID(ctx, id)
 }
 
+// PublicBySlug devolve a Proposição se ela existe e o Leitor a vê (regra
+// de visibilidade); ok=false caso contrário. Usada pelas Contribuições.
+func (c *Catalog) PublicBySlug(ctx context.Context, slug string) (domain.Proposition, bool, error) {
+	return publicOnly(c.props.FindBySlug(ctx, slug))
+}
+
+// PublicByID é PublicBySlug pelo id.
+func (c *Catalog) PublicByID(ctx context.Context, id string) (domain.Proposition, bool, error) {
+	return publicOnly(c.props.FindByID(ctx, id))
+}
+
+func publicOnly(p domain.Proposition, err error) (domain.Proposition, bool, error) {
+	if errors.Is(err, domain.ErrPropositionNotFound) {
+		return domain.Proposition{}, false, nil
+	}
+	if err != nil {
+		return domain.Proposition{}, false, err
+	}
+	if !p.ReviewState.IsPublic() {
+		return domain.Proposition{}, false, nil
+	}
+	return p, true, nil
+}
+
 // ConfirmedLinkIDs lista os Vínculos que a Sincronização periódica cobre.
 func (c *Catalog) ConfirmedLinkIDs(ctx context.Context) ([]string, error) {
 	return c.links.ListConfirmedIDs(ctx)

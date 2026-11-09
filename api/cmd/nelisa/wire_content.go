@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"log/slog"
 
@@ -9,6 +10,9 @@ import (
 
 	auditapp "github.com/mphennrichs/nelisa/api/internal/audit/app"
 	auditstore "github.com/mphennrichs/nelisa/api/internal/audit/store"
+	contribapp "github.com/mphennrichs/nelisa/api/internal/contribution/app"
+	contribhttp "github.com/mphennrichs/nelisa/api/internal/contribution/httpapi"
+	contribstore "github.com/mphennrichs/nelisa/api/internal/contribution/store"
 	ingestapp "github.com/mphennrichs/nelisa/api/internal/ingest/app"
 	ingesthttp "github.com/mphennrichs/nelisa/api/internal/ingest/httpapi"
 	ingestjobs "github.com/mphennrichs/nelisa/api/internal/ingest/jobs"
@@ -98,6 +102,9 @@ type contentPorts struct {
 	audit     recordAudit
 	scheduler scheduler
 	sources   ingestapp.Sources
+	// contributions e officialSources: módulo contribution.
+	contributions   contribapp.ContributionRepo
+	officialSources contribapp.OfficialSourceRepo
 }
 
 func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, sources ingestapp.Sources) contentPorts {
@@ -119,6 +126,9 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 		audit:        auditapp.NewRecordEvent(auditstore.New(pool), clk).Execute,
 		scheduler:    sched,
 		sources:      sources,
+
+		contributions:   contribstore.NewContributions(pool),
+		officialSources: contribstore.NewOfficialSources(pool),
 	}
 }
 
@@ -128,6 +138,7 @@ type contentUseCases struct {
 	review   reviewhttp.UseCases
 	queue    queuehttp.UseCases
 	ingest   ingesthttp.UseCases
+	contrib  contribhttp.UseCases
 	syncLink *ingestapp.SyncLink
 	syncAll  *ingestapp.SyncAll
 }
@@ -207,6 +218,13 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			SearchSources: ingestapp.NewSearchSources(p.sources, ic),
 			Import:        ingestapp.NewImport(p.sources, ic, pw, p.tx, ia),
 		},
+		contrib: contribhttp.UseCases{
+			Submit:               contribapp.NewSubmit(p.contributions, p.officialSources, contribProps{c: catalog}, clk, rand.Reader),
+			Lookup:               contribapp.NewLookup(p.contributions, contribProps{c: catalog}),
+			ListOfficialSources:  contribapp.NewListOfficialSources(p.officialSources),
+			CreateOfficialSource: contribapp.NewCreateOfficialSource(p.officialSources, p.tx, contribAudit{record: p.audit}, clk),
+			DeleteOfficialSource: contribapp.NewDeleteOfficialSource(p.officialSources, p.tx, contribAudit{record: p.audit}),
+		},
 		syncLink: ingestapp.NewSyncLink(p.sources, ic, pw, p.tx),
 		syncAll:  ingestapp.NewSyncAll(ic, p.scheduler),
 	}
@@ -214,16 +232,18 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 
 // contentModule é o que o roteador precisa dos módulos de conteúdo.
 type contentModule struct {
-	prop   *prophttp.Handlers
-	review *reviewhttp.Handlers
-	queue  *queuehttp.Handlers
-	ingest *ingesthttp.Handlers
+	prop    *prophttp.Handlers
+	review  *reviewhttp.Handlers
+	queue   *queuehttp.Handlers
+	ingest  *ingesthttp.Handlers
+	contrib *contribhttp.Handlers
 }
 
-func newContentModule(uc contentUseCases, logger *slog.Logger) contentModule {
+func newContentModule(uc contentUseCases, contribOpts contribhttp.Options, logger *slog.Logger) contentModule {
 	return contentModule{
 		prop: prophttp.New(uc.prop, logger), review: reviewhttp.New(uc.review, logger),
 		queue: queuehttp.New(uc.queue, logger), ingest: ingesthttp.New(uc.ingest, logger),
+		contrib: contribhttp.New(uc.contrib, contribOpts, logger),
 	}
 }
 

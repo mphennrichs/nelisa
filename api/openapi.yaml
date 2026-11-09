@@ -30,6 +30,7 @@ tags:
   - name: correção e errata
   - name: fila
   - name: público
+  - name: contribuições
 paths:
   /version:
     get:
@@ -1475,6 +1476,203 @@ paths:
               schema: { $ref: "#/components/schemas/PublicPropositionDetail" }
         "404": { $ref: "#/components/responses/PropositionNotFound" }
 
+  /api/team/official-sources:
+    get:
+      tags: [contribuições]
+      summary: Lista os domínios cadastrados como Fonte oficial (Editor ou acima)
+      description: "`default_suffixes` são aceitos sem cadastro (`.leg.br`, `.gov.br`)."
+      responses:
+        "200":
+          description: Fontes oficiais por domínio
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, default_suffixes]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/OfficialSource" }
+                  default_suffixes:
+                    type: array
+                    items: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [contribuições]
+      summary: Cadastra um domínio como Fonte oficial (Editor ou Revisor)
+      description: |
+        O host de um link vale como Fonte oficial se for o domínio ou um
+        subdomínio dele. Registrado na Auditoria (`official_source.create`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [domain, name, sphere]
+              properties:
+                domain: { type: string, example: camara.exemplo.org }
+                name: { type: string, maxLength: 200 }
+                sphere: { $ref: "#/components/schemas/Sphere" }
+      responses:
+        "201":
+          description: Fonte oficial cadastrada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OfficialSource" }
+        "400":
+          description: "`invalid_json`, `invalid_domain`, `invalid_source_name` ou `invalid_sphere`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: "`official_source_exists`: já cadastrado ou já coberto (.leg.br, .gov.br ou domínio acima)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/official-sources/{sourceId}:
+    parameters:
+      - name: sourceId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [contribuições]
+      summary: Remove uma Fonte oficial (só Admin)
+      description: Registrado na Auditoria (`official_source.delete`).
+      responses:
+        "204": { description: Removida }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`official_source_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/public/contributions/availability:
+    get:
+      tags: [contribuições]
+      summary: Diz se o formulário de Contribuição está aberto
+      security: []
+      responses:
+        "200":
+          description: Disponibilidade
+          headers:
+            Cache-Control: { schema: { type: string, example: no-store } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [open, reason]
+                properties:
+                  open: { type: boolean }
+                  reason:
+                    description: "`disabled` quando o envio está desligado; null se aberto"
+                    type: [string, "null"]
+                    enum: [disabled, null]
+  /api/public/contributions:
+    post:
+      tags: [contribuições]
+      summary: Leitor manda uma Contribuição (sem login)
+      description: |
+        Só existe com `CONTRIBUTIONS_ENABLED=true` (senão 404). Os campos
+        usados dependem de `kind`:
+        - `indication`: `link` (de Fonte oficial), `sphere`, `note`;
+        - `progress_update`: `proposition_slug` (Proposição pública),
+          `event_type`, `event_date`, `link` (fonte), `note`;
+        - `source_request`: `domain`, `link` (evidência), `source_name`,
+          `sphere`, `note`.
+
+        O Nelisa nunca abre os links. Nada além do formulário é guardado; o
+        código de acompanhamento volta só nesta resposta (o banco guarda o
+        hash). Limite de 5 envios por hora por IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind]
+              properties:
+                kind: { $ref: "#/components/schemas/ContributionKind" }
+                link: { type: string, maxLength: 2000, description: "https, host DNS, sem usuário nem porta" }
+                sphere: { $ref: "#/components/schemas/Sphere" }
+                proposition_slug: { type: string }
+                event_type: { $ref: "#/components/schemas/ProgressEventType" }
+                event_date: { type: string, format: date }
+                domain: { type: string }
+                source_name: { type: string, maxLength: 200 }
+                note: { type: string, maxLength: 1000 }
+      responses:
+        "201":
+          description: Contribuição recebida, pendente
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tracking_code]
+                properties:
+                  tracking_code: { type: string, example: K7Q4-9MZD-2HXP }
+        "400":
+          description: |
+            `invalid_json`, `invalid_kind`, `invalid_link`, `invalid_domain`,
+            `not_official_source`, `invalid_source_name`, `invalid_sphere`,
+            `invalid_event_type`, `invalid_event_date` ou `note_too_long`
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/PropositionNotFound" }
+        "409":
+          description: "`official_source_exists` (Pedido de fonte de domínio que já é oficial)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/public/contributions/lookup:
+    post:
+      tags: [contribuições]
+      summary: Consulta uma Contribuição pelo código de acompanhamento
+      description: |
+        O código vai no corpo, não na URL, para não ficar em log nem em
+        referer. Aceita minúsculas e sem hífen. Devolve só tipo, estado,
+        datas, motivo público (se rejeitada) e a Proposição (se pública);
+        nunca o texto enviado nem quem decidiu. Limite de 30 por hora por IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code: { type: string, maxLength: 64 }
+      responses:
+        "200":
+          description: Situação da Contribuição
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContributionStatus" }
+        "400":
+          description: "`invalid_json`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: "`contribution_not_found` (também para código malformado)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1564,6 +1762,35 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
   schemas:
+    ContributionKind:
+      type: string
+      enum: [indication, progress_update, source_request]
+    ProgressEventType:
+      type: string
+      enum: [vote_scheduled, vote_postponed, approved, rejected, removed_from_agenda, other]
+    ContributionStatus:
+      type: object
+      required: [kind, state, submitted_at, decided_at, public_reason, proposition_slug]
+      properties:
+        kind: { $ref: "#/components/schemas/ContributionKind" }
+        state: { type: string, enum: [pending, accepted, rejected] }
+        submitted_at: { type: string, format: date-time }
+        decided_at: { type: [string, "null"], format: date-time }
+        public_reason:
+          description: Motivo público da rejeição (só quando rejeitada)
+          type: [string, "null"]
+        proposition_slug:
+          description: Proposição da Atualização, ou a criada a partir da Indicação, se pública
+          type: [string, "null"]
+    OfficialSource:
+      type: object
+      required: [id, domain, name, sphere, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        domain: { type: string }
+        name: { type: string }
+        sphere: { $ref: "#/components/schemas/Sphere" }
+        created_at: { type: string, format: date-time }
     Version:
       type: object
       required: [version, commit, changelog, build_time]

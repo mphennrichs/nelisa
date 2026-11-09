@@ -31,3 +31,16 @@ export async function listPublicPropositions(): Promise<PublicProposition[]> {
 export function getPublicProposition(slug: string) {
   return get<PublicPropositionDetail>(`/api/public/propositions/${encodeURIComponent(slug)}`);
 }
+
+export type ContributionAvailability = { open: boolean; reason: string | null };
+
+/** Se o formulário de Contribuição está aberto. Sem cache: liga e desliga na hora. */
+export async function getContributionAvailability(): Promise<ContributionAvailability> {
+  try {
+    const res = await fetch(`${base()}/api/public/contributions/availability`, { cache: "no-store" });
+    if (!res.ok) return { open: false, reason: "unavailable" };
+    return (await res.json()) as ContributionAvailability;
+  } catch {
+    return { open: false, reason: "unavailable" };
+  }
+}

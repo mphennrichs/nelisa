@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AnnotatedText from "./AnnotatedText";
 import PublicShell, { TopicList, UnderReviewBadge } from "@/components/PublicShell";
-import { getPublicProposition, type PublicPropositionDetail } from "@/lib/public/api";
+import { getContributionAvailability, getPublicProposition, type PublicPropositionDetail } from "@/lib/public/api";
 import { chamberLabel, fmtDate, officialText, chamberIn, paragraphs, reviewBadgeLabel } from "@/lib/labels";
 
 // Renderiza sob demanda (a API não existe no build da imagem); os dados
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PropositionPage({ params }: Props) {
-  const p = await getPublicProposition((await params).slug);
+  const [p, availability] = await Promise.all([getPublicProposition((await params).slug), getContributionAvailability()]);
   if (!p) notFound();
   const timeline = [...p.timeline].reverse(); // mais recente primeiro
   // Com Versão vigente a API manda o Resumo; sem ela, só dados oficiais.
@@ -213,6 +213,14 @@ export default async function PropositionPage({ params }: Props) {
                 </details>
               )}
             </>
+          )}
+          {availability.open && (
+            <p className="text-stone-700">
+              Viu um evento que ainda não aparece aqui?{" "}
+              <Link href={`/contribuir?proposicao=${encodeURIComponent(p.slug)}`} className="link">
+                Contribuir com uma atualização
+              </Link>
+            </p>
           )}
         </section>
       </article>

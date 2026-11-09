@@ -46,6 +46,9 @@ func newRouter(_ config.Config, db Pinger, team teamModule, content contentModul
 	r.Route("/api/public", func(r chi.Router) {
 		// Só a camada pública do proposition (regra de visibilidade).
 		content.prop.RegisterPublic(r)
+		// Contribuições do Leitor: não leem conteúdo da equipe; a consulta
+		// devolve só tipo, estado e motivo público.
+		content.contrib.RegisterPublic(r)
 	})
 	r.Route("/api/team", func(r chi.Router) {
 		// /auth é a única parte de /api/team sem login (bootstrap, login,
@@ -58,6 +61,7 @@ func newRouter(_ config.Config, db Pinger, team teamModule, content contentModul
 			content.review.RegisterTeam(r)
 			content.queue.RegisterTeam(r)
 			content.ingest.RegisterTeam(r)
+			content.contrib.RegisterTeam(r)
 		})
 	})
 	return r
