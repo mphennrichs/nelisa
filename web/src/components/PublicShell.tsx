@@ -15,7 +15,8 @@ export default function PublicShell({ children }: { children: React.ReactNode })
       </header>
       <main id="conteudo" className="mx-auto max-w-3xl px-4 py-8">{children}</main>
       <footer className="mx-auto max-w-3xl px-4 pb-10 text-sm text-stone-600">
-        Dados oficiais da Câmara dos Deputados e do Senado Federal. Versão em construção.
+        Dados oficiais da Câmara dos Deputados e do Senado Federal. Versão em construção.{" "}
+        <Link href="/acompanhar" className="link">Acompanhar contribuição</Link>
       </footer>
     </>
   );

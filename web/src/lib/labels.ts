@@ -100,3 +100,24 @@ export function paragraphs(s: string) {
 export function charCount(s: string) {
   return [...s.replace(/\r\n/g, "\n").trim()].length;
 }
+
+export const CONTRIBUTION_KIND_LABEL: Record<components["schemas"]["ContributionKind"], string> = {
+  indication: "Indicação de Proposição",
+  progress_update: "Atualização de tramitação",
+  source_request: "Pedido de fonte oficial",
+};
+
+export const CONTRIBUTION_STATE_LABEL: Record<components["schemas"]["ContributionStatus"]["state"], string> = {
+  pending: "Pendente: a equipe ainda vai avaliar",
+  accepted: "Aceita",
+  rejected: "Rejeitada",
+};
+
+export const PROGRESS_EVENT_LABEL: Record<components["schemas"]["ProgressEventType"], string> = {
+  vote_scheduled: "Votação marcada",
+  vote_postponed: "Votação adiada",
+  approved: "Aprovada",
+  rejected: "Rejeitada",
+  removed_from_agenda: "Retirada de pauta",
+  other: "Outro evento",
+};

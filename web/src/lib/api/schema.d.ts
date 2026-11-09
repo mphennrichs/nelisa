@@ -2982,10 +2982,388 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/official-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lista os domínios cadastrados como Fonte oficial (Editor ou acima)
+         * @description `default_suffixes` são aceitos sem cadastro (`.leg.br`, `.gov.br`).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Fontes oficiais por domínio */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["OfficialSource"][];
+                            default_suffixes: string[];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        /**
+         * Cadastra um domínio como Fonte oficial (Editor ou Revisor)
+         * @description O host de um link vale como Fonte oficial se for o domínio ou um
+         *     subdomínio dele. Registrado na Auditoria (`official_source.create`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example camara.exemplo.org */
+                        domain: string;
+                        name: string;
+                        sphere: components["schemas"]["Sphere"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Fonte oficial cadastrada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OfficialSource"];
+                    };
+                };
+                /** @description `invalid_json`, `invalid_domain`, `invalid_source_name` ou `invalid_sphere` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `official_source_exists`: já cadastrado ou já coberto (.leg.br, .gov.br ou domínio acima) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/official-sources/{sourceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove uma Fonte oficial (só Admin)
+         * @description Registrado na Auditoria (`official_source.delete`).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sourceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Removida */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `official_source_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/contributions/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diz se o formulário de Contribuição está aberto */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Disponibilidade */
+                200: {
+                    headers: {
+                        "Cache-Control"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            open: boolean;
+                            /**
+                             * @description `disabled` quando o envio está desligado; null se aberto
+                             * @enum {string|null}
+                             */
+                            reason: "disabled" | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Leitor manda uma Contribuição (sem login)
+         * @description Só existe com `CONTRIBUTIONS_ENABLED=true` (senão 404). Os campos
+         *     usados dependem de `kind`:
+         *     - `indication`: `link` (de Fonte oficial), `sphere`, `note`;
+         *     - `progress_update`: `proposition_slug` (Proposição pública),
+         *       `event_type`, `event_date`, `link` (fonte), `note`;
+         *     - `source_request`: `domain`, `link` (evidência), `source_name`,
+         *       `sphere`, `note`.
+         *
+         *     O Nelisa nunca abre os links. Nada além do formulário é guardado; o
+         *     código de acompanhamento volta só nesta resposta (o banco guarda o
+         *     hash). Limite de 5 envios por hora por IP.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        kind: components["schemas"]["ContributionKind"];
+                        /** @description https, host DNS, sem usuário nem porta */
+                        link?: string;
+                        sphere?: components["schemas"]["Sphere"];
+                        proposition_slug?: string;
+                        event_type?: components["schemas"]["ProgressEventType"];
+                        /** Format: date */
+                        event_date?: string;
+                        domain?: string;
+                        source_name?: string;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Contribuição recebida, pendente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example K7Q4-9MZD-2HXP */
+                            tracking_code: string;
+                        };
+                    };
+                };
+                /**
+                 * @description `invalid_json`, `invalid_kind`, `invalid_link`, `invalid_domain`,
+                 *     `not_official_source`, `invalid_source_name`, `invalid_sphere`,
+                 *     `invalid_event_type`, `invalid_event_date` ou `note_too_long`
+                 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                404: components["responses"]["PropositionNotFound"];
+                /** @description `official_source_exists` (Pedido de fonte de domínio que já é oficial) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/contributions/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consulta uma Contribuição pelo código de acompanhamento
+         * @description O código vai no corpo, não na URL, para não ficar em log nem em
+         *     referer. Aceita minúsculas e sem hífen. Devolve só tipo, estado,
+         *     datas, motivo público (se rejeitada) e a Proposição (se pública);
+         *     nunca o texto enviado nem quem decidiu. Limite de 30 por hora por IP.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Situação da Contribuição */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContributionStatus"];
+                    };
+                };
+                /** @description `invalid_json` */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `contribution_not_found` (também para código malformado) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                429: components["responses"]["TooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        ContributionKind: "indication" | "progress_update" | "source_request";
+        /** @enum {string} */
+        ProgressEventType: "vote_scheduled" | "vote_postponed" | "approved" | "rejected" | "removed_from_agenda" | "other";
+        ContributionStatus: {
+            kind: components["schemas"]["ContributionKind"];
+            /** @enum {string} */
+            state: "pending" | "accepted" | "rejected";
+            /** Format: date-time */
+            submitted_at: string;
+            /** Format: date-time */
+            decided_at: string | null;
+            /** @description Motivo público da rejeição (só quando rejeitada) */
+            public_reason: string | null;
+            /** @description Proposição da Atualização, ou a criada a partir da Indicação, se pública */
+            proposition_slug: string | null;
+        };
+        OfficialSource: {
+            /** Format: uuid */
+            id: string;
+            domain: string;
+            name: string;
+            sphere: components["schemas"]["Sphere"];
+            /** Format: date-time */
+            created_at: string;
+        };
         Version: {
             version: string;
             commit: string;

@@ -58,7 +58,7 @@ func newEditorialAppWith(t *testing.T, wrapAudit func(recordAudit) recordAudit, 
 	if wrapAudit != nil {
 		ports.audit = wrapAudit(ports.audit)
 	}
-	content := newContentModule(newContentUseCases(ports, clk), logger)
+	content := newContentModule(newContentUseCases(ports, clk), contributionOptions(cfg), logger)
 	a := &editorialApp{
 		t: t, pool: pool, tokens: map[string]string{}, ids: map[string]string{},
 		h: newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger),

@@ -69,7 +69,7 @@ func TestContentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(inserter))
-	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), logger)
+	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), contributionOptions(cfg), logger)
 	h := newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger)
 
 	do := func(method, path, body, bearer string) *httptest.ResponseRecorder {

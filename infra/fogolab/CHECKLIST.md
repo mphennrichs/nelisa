@@ -34,6 +34,10 @@ Ordem de subida: `postgres` saudável → `migrate` termina com sucesso →
 `SYNC_INTERVAL` (opcional, padrão `6h`, mínimo `1m`) é de quanto em quanto
 tempo o worker sincroniza todos os Vínculos de fonte confirmados.
 
+`CONTRIBUTIONS_ENABLED` (opcional, padrão desligado) liga o envio de
+Contribuições pelo Leitor (`true`). Fica desligado até o Turnstile e o rate
+limit da fase 3 estarem no ar; a consulta pelo código funciona sempre.
+
 ## Primeiro deploy da api (fase 0)
 
 Feito **nesta ordem**. Enquanto o passo 3 não acontecer, nada muda no ar: o

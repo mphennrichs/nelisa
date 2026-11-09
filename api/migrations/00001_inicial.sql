@@ -11,6 +11,7 @@ CREATE SCHEMA IF NOT EXISTS proposition;
 CREATE SCHEMA IF NOT EXISTS progress;
 CREATE SCHEMA IF NOT EXISTS review;
 CREATE SCHEMA IF NOT EXISTS queue;
+CREATE SCHEMA IF NOT EXISTS contribution;
 -- Tabelas da fila de jobs (River). Quem as cria são as migrations do
 -- próprio River, aplicadas pelo modo migrate logo depois desta
 -- (platform/migrate); aqui só nasce o schema.
@@ -374,7 +375,44 @@ CREATE TABLE queue.claims (
     last_activity_at timestamptz NOT NULL
 );
 
+-- contribution: o que o Leitor manda sem login (CONTEXT.md,
+-- "Contribuições") e os domínios cadastrados como Fonte oficial. Nada do
+-- Leitor além do formulário: sem e-mail, sem nome, sem IP.
+CREATE TABLE contribution.official_sources (
+    id         uuid PRIMARY KEY,
+    domain     text NOT NULL UNIQUE CHECK (domain <> '' AND domain = lower(domain)),
+    name       text NOT NULL CHECK (name <> ''),
+    sphere     text NOT NULL CHECK (sphere IN ('federal', 'state', 'municipal')),
+    created_by uuid NOT NULL,
+    created_at timestamptz NOT NULL
+);
+
+CREATE TABLE contribution.contributions (
+    id                     uuid PRIMARY KEY,
+    kind                   text NOT NULL CHECK (kind IN ('indication', 'progress_update', 'source_request')),
+    state                  text NOT NULL CHECK (state IN ('pending', 'accepted', 'rejected')),
+    -- sha256 do código de acompanhamento: o código mesmo só o Leitor tem.
+    tracking_hash          text NOT NULL UNIQUE CHECK (length(tracking_hash) = 64),
+    -- Sem chave estrangeira: módulos não enxergam as tabelas uns dos
+    -- outros. Só a Atualização de tramitação tem Proposição.
+    proposition_id         uuid,
+    sphere                 text NOT NULL CHECK (sphere IN ('federal', 'state', 'municipal')),
+    payload                jsonb NOT NULL,
+    submitted_at           timestamptz NOT NULL,
+    decided_by             uuid,
+    decided_at             timestamptz,
+    public_reason          text NOT NULL DEFAULT '',
+    internal_note          text NOT NULL DEFAULT '',
+    created_proposition_id uuid,
+    CHECK ((kind = 'progress_update') = (proposition_id IS NOT NULL)),
+    CHECK ((state = 'pending') = (decided_at IS NULL)),
+    CHECK ((state = 'pending') = (decided_by IS NULL)),
+    CHECK (state <> 'rejected' OR public_reason <> '')
+);
+CREATE INDEX contributions_pending_idx ON contribution.contributions (submitted_at) WHERE state = 'pending';
+
 -- +goose Down
+DROP SCHEMA IF EXISTS contribution CASCADE;
 DROP SCHEMA IF EXISTS river CASCADE;
 DROP SCHEMA IF EXISTS queue CASCADE;
 DROP SCHEMA IF EXISTS review CASCADE;

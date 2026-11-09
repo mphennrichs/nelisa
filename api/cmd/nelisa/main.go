@@ -102,7 +102,7 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(riverClient))
-	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), logger)
+	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), contributionOptions(cfg), logger)
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger),
