@@ -3,19 +3,11 @@
 import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import type { components } from "@/lib/api/schema";
-import { CONTRIBUTION_KIND_LABEL, CONTRIBUTION_STATE_LABEL, fmtDate } from "@/lib/labels";
+import { CONTRIBUTION_KIND_LABEL, CONTRIBUTION_STATE_LABEL, REJECT_REASON_LABEL, fmtDate } from "@/lib/labels";
 
 type Status = components["schemas"]["ContributionStatus"];
 
 // Motivos públicos de rejeição (lista fechada da moderação).
-const REASON_LABEL: Record<string, string> = {
-  source_not_confirmed: "A fonte não confirma a informação.",
-  out_of_scope: "Fora do escopo do Nelisa.",
-  already_registered: "Já estava cadastrado.",
-  duplicate: "Contribuição repetida.",
-  incorrect: "A informação não está correta.",
-  other: "Outro motivo.",
-};
 
 export default function LookupForm() {
   const [code, setCode] = useState("");
@@ -97,7 +89,7 @@ export default function LookupForm() {
             {status.public_reason && (
               <>
                 <dt className="text-stone-600">Motivo</dt>
-                <dd>{REASON_LABEL[status.public_reason] ?? status.public_reason}</dd>
+                <dd>{REJECT_REASON_LABEL[status.public_reason as keyof typeof REJECT_REASON_LABEL] ?? status.public_reason}</dd>
               </>
             )}
           </dl>

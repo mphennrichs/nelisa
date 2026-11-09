@@ -30,6 +30,16 @@ type ContributionRepo interface {
 	// FindByTrackingHash devolve ErrContributionNotFound se não há.
 	FindByTrackingHash(ctx context.Context, hash string) (domain.Contribution, error)
 	CountPending(ctx context.Context) (int, error)
+	// Find devolve ErrContributionNotFound se não há (ou o id não é UUID).
+	Find(ctx context.Context, id string) (domain.Contribution, error)
+	// FindForUpdate é Find travando a linha até o fim da transação do
+	// contexto: duas decisões ao mesmo tempo não passam.
+	FindForUpdate(ctx context.Context, id string) (domain.Contribution, error)
+	// ListPending lista as pendentes, das mais antigas para as mais novas.
+	ListPending(ctx context.Context) ([]domain.Contribution, error)
+	// Update grava a moderação: estado, Esfera, decisão, motivo, nota e
+	// Proposição criada.
+	Update(ctx context.Context, c domain.Contribution) error
 }
 
 // OfficialSourceRepo persiste a Fonte oficial.
@@ -57,7 +67,38 @@ type Propositions interface {
 	PublicBySlug(ctx context.Context, slug string) (*PublicProposition, error)
 	// PublicByID idem, pelo id.
 	PublicByID(ctx context.Context, id string) (*PublicProposition, error)
+	// ByID devolve a Proposição para a equipe, pública ou não; nil se não
+	// existe.
+	ByID(ctx context.Context, id string) (*TeamProposition, error)
 }
+
+// TeamProposition é uma Proposição como a equipe a vê na moderação.
+type TeamProposition struct {
+	ID     string
+	Name   string
+	Slug   string
+	Sphere domain.Sphere
+}
+
+// ManualEvent é o evento de Tramitação de uma Atualização aceita.
+type ManualEvent struct {
+	PropositionID  string
+	ContributionID string
+	domain.ProgressEvent
+}
+
+// ProgressEntries é a Tramitação (módulo progress, ligado no main).
+type ProgressEntries interface {
+	// RecordManual grava o evento manual; ErrProgressEntryExists se a
+	// Contribuição já gravou o dela.
+	RecordManual(ctx context.Context, e ManualEvent) error
+	// DeleteManual apaga o evento manual da Contribuição; false se não há.
+	DeleteManual(ctx context.Context, contributionID string) (bool, error)
+}
+
+// ErrProgressEntryExists: a Contribuição já tem evento manual na
+// Tramitação.
+var ErrProgressEntryExists = errors.New("contribution: evento manual já gravado")
 
 // TxRunner abre uma transação levada no contexto.
 type TxRunner interface {
@@ -82,6 +123,13 @@ const (
 	ActionOfficialSourceCreate = "official_source.create"
 	ActionOfficialSourceDelete = "official_source.delete"
 	targetOfficialSource       = "official_source"
+
+	ActionContributionAccept         = "contribution.accept"
+	ActionContributionReject         = "contribution.reject"
+	ActionContributionSphere         = "contribution.sphere_change"
+	ActionContributionLink           = "contribution.link_proposition"
+	ActionContributionProgressDelete = "contribution.progress_entry_delete"
+	targetContribution               = "contribution"
 )
 
 func requireRole(ctx context.Context, min auth.Role) (auth.Actor, error) {

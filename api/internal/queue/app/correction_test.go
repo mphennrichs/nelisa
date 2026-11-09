@@ -24,7 +24,7 @@ func TestListQueueShowsCorrectionsOfTheCurrentVersion(t *testing.T) {
 		// Proposição que voltou para "em revisão": fica para depois.
 		{PropositionID: "reviewing", VersionID: "v-cur", Reason: domain.ReasonMinorFixCheck, Since: t0},
 	}
-	items, err := app.NewListQueue(e.w.Props(), e.w.Reviews(), e.w.Claims(), e.w.Directory(), e.clk).Execute(ana, app.ListQueueInput{})
+	items, err := app.NewListQueue(e.w.Props(), e.w.Reviews(), e.w.Contribs(), e.w.Claims(), e.w.Directory(), e.clk).Execute(ana, app.ListQueueInput{})
 	if err != nil {
 		t.Fatal(err)
 	}

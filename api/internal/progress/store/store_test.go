@@ -2,6 +2,7 @@ package store_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -59,5 +60,59 @@ func TestUpsertIsIdempotentAndTimelineOrdered(t *testing.T) {
 	}
 	if es, err := s.ListByProposition(ctx, "nao-e-uuid"); err != nil || len(es) != 0 {
 		t.Errorf("invalid id: %v %v", es, err)
+	}
+}
+
+func TestManualEntries(t *testing.T) {
+	pool, _ := testdb.New(t)
+	ctx := context.Background()
+	if _, err := pool.Exec(ctx, `INSERT INTO proposition.propositions
+		(id, slug, kind, number, year, sphere, origin_chamber, review_state, created_at, updated_at)
+		VALUES ($1, 'pec-221-2019', 'PEC', 221, 2019, 'federal', 'camara', 'draft', now(), now())`, prop); err != nil {
+		t.Fatal(err)
+	}
+	s := store.New(pool)
+	m, err := domain.NewManualEntry(prop, "camara", "c1", t0, "Votação adiada", "https://g1.globo.com/x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.InsertManual(ctx, m, t0); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.InsertManual(ctx, m, t0); !errors.Is(err, domain.ErrManualEntryExists) {
+		t.Errorf("de novo: %v", err)
+	}
+	// A Sincronização convive com o evento manual e não o toca.
+	if _, err := s.Upsert(ctx, []domain.Entry{entry(t, "camara", "1-100", t0, "Adiada")}, t0); err != nil {
+		t.Fatal(err)
+	}
+	tl, err := s.ListByProposition(ctx, prop)
+	if err != nil || len(tl) != 2 {
+		t.Fatalf("timeline: %v %+v", err, tl)
+	}
+	var manual domain.Entry
+	for _, e := range tl {
+		if e.Manual {
+			manual = e
+		}
+	}
+	if manual.SourceURL != "https://g1.globo.com/x" || manual.ContributionID() != "c1" {
+		t.Errorf("manual = %+v", manual)
+	}
+	// O banco recusa evento manual sem fonte e evento da fonte com chave manual.
+	if _, err := pool.Exec(ctx, `INSERT INTO progress.entries (proposition_id, chamber, external_key, at, manual, created_at, updated_at)
+		VALUES ($1, 'camara', 'contribution:c9', now(), true, now(), now())`, prop); err == nil {
+		t.Error("manual sem fonte deveria falhar")
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO progress.entries (proposition_id, chamber, external_key, at, created_at, updated_at)
+		VALUES ($1, 'camara', 'contribution:c9', now(), now(), now())`, prop); err == nil {
+		t.Error("chave manual sem manual deveria falhar")
+	}
+	if ok, err := s.DeleteManual(ctx, domain.ManualKey("c1")); err != nil || !ok {
+		t.Errorf("delete = %v, %v", ok, err)
+	}
+	// Só apaga evento manual.
+	if ok, err := s.DeleteManual(ctx, "1-100"); err != nil || ok {
+		t.Errorf("delete da fonte = %v, %v", ok, err)
 	}
 }

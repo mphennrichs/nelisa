@@ -56,25 +56,36 @@ func (uc *CreateOfficialSource) Execute(ctx context.Context, in CreateOfficialSo
 		return domain.OfficialSource{}, err
 	}
 	err = uc.tx.WithinTx(ctx, func(ctx context.Context) error {
-		ds, err := uc.sources.Domains(ctx)
-		if err != nil {
-			return err
-		}
-		if domain.IsOfficial(s.Domain, ds) {
-			return domain.ErrOfficialSourceExists
-		}
-		if err := uc.sources.Insert(ctx, s); err != nil {
-			return err
-		}
-		return uc.audit.Record(ctx, AuditEvent{
-			ActorID: a.UserID, Action: ActionOfficialSourceCreate, TargetType: targetOfficialSource, TargetID: s.ID,
-			Metadata: map[string]any{"domain": s.Domain, "name": s.Name, "sphere": string(s.Sphere)},
-		})
+		return insertOfficialSource(ctx, uc.sources, uc.audit, s, nil)
 	})
 	if err != nil {
 		return domain.OfficialSource{}, err
 	}
 	return s, nil
+}
+
+// insertOfficialSource grava a Fonte oficial e audita, na transação do
+// contexto. Domínio já coberto é recusado. extra entra nos metadados (o
+// aceite de um Pedido de fonte oficial diz de qual Contribuição veio).
+func insertOfficialSource(ctx context.Context, sources OfficialSourceRepo, audit AuditRecorder, s domain.OfficialSource, extra map[string]any) error {
+	ds, err := sources.Domains(ctx)
+	if err != nil {
+		return err
+	}
+	if domain.IsOfficial(s.Domain, ds) {
+		return domain.ErrOfficialSourceExists
+	}
+	if err := sources.Insert(ctx, s); err != nil {
+		return err
+	}
+	md := map[string]any{"domain": s.Domain, "name": s.Name, "sphere": string(s.Sphere)}
+	for k, v := range extra {
+		md[k] = v
+	}
+	return audit.Record(ctx, AuditEvent{
+		ActorID: s.CreatedBy, Action: ActionOfficialSourceCreate, TargetType: targetOfficialSource, TargetID: s.ID,
+		Metadata: md,
+	})
 }
 
 // DeleteOfficialSource: só o Admin remove (CONTEXT.md).

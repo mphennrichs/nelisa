@@ -9,6 +9,7 @@ import (
 	"github.com/mphennrichs/nelisa/api/internal/contribution/app"
 	"github.com/mphennrichs/nelisa/api/internal/contribution/domain"
 	"github.com/mphennrichs/nelisa/api/internal/contribution/store"
+	"github.com/mphennrichs/nelisa/api/internal/platform/db"
 	"github.com/mphennrichs/nelisa/api/internal/platform/testdb"
 )
 
@@ -59,6 +60,48 @@ func TestContributionsRoundTrip(t *testing.T) {
 	n, err := s.CountPending(ctx)
 	if err != nil || n != 1 {
 		t.Errorf("pending = %d, %v", n, err)
+	}
+
+	// Moderação: a linha travada, decidida e gravada.
+	pend, err := s.ListPending(ctx)
+	if err != nil || len(pend) != 1 || pend[0].ID != c1 {
+		t.Fatalf("pendentes = %+v, %v", pend, err)
+	}
+	for _, id := range []string{c2, "não-é-uuid"} {
+		if _, err := s.Find(ctx, id); !errors.Is(err, domain.ErrContributionNotFound) {
+			t.Errorf("find %q: %v", id, err)
+		}
+	}
+	err = db.NewTxRunner(pool).WithinTx(ctx, func(ctx context.Context) error {
+		c, err := s.FindForUpdate(ctx, c1)
+		if err != nil {
+			return err
+		}
+		if err := c.Reject(ana, domain.ReasonIncorrect, "nota", t0.Add(time.Hour)); err != nil {
+			return err
+		}
+		return s.Update(ctx, c)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.Find(ctx, c1)
+	if err != nil || got.State != domain.StateRejected || got.DecidedBy != ana || got.PublicReason != "incorrect" ||
+		got.InternalNote != "nota" || got.DecidedAt == nil || !got.DecidedAt.Equal(t0.Add(time.Hour)) {
+		t.Errorf("decidida = %+v, %v", got, err)
+	}
+	if pend, _ := s.ListPending(ctx); len(pend) != 0 {
+		t.Errorf("pendentes depois = %+v", pend)
+	}
+	// O banco recusa Proposição criada fora de Indicação aceita.
+	got.CreatedPropositionID = p1
+	if err := s.Update(ctx, got); err == nil {
+		t.Error("proposição criada em atualização rejeitada deveria falhar")
+	}
+	got.ID = c2
+	got.CreatedPropositionID = ""
+	if err := s.Update(ctx, got); !errors.Is(err, domain.ErrContributionNotFound) {
+		t.Errorf("update inexistente: %v", err)
 	}
 }
 

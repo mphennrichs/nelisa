@@ -11,8 +11,21 @@ import (
 	"unicode/utf8"
 )
 
-// ErrInvalidEntry: evento sem Proposição, Casa, chave ou data.
-var ErrInvalidEntry = errors.New("progress: evento de tramitação inválido")
+var (
+	// ErrInvalidEntry: evento sem Proposição, Casa, chave ou data, ou
+	// evento manual sem link de fonte.
+	ErrInvalidEntry = errors.New("progress: evento de tramitação inválido")
+	// ErrManualEntryExists: a Contribuição já gravou o seu evento manual.
+	ErrManualEntryExists = errors.New("progress: evento manual já gravado")
+)
+
+// ManualKeyPrefix marca a chave de um evento manual: contribution:<id>. A
+// fonte nunca usa essa chave, então a Sincronização não sobrescreve o
+// evento manual.
+const ManualKeyPrefix = "contribution:"
+
+// MaxSourceURLLen limita o link de fonte de um evento manual.
+const MaxSourceURLLen = 2000
 
 // Limites: a fonte é tratada como hostil.
 const (
@@ -38,10 +51,51 @@ type Entry struct {
 	Description string
 	Situation   string
 	Dispatch    string
+	// Manual: evento de uma Atualização de tramitação aceita, não da
+	// fonte. Sempre com SourceURL.
+	Manual    bool
+	SourceURL string
 }
 
-// NewEntry valida e limpa um evento vindo da fonte.
+// ContributionID é o id da Contribuição de um evento manual ("" se não
+// for manual).
+func (e Entry) ContributionID() string {
+	if !e.Manual {
+		return ""
+	}
+	return strings.TrimPrefix(e.ExternalKey, ManualKeyPrefix)
+}
+
+// ManualKey é a chave do evento manual de uma Contribuição.
+func ManualKey(contributionID string) string { return ManualKeyPrefix + contributionID }
+
+// NewManualEntry monta o evento manual de uma Atualização de tramitação
+// aceita. O texto já foi revisado pela equipe; o link já foi validado pelo
+// módulo contribution (aqui só se exige que exista e caiba).
+func NewManualEntry(propositionID, chamber, contributionID string, at time.Time, description, sourceURL string) (Entry, error) {
+	sourceURL = strings.TrimSpace(sourceURL)
+	if strings.TrimSpace(contributionID) == "" || sourceURL == "" || len(sourceURL) > MaxSourceURLLen ||
+		strings.TrimSpace(description) == "" {
+		return Entry{}, ErrInvalidEntry
+	}
+	e, err := newEntry(propositionID, chamber, ManualKey(strings.TrimSpace(contributionID)), at, "", description, "", "")
+	if err != nil {
+		return Entry{}, err
+	}
+	e.Manual, e.SourceURL = true, sourceURL
+	return e, nil
+}
+
+// NewEntry valida e limpa um evento vindo da fonte. A chave de evento
+// manual é recusada: a fonte não pode se passar por uma Contribuição.
 func NewEntry(propositionID, chamber, externalKey string, at time.Time, body, description, situation, dispatch string) (Entry, error) {
+	if strings.HasPrefix(strings.TrimSpace(externalKey), ManualKeyPrefix) {
+		return Entry{}, ErrInvalidEntry
+	}
+	return newEntry(propositionID, chamber, externalKey, at, body, description, situation, dispatch)
+}
+
+func newEntry(propositionID, chamber, externalKey string, at time.Time, body, description, situation, dispatch string) (Entry, error) {
 	externalKey = strings.TrimSpace(externalKey)
 	chamber = strings.TrimSpace(chamber)
 	if propositionID == "" || chamber == "" || externalKey == "" || len(externalKey) > maxKeyLen || at.IsZero() {

@@ -121,3 +121,22 @@ export const PROGRESS_EVENT_LABEL: Record<components["schemas"]["ProgressEventTy
   removed_from_agenda: "Retirada de pauta",
   other: "Outro evento",
 };
+
+/** Motivo público de uma rejeição: o Leitor lê ao consultar o código. */
+export const REJECT_REASON_LABEL: Record<components["schemas"]["RejectReason"], string> = {
+  source_not_confirmed: "A fonte não confirma a informação.",
+  out_of_scope: "Fora do escopo do Nelisa.",
+  already_registered: "Já estava cadastrado.",
+  duplicate: "Contribuição repetida.",
+  incorrect: "A informação não está correta.",
+  other: "Outro motivo.",
+};
+
+/** Domínio de um link, para mostrar em destaque ("" se não der para ler). */
+export function hostOf(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}

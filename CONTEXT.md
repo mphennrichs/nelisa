@@ -170,7 +170,10 @@ texto da Proposição que mudou.
 **Tramitação**:
 O percurso legislativo real da Proposição: autor, linha do tempo (apresentação,
 publicação oficial, votação), resultado da votação e entrada em vigor.
-Mudanças na Tramitação **não** alteram o estado de Revisão.
+Mudanças na Tramitação **não** alteram o estado de Revisão. Um evento vem da fonte
+oficial (pela Importação e pela Sincronização) ou é **manual**: uma Atualização de
+tramitação aceita pela equipe, mostrada como informada por leitor e com o link da
+fonte. Os dois convivem; a equipe pode apagar o manual.
 _Evitar_: Status, andamento (quando se referir à Revisão)
 
 **Importação**:

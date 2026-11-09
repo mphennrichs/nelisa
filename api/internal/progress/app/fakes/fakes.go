@@ -53,3 +53,26 @@ func (f *Entries) Len() int {
 	defer f.mu.Unlock()
 	return len(f.rows)
 }
+
+func (f *Entries) InsertManual(_ context.Context, e domain.Entry, _ time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	k := key{e.PropositionID, e.Chamber, e.ExternalKey}
+	if _, ok := f.rows[k]; ok {
+		return domain.ErrManualEntryExists
+	}
+	f.rows[k] = e
+	return nil
+}
+
+func (f *Entries) DeleteManual(_ context.Context, externalKey string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for k, e := range f.rows {
+		if e.Manual && k.ext == externalKey {
+			delete(f.rows, k)
+			return true, nil
+		}
+	}
+	return false, nil
+}

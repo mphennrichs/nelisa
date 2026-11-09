@@ -89,6 +89,58 @@ func (s *Contributions) CountPending(ctx context.Context) (int, error) {
 	return int(n), nil
 }
 
+func (s *Contributions) Find(ctx context.Context, id string) (domain.Contribution, error) {
+	return s.find(ctx, id, s.q(ctx).GetContribution)
+}
+
+func (s *Contributions) FindForUpdate(ctx context.Context, id string) (domain.Contribution, error) {
+	return s.find(ctx, id, s.q(ctx).GetContributionForUpdate)
+}
+
+func (s *Contributions) find(ctx context.Context, id string, get func(context.Context, string) (dbgen.ContributionContribution, error)) (domain.Contribution, error) {
+	row, err := get(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Contribution{}, domain.ErrContributionNotFound
+	}
+	if e := pgErr(err); e != nil && e.Code == pgInvalidText {
+		return domain.Contribution{}, domain.ErrContributionNotFound
+	}
+	if err != nil {
+		return domain.Contribution{}, fmt.Errorf("lendo contribuição: %w", err)
+	}
+	return toContribution(row)
+}
+
+func (s *Contributions) ListPending(ctx context.Context) ([]domain.Contribution, error) {
+	rows, err := s.q(ctx).ListPendingContributions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listando contribuições pendentes: %w", err)
+	}
+	out := make([]domain.Contribution, 0, len(rows))
+	for _, r := range rows {
+		c, err := toContribution(r)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+func (s *Contributions) Update(ctx context.Context, c domain.Contribution) error {
+	n, err := s.q(ctx).UpdateContribution(ctx, dbgen.UpdateContributionParams{
+		ID: c.ID, State: string(c.State), Sphere: string(c.Sphere), DecidedBy: ptr(c.DecidedBy), DecidedAt: c.DecidedAt,
+		PublicReason: c.PublicReason, InternalNote: c.InternalNote, CreatedPropositionID: ptr(c.CreatedPropositionID),
+	})
+	if err != nil {
+		return fmt.Errorf("gravando moderação: %w", err)
+	}
+	if n == 0 {
+		return domain.ErrContributionNotFound
+	}
+	return nil
+}
+
 func toContribution(r dbgen.ContributionContribution) (domain.Contribution, error) {
 	var p domain.Payload
 	if err := json.Unmarshal(r.Payload, &p); err != nil {

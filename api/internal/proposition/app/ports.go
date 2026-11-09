@@ -64,6 +64,11 @@ type TimelineEntry struct {
 	Description string
 	Situation   string
 	Dispatch    string
+	// Manual: evento de uma Atualização de tramitação aceita pela equipe,
+	// com o link de fonte; ContributionID diz de qual Contribuição veio.
+	Manual         bool
+	SourceURL      string
+	ContributionID string
 }
 
 // TimelineReader lê a Tramitação (módulo progress, ligado no main).

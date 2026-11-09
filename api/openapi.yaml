@@ -1308,7 +1308,8 @@ paths:
         (`reason: second_review`), com Correção menor a conferir
         (`reason: minor_fix_check`, um item por Proposição, desde a mais
         antiga) e com Errata pendente (`reason: erratum`); estes três só
-        da Versão vigente. Ordem: Esfera (federal > estadual >
+        da Versão vigente; e Contribuições pendentes (`reason:
+        contribution`, sem Posse nem Versão). Ordem: Esfera (federal > estadual >
         municipal), depois votação mais próxima (ainda sem dado: todas "sem
         votação"), depois mais antigo na fila primeiro.
       parameters:
@@ -1554,6 +1555,234 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/team/contributions/{contributionId}:
+    parameters:
+      - $ref: "#/components/parameters/ContributionID"
+    get:
+      tags: [contribuições]
+      summary: Abre uma Contribuição para moderar (Editor ou acima)
+      description: |
+        As pendentes aparecem na Fila (`GET /api/team/queue`, `reason:
+        contribution`). O texto do Leitor vem como ele mandou: a tela o
+        mostra como texto puro, e o Nelisa nunca abre o link.
+      responses:
+        "200":
+          description: A Contribuição
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamContribution" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`contribution_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/contributions/{contributionId}/accept:
+    parameters:
+      - $ref: "#/components/parameters/ContributionID"
+    post:
+      tags: [contribuições]
+      summary: Aceita uma Contribuição pendente (Editor ou acima)
+      description: |
+        Sem quatro olhos (a Contribuição não publica conteúdo editorial),
+        mas auditado (`contribution.accept`). Conforme o tipo:
+        - `progress_update`: `event` é obrigatório, revisado pela equipe;
+          grava um evento **manual** na Tramitação da Proposição, com o
+          link de fonte. A data vira meio-dia de Brasília.
+        - `source_request`: cadastra o domínio como Fonte oficial, com a
+          Esfera atual (também auditado como `official_source.create`).
+        - `indication`: só marca aceita; a equipe importa a Proposição e
+          depois aponta a criada (`PUT .../proposition`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                internal_note: { type: string, maxLength: 1000, description: Nunca pública }
+                event:
+                  type: object
+                  additionalProperties: false
+                  required: [chamber, date, description, source_url]
+                  properties:
+                    chamber: { $ref: "#/components/schemas/Chamber" }
+                    date: { type: string, format: date, description: "AAAA-MM-DD, até um ano à frente" }
+                    description: { type: string, maxLength: 1000 }
+                    source_url: { type: string, maxLength: 2000, description: "https, host DNS" }
+      responses:
+        "200":
+          description: A Contribuição depois da mudança
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamContribution" }
+        "400":
+          description: "`invalid_json`, `event_required`, `invalid_chamber`, `invalid_event_date`, `invalid_event_text`, `invalid_link` ou `internal_note_too_long`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`contribution_not_found` ou `proposition_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`contribution_decided`, `progress_entry_exists` ou `official_source_exists` (rejeite como `already_registered`)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/contributions/{contributionId}/reject:
+    parameters:
+      - $ref: "#/components/parameters/ContributionID"
+    post:
+      tags: [contribuições]
+      summary: Rejeita uma Contribuição pendente (Editor ou acima)
+      description: |
+        O motivo é público (o Leitor o vê ao consultar o código); a nota
+        interna nunca é. Auditado (`contribution.reject`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { $ref: "#/components/schemas/RejectReason" }
+                internal_note: { type: string, maxLength: 1000 }
+      responses:
+        "200":
+          description: A Contribuição depois da mudança
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamContribution" }
+        "400":
+          description: "`invalid_json`, `invalid_reason` ou `internal_note_too_long`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`contribution_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`contribution_decided`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/contributions/{contributionId}/sphere:
+    parameters:
+      - $ref: "#/components/parameters/ContributionID"
+    put:
+      tags: [contribuições]
+      summary: Corrige a Esfera de uma Indicação ou Pedido de fonte oficial pendente
+      description: |
+        A Esfera manda na ordem da Fila. A Atualização de tramitação herda
+        a da Proposição e não se corrige. Auditado
+        (`contribution.sphere_change`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [sphere]
+              properties:
+                sphere: { $ref: "#/components/schemas/Sphere" }
+      responses:
+        "200":
+          description: A Contribuição depois da mudança
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamContribution" }
+        "400":
+          description: "`invalid_json`, `invalid_sphere` ou `sphere_fixed`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`contribution_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`contribution_decided`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/contributions/{contributionId}/proposition:
+    parameters:
+      - $ref: "#/components/parameters/ContributionID"
+    put:
+      tags: [contribuições]
+      summary: Aponta a Proposição criada a partir de uma Indicação aceita
+      description: |
+        Uma vez só. A consulta do Leitor passa a mostrar o link quando a
+        Proposição for pública. Auditado (`contribution.link_proposition`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [proposition_id]
+              properties:
+                proposition_id: { type: string, format: uuid }
+      responses:
+        "200":
+          description: A Contribuição depois da mudança
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamContribution" }
+        "400":
+          description: "`invalid_json`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`contribution_not_found` ou `proposition_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "`not_linkable`: não é Indicação aceita, ou já aponta uma Proposição"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/team/contributions/{contributionId}/progress-entry:
+    parameters:
+      - $ref: "#/components/parameters/ContributionID"
+    delete:
+      tags: [contribuições]
+      summary: Apaga o evento manual de uma Atualização de tramitação aceita
+      description: |
+        Por exemplo, quando a Sincronização já trouxe o evento oficial. A
+        Contribuição continua aceita. Auditado
+        (`contribution.progress_entry_delete`).
+      responses:
+        "204": { description: Apagado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`contribution_not_found` ou `progress_entry_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/public/contributions/availability:
     get:
       tags: [contribuições]
@@ -1686,6 +1915,11 @@ components:
       name: nelisa_refresh
       description: Refresh token opaco, HttpOnly; o navegador o envia sozinho para /api/team/auth.
   parameters:
+    ContributionID:
+      name: contributionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     UserID:
       name: id
       in: path
@@ -1791,6 +2025,52 @@ components:
         name: { type: string }
         sphere: { $ref: "#/components/schemas/Sphere" }
         created_at: { type: string, format: date-time }
+    RejectReason:
+      type: string
+      enum: [source_not_confirmed, out_of_scope, already_registered, duplicate, incorrect, other]
+      description: Motivo público da rejeição
+    PropositionRef:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+    TeamContribution:
+      type: object
+      required: [id, kind, state, sphere, submitted_at, link, link_host, event_type, event_date, domain, source_name, note, proposition, created_proposition, decided_at, public_reason, internal_note]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/ContributionKind" }
+        state: { type: string, enum: [pending, accepted, rejected] }
+        sphere: { $ref: "#/components/schemas/Sphere" }
+        submitted_at: { type: string, format: date-time }
+        link: { type: string, description: "Indicação: link da Proposição; Atualização: fonte; Pedido: evidência" }
+        link_host: { type: string, description: Domínio do link, para mostrar em destaque }
+        event_type:
+          oneOf:
+            - $ref: "#/components/schemas/ProgressEventType"
+            - type: "null"
+        event_date: { type: [string, "null"], format: date }
+        domain: { type: [string, "null"], description: Domínio pedido como Fonte oficial }
+        source_name: { type: [string, "null"] }
+        note: { type: string, description: "Texto do Leitor: mostrar como texto puro" }
+        proposition:
+          description: A Proposição da Atualização de tramitação
+          oneOf:
+            - $ref: "#/components/schemas/PropositionRef"
+            - type: "null"
+        created_proposition:
+          description: A Proposição criada a partir da Indicação
+          oneOf:
+            - $ref: "#/components/schemas/PropositionRef"
+            - type: "null"
+        decided_at: { type: [string, "null"], format: date-time }
+        public_reason:
+          oneOf:
+            - $ref: "#/components/schemas/RejectReason"
+            - type: "null"
+        internal_note: { type: string }
     Version:
       type: object
       required: [version, commit, changelog, build_time]
@@ -1964,7 +2244,7 @@ components:
         name: { type: string }
     TimelineEntry:
       type: object
-      required: [chamber, at, body, description, situation, dispatch]
+      required: [chamber, at, body, description, situation, dispatch, manual, source_url]
       properties:
         chamber: { $ref: "#/components/schemas/Chamber" }
         at: { type: string, format: date-time }
@@ -1972,6 +2252,12 @@ components:
         description: { type: string }
         situation: { type: string }
         dispatch: { type: string }
+        manual: { type: boolean, description: "Evento de uma Atualização de tramitação aceita pela equipe, não da fonte oficial" }
+        source_url: { type: string, description: "Link de fonte do evento manual (vazio nos da fonte oficial)" }
+        contribution_id:
+          type: string
+          format: uuid
+          description: Só na resposta da equipe, nos eventos manuais (para apagá-los)
     TeamProposition:
       type: object
       required: [id, slug, name, kind, number, year, sphere, origin_chamber, official_summary, presented_at, official_text_url, authors, status, superseded, attached_to, review_state, links, created_at, updated_at]
@@ -2497,20 +2783,26 @@ components:
         review_badge: { type: integer, enum: [1, 2] }
     QueueItem:
       type: object
-      required: [proposition_id, name, slug, sphere, reason, version, since, claim, missing]
+      required: [proposition_id, name, slug, sphere, reason, version, since, claim, missing, contribution]
       properties:
-        proposition_id: { type: string, format: uuid }
-        name: { type: string }
+        proposition_id:
+          description: null numa Contribuição que não é de uma Proposição (Indicação, Pedido de fonte oficial)
+          type: [string, "null"]
+          format: uuid
+        name: { type: string, description: "Nome da Proposição; na Indicação e no Pedido, o domínio" }
         slug: { type: string }
         sphere: { $ref: "#/components/schemas/Sphere" }
-        reason: { type: string, enum: [review, second_review, minor_fix_check, erratum] }
+        reason: { type: string, enum: [review, second_review, minor_fix_check, erratum, contribution] }
         version:
-          type: object
-          required: [id, seq, label]
-          properties:
-            id: { type: string, format: uuid }
-            seq: { type: integer }
-            label: { type: string }
+          description: null nos itens de Contribuição
+          oneOf:
+            - type: object
+              required: [id, seq, label]
+              properties:
+                id: { type: string, format: uuid }
+                seq: { type: integer }
+                label: { type: string }
+            - type: "null"
         since: { type: string, format: date-time, description: Desde quando está na Fila }
         claim:
           oneOf:
@@ -2520,3 +2812,13 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Blocker" }
           description: O que falta no conteúdo para aprovar (itens de revisão)
+        contribution:
+          description: Só nos itens de Contribuição
+          oneOf:
+            - type: object
+              required: [id, kind, subject]
+              properties:
+                id: { type: string, format: uuid }
+                kind: { $ref: "#/components/schemas/ContributionKind" }
+                subject: { type: string, description: O domínio pedido ou o host do link }
+            - type: "null"

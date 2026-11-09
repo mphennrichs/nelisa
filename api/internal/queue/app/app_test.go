@@ -197,8 +197,15 @@ func TestListQueueOrderFilterAndSecondReview(t *testing.T) {
 	}
 	e.w.PutClaim(domain.Claim{PropositionID: "fed-old", UserID: "ana", ClaimedAt: t0, LastActivityAt: t0})
 	e.w.PutClaim(domain.Claim{PropositionID: "fed-new", UserID: "ex", ClaimedAt: t0, LastActivityAt: t0})
+	// Contribuições pendentes entram na mesma ordem, sem Posse: a
+	// Atualização herda a Esfera (e o nome) da Proposição.
+	e.w.Described["fed-old"] = e.w.InReview[2]
+	e.w.Contributions = []app.PendingContribution{
+		{ID: "c-upd", Kind: "progress_update", Sphere: domain.SphereFederal, PropositionID: "fed-old", Subject: "g1.globo.com", SubmittedAt: t0.Add(-5 * time.Hour)},
+		{ID: "c-ind", Kind: "indication", Sphere: domain.SphereMunicipal, Subject: "www.cmsp.example.org", SubmittedAt: t0.Add(-900 * time.Hour)},
+	}
 
-	list := app.NewListQueue(e.w.Props(), e.w.Reviews(), e.w.Claims(), e.w.Directory(), e.clk)
+	list := app.NewListQueue(e.w.Props(), e.w.Reviews(), e.w.Contribs(), e.w.Claims(), e.w.Directory(), e.clk)
 	items, err := list.Execute(ana, app.ListQueueInput{})
 	if err != nil {
 		t.Fatal(err)
@@ -207,7 +214,7 @@ func TestListQueueOrderFilterAndSecondReview(t *testing.T) {
 	for _, it := range items {
 		ids = append(ids, it.PropositionID+"/"+string(it.Reason))
 	}
-	want := []string{"fed-old/review", "fed-new/review", "ready/second_review", "mun/review"}
+	want := []string{"fed-old/review", "fed-old/contribution", "fed-new/review", "ready/second_review", "/contribution", "mun/review"}
 	if len(ids) != len(want) {
 		t.Fatalf("items = %v", ids)
 	}
@@ -219,14 +226,20 @@ func TestListQueueOrderFilterAndSecondReview(t *testing.T) {
 	if items[0].Claim == nil || items[0].Claim.HolderName != "Ana" {
 		t.Errorf("claim on item: %+v", items[0].Claim)
 	}
-	if items[1].Claim != nil || len(items[1].Missing) != 1 {
-		t.Errorf("inactive holder must look free; missing listed: %+v", items[1])
+	if items[2].Claim != nil || len(items[2].Missing) != 1 {
+		t.Errorf("inactive holder must look free; missing listed: %+v", items[2])
 	}
-	if !items[2].Since.Equal(t0.Add(-2*time.Hour)) || items[2].Version.ID != "v-ready" {
-		t.Errorf("second review item: %+v", items[2])
+	if !items[3].Since.Equal(t0.Add(-2*time.Hour)) || items[3].Version.ID != "v-ready" {
+		t.Errorf("second review item: %+v", items[3])
+	}
+	if c := items[1]; c.Claim != nil || c.Contribution == nil || c.Contribution.ID != "c-upd" || c.Name != "PEC 3/2026" {
+		t.Errorf("contribution item: %+v", c)
+	}
+	if c := items[4]; c.Contribution == nil || c.Name != "www.cmsp.example.org" || c.Contribution.Kind != "indication" {
+		t.Errorf("indication item: %+v", c)
 	}
 	items, _ = list.Execute(ana, app.ListQueueInput{Sphere: "municipal"})
-	if len(items) != 1 || items[0].PropositionID != "mun" {
+	if len(items) != 2 || items[0].PropositionID != "" || items[1].PropositionID != "mun" {
 		t.Errorf("filter: %+v", items)
 	}
 	if _, err := list.Execute(ana, app.ListQueueInput{Sphere: "galactica"}); !errors.Is(err, domain.ErrInvalidSphere) {
