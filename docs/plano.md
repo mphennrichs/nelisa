@@ -117,6 +117,18 @@ Depois da v1 (ainda sem desenho):
 - [ ] Facilitar o compartilhamento (botões de compartilhar, imagem de
       story/preview via `next/og`) (#32)
 
+Para discutir (registrados em 2026-11-10, sem decisão nem desenho):
+
+- [ ] Analisar a qualidade de Editores e Revisores a partir de aprovações,
+      rejeições e correções dos textos.
+- [ ] A IA sempre analisar o resultado da revisão humana para melhorar a si
+      mesma. Esbarra no ADR 0003 (IA só rascunha, humano revisa), a ver.
+- [ ] Buscar abaixo-assinados sobre a Proposição em discussão e vinculá-los à
+      página dela.
+- [ ] Mostrar o indicativo de voto de cada deputado.
+- [ ] Mandar e-mail direto para o deputado, com sugestão de texto escrita pelo
+      Editor.
+
 ## Decisões do grill
 
 - 2026-11-07 — marco final = beta público no fogolab (opção A); AWS depois.
