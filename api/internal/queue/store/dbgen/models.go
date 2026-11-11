@@ -45,6 +45,23 @@ type ContributionOfficialSource struct {
 	CreatedAt time.Time
 }
 
+type IngestRadarItem struct {
+	Chamber           string
+	ExternalID        string
+	Kind              string
+	Number            int32
+	Year              int32
+	Summary           string
+	SourceUrl         string
+	AgendaAt          *time.Time
+	PresentedAt       *time.Time
+	FirstSeenAt       time.Time
+	LastSeenAt        time.Time
+	DismissedAt       *time.Time
+	DismissedBy       *string
+	DismissedAgendaAt *time.Time
+}
+
 type ProgressEntry struct {
 	ID            int64
 	PropositionID string

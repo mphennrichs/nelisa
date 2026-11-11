@@ -20,6 +20,9 @@ import (
 type UseCases struct {
 	SearchSources *app.SearchSources
 	Import        *app.Import
+	ListRadar     *app.ListRadar
+	DismissRadar  *app.DismissRadarItem
+	RequestRadar  *app.RequestRadarScan
 }
 
 // Handlers são os handlers HTTP do ingest.
@@ -38,7 +41,63 @@ func (h *Handlers) RegisterTeam(r chi.Router) {
 		r.Use(auth.RequireRole(auth.RoleEditor))
 		r.Get("/sources/search", h.search)
 		r.Post("/propositions/import", h.importProposition)
+		r.Get("/radar", h.radar)
+		r.Post("/radar/scan", h.requestRadar)
+		r.Post("/radar/{chamber}/{externalId}/dismiss", h.dismissRadar)
 	})
+}
+
+type radarItemDTO struct {
+	Chamber     string  `json:"chamber"`
+	ExternalID  string  `json:"external_id"`
+	Name        string  `json:"name"`
+	Summary     string  `json:"summary"`
+	SourceURL   string  `json:"source_url"`
+	AgendaAt    *string `json:"agenda_at"`
+	PresentedAt *string `json:"presented_at"`
+}
+
+func tsPtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	s := t.UTC().Format(time.RFC3339)
+	return &s
+}
+
+func (h *Handlers) radar(w http.ResponseWriter, r *http.Request) {
+	v, err := h.uc.ListRadar.Execute(r.Context())
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	items := make([]radarItemDTO, 0, len(v.Items))
+	for _, it := range v.Items {
+		items = append(items, radarItemDTO{
+			Chamber: string(it.Chamber), ExternalID: it.ExternalID,
+			Name:    it.Kind + " " + strconv.Itoa(it.Number) + "/" + strconv.Itoa(it.Year),
+			Summary: it.Summary, SourceURL: it.SourceURL, AgendaAt: tsPtr(it.AgendaAt), PresentedAt: tsPtr(it.PresentedAt),
+		})
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": items, "last_scan_at": tsPtr(v.LastSeen)})
+}
+
+func (h *Handlers) requestRadar(w http.ResponseWriter, r *http.Request) {
+	if err := h.uc.RequestRadar.Execute(r.Context()); err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (h *Handlers) dismissRadar(w http.ResponseWriter, r *http.Request) {
+	err := h.uc.DismissRadar.Execute(r.Context(), app.ChamberCode(chi.URLParam(r, "chamber")), chi.URLParam(r, "externalId"))
+	if err != nil {
+		writeErr(w, r, h.logger, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type hitDTO struct {
@@ -169,6 +228,7 @@ func errMappings() []errMapping {
 		{app.ErrPropositionExists, http.StatusConflict, "proposition_exists", "Já existe uma Proposição com esse nome, ligada a outro registro."},
 		{app.ErrLinkTaken, http.StatusConflict, "link_taken", "Este registro já está vinculado a outra Proposição."},
 		{app.ErrNotFound, http.StatusNotFound, "source_record_not_found", "A Casa não tem esse registro."},
+		{app.ErrRadarItemNotFound, http.StatusNotFound, "radar_item_not_found", "Item do Radar não encontrado."},
 		{app.ErrUnavailable, http.StatusServiceUnavailable, "source_unavailable", "A fonte oficial não respondeu. Nada foi gravado; tente de novo em alguns minutos."},
 	}
 }

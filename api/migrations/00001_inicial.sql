@@ -12,6 +12,7 @@ CREATE SCHEMA IF NOT EXISTS progress;
 CREATE SCHEMA IF NOT EXISTS review;
 CREATE SCHEMA IF NOT EXISTS queue;
 CREATE SCHEMA IF NOT EXISTS contribution;
+CREATE SCHEMA IF NOT EXISTS ingest;
 -- Tabelas da fila de jobs (River). Quem as cria são as migrations do
 -- próprio River, aplicadas pelo modo migrate logo depois desta
 -- (platform/migrate); aqui só nasce o schema.
@@ -420,7 +421,35 @@ CREATE TABLE contribution.contributions (
 );
 CREATE INDEX contributions_pending_idx ON contribution.contributions (submitted_at) WHERE state = 'pending';
 
+-- ingest: o Radar (#45). Proposições em pauta no Plenário ou recém-
+-- apresentadas nas Casas, ainda não importadas. Uma linha por registro na
+-- Casa; a equipe importa (fluxo de Importação) ou dispensa.
+CREATE TABLE ingest.radar_items (
+    chamber             text NOT NULL CHECK (chamber IN ('camara', 'senado')),
+    external_id         text NOT NULL CHECK (external_id ~ '^[0-9]{1,15}$'),
+    kind                text NOT NULL,
+    number              integer NOT NULL CHECK (number > 0),
+    year                integer NOT NULL,
+    summary             text NOT NULL DEFAULT '',
+    source_url          text NOT NULL DEFAULT '',
+    -- Sessão do Plenário em cuja pauta apareceu por último (null se só
+    -- apresentada).
+    agenda_at           timestamptz,
+    presented_at        timestamptz,
+    first_seen_at       timestamptz NOT NULL,
+    last_seen_at        timestamptz NOT NULL,
+    -- Dispensada: some da lista até entrar numa pauta posterior a
+    -- dismissed_agenda_at.
+    dismissed_at        timestamptz,
+    dismissed_by        uuid,
+    dismissed_agenda_at timestamptz,
+    PRIMARY KEY (chamber, external_id),
+    CHECK (agenda_at IS NOT NULL OR presented_at IS NOT NULL),
+    CHECK ((dismissed_at IS NULL) = (dismissed_by IS NULL))
+);
+
 -- +goose Down
+DROP SCHEMA IF EXISTS ingest CASCADE;
 DROP SCHEMA IF EXISTS contribution CASCADE;
 DROP SCHEMA IF EXISTS river CASCADE;
 DROP SCHEMA IF EXISTS queue CASCADE;

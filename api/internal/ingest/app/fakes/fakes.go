@@ -33,6 +33,29 @@ type Source struct {
 	SearchErr   error
 	// Calls conta as chamadas por método.
 	Calls map[string]int
+
+	// AgendaHits e PresentedHits são o que o Radar acha; RadarErr faz as
+	// duas chamadas falharem.
+	AgendaHits    []app.RadarHit
+	PresentedHits []app.RadarHit
+	RadarErr      error
+}
+
+func (s *Source) Agenda(context.Context, time.Time, time.Time) ([]app.RadarHit, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Calls["Agenda"]++
+	return slices.Clone(s.AgendaHits), s.RadarErr
+}
+
+func (s *Source) Presented(context.Context, time.Time, time.Time) ([]app.RadarHit, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Calls["Presented"]++
+	if s.RadarErr != nil {
+		return nil, s.RadarErr
+	}
+	return slices.Clone(s.PresentedHits), nil
 }
 
 func NewSource(c app.ChamberCode) *Source {
@@ -367,3 +390,114 @@ func Progress1(key string, at time.Time, desc string) app.SourceProgress {
 
 // ErrBoom é um erro qualquer para simular falha de infraestrutura.
 var ErrBoom = errors.New("fakes: falha simulada")
+
+// --- Radar ---
+
+type radarKey struct {
+	chamber app.ChamberCode
+	id      string
+}
+
+// Radar implementa app.RadarRepo em memória, com as mesmas regras do
+// banco (pauta mais recente fica; dispensado volta com pauta posterior).
+type Radar struct {
+	mu        sync.Mutex
+	items     map[radarKey]app.RadarItem
+	dismissAg map[radarKey]*time.Time
+	lastSeen  map[radarKey]time.Time
+}
+
+func NewRadar() *Radar {
+	return &Radar{items: map[radarKey]app.RadarItem{}, dismissAg: map[radarKey]*time.Time{}, lastSeen: map[radarKey]time.Time{}}
+}
+
+func (r *Radar) Upsert(_ context.Context, hits []app.RadarHit, now time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, h := range hits {
+		k := radarKey{h.Chamber, h.ExternalID}
+		it, ok := r.items[k]
+		if !ok {
+			it = app.RadarItem{RadarHit: h, FirstSeenAt: now}
+		} else {
+			if h.AgendaAt != nil && (it.AgendaAt == nil || h.AgendaAt.After(*it.AgendaAt)) {
+				it.AgendaAt = h.AgendaAt
+			}
+			if it.PresentedAt == nil {
+				it.PresentedAt = h.PresentedAt
+			}
+		}
+		r.items[k] = it
+		r.lastSeen[k] = now
+	}
+	return nil
+}
+
+func (r *Radar) Visible(_ context.Context, agendaSince, presentedSince time.Time) ([]app.RadarItem, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []app.RadarItem
+	for k, it := range r.items {
+		recent := (it.AgendaAt != nil && !it.AgendaAt.Before(agendaSince)) || (it.PresentedAt != nil && !it.PresentedAt.Before(presentedSince))
+		if !recent {
+			continue
+		}
+		if it.DismissedAt != nil {
+			d := r.dismissAg[k]
+			if it.AgendaAt == nil || (d != nil && !it.AgendaAt.After(*d)) {
+				continue
+			}
+		}
+		out = append(out, it)
+	}
+	return out, nil
+}
+
+func (r *Radar) Dismiss(_ context.Context, c app.ChamberCode, id, _ string, now time.Time) (app.RadarItem, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := radarKey{c, id}
+	it, ok := r.items[k]
+	if !ok {
+		return app.RadarItem{}, app.ErrRadarItemNotFound
+	}
+	it.DismissedAt = &now
+	r.items[k] = it
+	r.dismissAg[k] = it.AgendaAt
+	return it, nil
+}
+
+func (r *Radar) Purge(_ context.Context, before time.Time) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for k, t := range r.lastSeen {
+		if t.Before(before) {
+			delete(r.items, k)
+			delete(r.lastSeen, k)
+			n++
+		}
+	}
+	return n, nil
+}
+
+// Len é quantos itens o Radar guarda.
+func (r *Radar) Len() int { r.mu.Lock(); defer r.mu.Unlock(); return len(r.items) }
+
+func (r *Radar) LastSeen(context.Context) (*time.Time, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var last *time.Time
+	for _, t := range r.lastSeen {
+		if last == nil || t.After(*last) {
+			t := t
+			last = &t
+		}
+	}
+	return last, nil
+}
+
+// RadarScheduler conta os pedidos de rodada.
+type RadarScheduler struct{ Calls int }
+
+func (s *RadarScheduler) ScheduleRadarScan(context.Context) error { s.Calls++; return nil }

@@ -199,6 +199,22 @@ antes, porque o `CONTEXT.md` veda ranking e destaque que sugira opinião.
 Isso serviria para mostrar "entra em votação esta semana" nas Proposições
 acompanhadas.
 
+**Em uso pelo Radar (#45), só no Plenário:**
+- **Câmara:** `/eventos?idOrgao=180` (o Plenário) e a pauta de cada sessão.
+  O PL também aparece como `proposicaoRelacionada_` de um parecer.
+- **Senado:** `/plenario/agenda/dia/{AAAAMMDD}.json`. A pauta traz o
+  `CodigoMateria` legado, e `/processo?codigoMateria=` dá o id do processo.
+- **Apresentadas:** a Câmara usa `dataApresentacaoInicio/Fim` em
+  `/proposicoes`; o Senado, `dataInicioApresentacao/dataFimApresentacao` em
+  `/processo`, uma consulta por Tipo.
+- **Volume medido em 2026-11-10/11:**
+  - Plenário: 13 PL/PEC/PLP em 3 dias na Câmara e cerca de 10 no Senado.
+  - Apresentadas por semana: 63 na Câmara e cerca de 15 no Senado.
+  - Comissões da Câmara: cerca de 300 em 3 dias. Por isso ficam fora, e a
+    pauta das comissões do Senado também, porque só sai em PDF.
+- O Senado devolve objeto em vez de lista quando há um item só
+  (`httpsrc.OneOrMany`).
+
 ### Parlamentares, órgãos e normas
 
 - **Câmara:** `/deputados` (com despesas, discursos e frentes), `/orgaos`

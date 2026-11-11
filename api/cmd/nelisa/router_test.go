@@ -44,6 +44,7 @@ type noScheduler struct{}
 
 func (noScheduler) ScheduleSync(context.Context, string) error    { return nil }
 func (noScheduler) ScheduleSyncs(context.Context, []string) error { return nil }
+func (noScheduler) ScheduleRadarScan(context.Context) error       { return nil }
 func (noScheduler) ScheduleStructuring(context.Context, string) error {
 	return nil
 }

@@ -737,6 +737,153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/team/radar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Radar de PL, PEC e PLP em pauta ou recém-apresentadas (Editor ou acima)
+         * @description Uma rodada por dia (6h de Brasília) lê nas duas Casas a pauta do
+         *     Plenário de hoje até 7 dias à frente e as apresentadas nos últimos 3
+         *     dias. Aqui só aparece o que ainda não está no Nelisa (nem como
+         *     Vínculo sugerido) e não foi dispensado: primeiro a pauta, da sessão
+         *     mais próxima; depois as apresentadas, das mais novas. Importar usa
+         *     `POST /api/team/propositions/import` com `chamber` e `external_id`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Itens do Radar */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["RadarItem"][];
+                            /**
+                             * Format: date-time
+                             * @description Quando uma rodada achou algo pela última vez (null se nunca)
+                             */
+                            last_scan_at: string | null;
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/radar/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pede uma rodada do Radar agora (Editor ou acima)
+         * @description Enfileira a rodada no worker; uma rodada já na fila não ganha outra.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Rodada enfileirada */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/team/radar/{chamber}/{externalId}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chamber: components["schemas"]["Chamber"];
+                externalId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dispensa um item do Radar (Editor ou acima)
+         * @description Some da lista até entrar numa pauta do Plenário posterior à que tinha
+         *     ao ser dispensado. Auditado (`radar.dismiss`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chamber: components["schemas"]["Chamber"];
+                    externalId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dispensado */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description `radar_item_not_found` */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/team/propositions/import": {
         parameters: {
             query?: never;
@@ -3812,6 +3959,23 @@ export interface components {
             sphere: components["schemas"]["Sphere"];
             /** Format: date-time */
             created_at: string;
+        };
+        RadarItem: {
+            chamber: components["schemas"]["Chamber"];
+            external_id: string;
+            /** @example PL 10/2024 */
+            name: string;
+            /** @description Ementa oficial */
+            summary: string;
+            /** @description Página da Proposição na Casa */
+            source_url: string;
+            /**
+             * Format: date-time
+             * @description Sessão do Plenário em cuja pauta está (null se só apresentada)
+             */
+            agenda_at: string | null;
+            /** Format: date-time */
+            presented_at: string | null;
         };
         /**
          * @description Motivo público da rejeição

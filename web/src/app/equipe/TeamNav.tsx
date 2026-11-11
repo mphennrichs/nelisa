@@ -12,6 +12,7 @@ export default function TeamNav() {
   const links = [
     { href: "/equipe/fila", label: "Fila de revisão" },
     { href: "/equipe/proposicoes", label: "Proposições" },
+    { href: "/equipe/radar", label: "Radar" },
     { href: "/equipe/fontes-oficiais", label: "Fontes oficiais" },
     ...(admin
       ? [

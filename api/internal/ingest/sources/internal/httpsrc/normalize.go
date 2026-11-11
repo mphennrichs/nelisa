@@ -1,6 +1,8 @@
 package httpsrc
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -118,6 +120,30 @@ var dateLayouts = []string{
 // sem, assume o horário de Brasília. Rejeita datas fora de
 // [MinYear, agora + 1 dia].
 func Date(field, s string) (time.Time, error) {
+	t, err := parseDate(field, s)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if t.Year() < MinYear || t.After(time.Now().Add(24*time.Hour)) {
+		return time.Time{}, Invalid("%s %q fora da faixa plausível", field, s)
+	}
+	return t, nil
+}
+
+// ScheduleDate é Date para a agenda: aceita data futura, até um ano à
+// frente (sessões marcadas).
+func ScheduleDate(field, s string) (time.Time, error) {
+	t, err := parseDate(field, s)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if t.Year() < MinYear || t.After(time.Now().AddDate(1, 0, 0)) {
+		return time.Time{}, Invalid("%s %q fora da faixa plausível", field, s)
+	}
+	return t, nil
+}
+
+func parseDate(field, s string) (time.Time, error) {
 	s = strings.TrimSpace(s)
 	t, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
@@ -129,9 +155,6 @@ func Date(field, s string) (time.Time, error) {
 	}
 	if err != nil {
 		return time.Time{}, Invalid("%s %q não é uma data", field, s)
-	}
-	if t.Year() < MinYear || t.After(time.Now().Add(24*time.Hour)) {
-		return time.Time{}, Invalid("%s %q fora da faixa plausível", field, s)
 	}
 	return t, nil
 }
@@ -168,5 +191,32 @@ func (f *FlexInt) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("inteiro inválido %s", b)
 	}
 	*f = FlexInt(n)
+	return nil
+}
+
+// OneOrMany aceita em JSON um objeto ou uma lista de objetos: o Senado
+// devolve objeto quando a lista tem um item só. null vira lista vazia.
+type OneOrMany[T any] []T
+
+// UnmarshalJSON implementa json.Unmarshaler.
+func (o *OneOrMany[T]) UnmarshalJSON(b []byte) error {
+	b = bytes.TrimSpace(b)
+	switch {
+	case len(b) == 0 || string(b) == "null":
+		*o = nil
+		return nil
+	case b[0] == '[':
+		var list []T
+		if err := json.Unmarshal(b, &list); err != nil {
+			return err
+		}
+		*o = list
+		return nil
+	}
+	var one T
+	if err := json.Unmarshal(b, &one); err != nil {
+		return err
+	}
+	*o = OneOrMany[T]{one}
 	return nil
 }

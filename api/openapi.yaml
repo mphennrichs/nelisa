@@ -358,6 +358,69 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/radar:
+    get:
+      tags: [fontes]
+      summary: Radar de PL, PEC e PLP em pauta ou recém-apresentadas (Editor ou acima)
+      description: |
+        Uma rodada por dia (6h de Brasília) lê nas duas Casas a pauta do
+        Plenário de hoje até 7 dias à frente e as apresentadas nos últimos 3
+        dias. Aqui só aparece o que ainda não está no Nelisa (nem como
+        Vínculo sugerido) e não foi dispensado: primeiro a pauta, da sessão
+        mais próxima; depois as apresentadas, das mais novas. Importar usa
+        `POST /api/team/propositions/import` com `chamber` e `external_id`.
+      responses:
+        "200":
+          description: Itens do Radar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, last_scan_at]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/RadarItem" }
+                  last_scan_at:
+                    description: Quando uma rodada achou algo pela última vez (null se nunca)
+                    type: [string, "null"]
+                    format: date-time
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/radar/scan:
+    post:
+      tags: [fontes]
+      summary: Pede uma rodada do Radar agora (Editor ou acima)
+      description: Enfileira a rodada no worker; uma rodada já na fila não ganha outra.
+      responses:
+        "202": { description: Rodada enfileirada }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/team/radar/{chamber}/{externalId}/dismiss:
+    parameters:
+      - name: chamber
+        in: path
+        required: true
+        schema: { $ref: "#/components/schemas/Chamber" }
+      - name: externalId
+        in: path
+        required: true
+        schema: { type: string, pattern: "^[0-9]{1,15}$" }
+    post:
+      tags: [fontes]
+      summary: Dispensa um item do Radar (Editor ou acima)
+      description: |
+        Some da lista até entrar numa pauta do Plenário posterior à que tinha
+        ao ser dispensado. Auditado (`radar.dismiss`).
+      responses:
+        "204": { description: Dispensado }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: "`radar_item_not_found`"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/team/propositions/import:
     post:
       tags: [fontes]
@@ -2025,6 +2088,22 @@ components:
         name: { type: string }
         sphere: { $ref: "#/components/schemas/Sphere" }
         created_at: { type: string, format: date-time }
+    RadarItem:
+      type: object
+      required: [chamber, external_id, name, summary, source_url, agenda_at, presented_at]
+      properties:
+        chamber: { $ref: "#/components/schemas/Chamber" }
+        external_id: { type: string }
+        name: { type: string, example: PL 10/2024 }
+        summary: { type: string, description: Ementa oficial }
+        source_url: { type: string, description: Página da Proposição na Casa }
+        agenda_at:
+          description: Sessão do Plenário em cuja pauta está (null se só apresentada)
+          type: [string, "null"]
+          format: date-time
+        presented_at:
+          type: [string, "null"]
+          format: date-time
     RejectReason:
       type: string
       enum: [source_not_confirmed, out_of_scope, already_registered, duplicate, incorrect, other]

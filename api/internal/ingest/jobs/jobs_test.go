@@ -133,8 +133,9 @@ func TestSchedulerEnqueuesInsideTheTransaction(t *testing.T) {
 	})
 }
 
-func TestPeriodicJobIsConfigured(t *testing.T) {
-	if p := jobs.PeriodicJobs(6 * time.Hour); len(p) != 1 {
+func TestPeriodicJobsAreConfigured(t *testing.T) {
+	// Sincronização a cada intervalo e Radar diário.
+	if p := jobs.PeriodicJobs(6 * time.Hour); len(p) != 2 {
 		t.Fatalf("periodic jobs = %d", len(p))
 	}
 }

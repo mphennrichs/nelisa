@@ -176,8 +176,8 @@ func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, text propapp
 	ports := postgresContentPorts(pool, clk, sched, sources)
 	uc := newContentUseCases(ports, clk)
 	workers := river.NewWorkers()
-	syncLink, syncAll := newIngestWorkers(uc, logger)
-	if err := ingestjobs.Register(workers, syncLink, syncAll); err != nil {
+	syncLink, syncAll, radar := newIngestWorkers(uc, logger)
+	if err := ingestjobs.Register(workers, syncLink, syncAll, radar); err != nil {
 		return nil, fmt.Errorf("registrando workers: %w", err)
 	}
 	run := propapp.NewRunStructuring(ports.versions, ports.structurings, text, ports.tx, clk)
