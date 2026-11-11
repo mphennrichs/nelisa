@@ -183,6 +183,13 @@ Tramitação preenchidos. Nunca é em massa. Indicações de links dessas fontes
 viram Importação.
 _Evitar_: Crawler, raspagem
 
+**Radar**:
+Lista diária, só da equipe, de PL, PEC e PLP que estão na pauta do Plenário de uma
+Casa ou acabaram de ser apresentadas, e que ainda não estão no Nelisa. O Radar não
+importa nada: o Editor escolhe o que vira Importação e dispensa o resto. Uma
+Proposição dispensada volta ao Radar se entrar numa nova pauta.
+_Evitar_: Crawler, importação automática
+
 **Vínculo de fonte**:
 A ligação entre uma Proposição e o registro dela numa Casa com API (Casa + ID
 externo). Uma Proposição tem um Vínculo de fonte por Casa por onde passou. O

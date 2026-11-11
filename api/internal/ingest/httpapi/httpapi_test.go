@@ -22,6 +22,9 @@ import (
 type server struct {
 	w      *fakes.World
 	camara *fakes.Source
+	radar  *fakes.Radar
+	sched  *fakes.RadarScheduler
+	scan   *app.ScanRadar
 	h      http.Handler
 }
 
@@ -32,9 +35,14 @@ func newServer() *server {
 		PresentedAt: time.Date(2019, 11, 26, 0, 0, 0, 0, time.UTC)},
 		fakes.Progress1("1-100", time.Date(2019, 11, 26, 0, 0, 0, 0, time.UTC), "Apresentação"))
 	sources := app.NewSources(camara, senado)
+	radar, sched := fakes.NewRadar(), &fakes.RadarScheduler{}
+	clk := fixedClock{time.Date(2026, 11, 11, 9, 0, 0, 0, time.UTC)}
 	uc := httpapi.UseCases{
 		SearchSources: app.NewSearchSources(sources, w.Catalog()),
 		Import:        app.NewImport(sources, w.Catalog(), w.Progress(), w.Tx(), w.Audit()),
+		ListRadar:     app.NewListRadar(radar, w.Catalog(), clk),
+		DismissRadar:  app.NewDismissRadarItem(radar, w.Tx(), w.Audit(), clk),
+		RequestRadar:  app.NewRequestRadarScan(sched),
 	}
 	h := httpapi.New(uc, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	r := chi.NewRouter()
@@ -50,7 +58,7 @@ func newServer() *server {
 		})
 		h.RegisterTeam(r)
 	})
-	return &server{w: w, camara: camara, h: r}
+	return &server{w: w, camara: camara, radar: radar, sched: sched, scan: app.NewScanRadar(sources, radar, clk), h: r}
 }
 
 func (s *server) do(method, path, body, actor string) *httptest.ResponseRecorder {
@@ -129,5 +137,51 @@ func TestSourceDownIs503WithoutDetails(t *testing.T) {
 	w := s.do("POST", "/api/team/propositions/import", `{"chamber":"camara","external_id":"2192459"}`, ed)
 	if w.Code != 503 || code(t, w) != "source_unavailable" || strings.Contains(w.Body.String(), "HTTP 503") {
 		t.Errorf("%d %s", w.Code, w.Body)
+	}
+}
+
+type fixedClock struct{ t time.Time }
+
+func (c fixedClock) Now() time.Time { return c.t }
+
+func TestRadarRoutes(t *testing.T) {
+	s := newServer()
+	agenda := time.Date(2026, 11, 12, 17, 0, 0, 0, time.UTC)
+	s.camara.AgendaHits = []app.RadarHit{{Chamber: app.ChamberCamara, ExternalID: "77", Kind: "PL", Number: 10, Year: 2024,
+		Summary: "Dispõe", SourceURL: "https://www.camara.leg.br/x", AgendaAt: &agenda}}
+	if _, err := s.scan.Execute(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if w := s.do("GET", "/api/team/radar", "", ""); w.Code != http.StatusUnauthorized {
+		t.Errorf("anônimo: %d", w.Code)
+	}
+	w := s.do("GET", "/api/team/radar", "", "u1:editor")
+	var got struct {
+		Items []struct {
+			Chamber, Name string
+			ExternalID    string  `json:"external_id"`
+			AgendaAt      *string `json:"agenda_at"`
+		}
+		LastScanAt *string `json:"last_scan_at"`
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &got) != nil || len(got.Items) != 1 || got.Items[0].Name != "PL 10/2024" ||
+		got.Items[0].AgendaAt == nil || *got.Items[0].AgendaAt != "2026-11-12T17:00:00Z" || got.LastScanAt == nil {
+		t.Fatalf("radar: %d %s", w.Code, w.Body)
+	}
+	if w := s.do("POST", "/api/team/radar/scan", "", "u1:editor"); w.Code != http.StatusAccepted || s.sched.Calls != 1 {
+		t.Errorf("rodada: %d, %d", w.Code, s.sched.Calls)
+	}
+	if w := s.do("POST", "/api/team/radar/camara/77/dismiss", "", "u1:editor"); w.Code != http.StatusNoContent {
+		t.Errorf("dispensar: %d %s", w.Code, w.Body)
+	}
+	if w := s.do("POST", "/api/team/radar/camara/77/dismiss", "", "u1:reader"); w.Code != http.StatusForbidden {
+		t.Errorf("leitor: %d", w.Code)
+	}
+	if w := s.do("POST", "/api/team/radar/senado/1/dismiss", "", "u1:editor"); w.Code != http.StatusNotFound {
+		t.Errorf("inexistente: %d", w.Code)
+	}
+	w = s.do("GET", "/api/team/radar", "", "u1:editor")
+	if !strings.Contains(w.Body.String(), `"items":[]`) {
+		t.Errorf("depois de dispensar: %s", w.Body)
 	}
 }

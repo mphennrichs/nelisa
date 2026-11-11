@@ -16,6 +16,7 @@ import (
 	ingestapp "github.com/mphennrichs/nelisa/api/internal/ingest/app"
 	ingesthttp "github.com/mphennrichs/nelisa/api/internal/ingest/httpapi"
 	ingestjobs "github.com/mphennrichs/nelisa/api/internal/ingest/jobs"
+	ingeststore "github.com/mphennrichs/nelisa/api/internal/ingest/store"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/db"
 	"github.com/mphennrichs/nelisa/api/internal/platform/jobs"
@@ -52,6 +53,7 @@ type scheduler interface {
 	ScheduleSync(ctx context.Context, linkID string) error
 	ScheduleSyncs(ctx context.Context, linkIDs []string) error
 	ScheduleStructuring(ctx context.Context, versionID string) error
+	ScheduleRadarScan(ctx context.Context) error
 }
 
 // riverSchedulers junta os agendadores do River dos módulos.
@@ -74,6 +76,10 @@ func (s riverSchedulers) ScheduleSyncs(ctx context.Context, linkIDs []string) er
 
 func (s riverSchedulers) ScheduleStructuring(ctx context.Context, versionID string) error {
 	return s.structuring.ScheduleStructuring(ctx, versionID)
+}
+
+func (s riverSchedulers) ScheduleRadarScan(ctx context.Context) error {
+	return s.sync.ScheduleRadarScan(ctx)
 }
 
 // recordAudit grava um evento de Auditoria na transação do contexto.
@@ -102,6 +108,8 @@ type contentPorts struct {
 	audit     recordAudit
 	scheduler scheduler
 	sources   ingestapp.Sources
+	// radar: o Radar do ingest (#45).
+	radar ingestapp.RadarRepo
 	// contributions e officialSources: módulo contribution.
 	contributions   contribapp.ContributionRepo
 	officialSources contribapp.OfficialSourceRepo
@@ -127,6 +135,7 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 		scheduler:    sched,
 		sources:      sources,
 
+		radar:           ingeststore.NewRadar(pool),
 		contributions:   contribstore.NewContributions(pool),
 		officialSources: contribstore.NewOfficialSources(pool),
 	}
@@ -134,13 +143,14 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 
 // contentUseCases são os casos de uso montados, para a API e o worker.
 type contentUseCases struct {
-	prop     prophttp.UseCases
-	review   reviewhttp.UseCases
-	queue    queuehttp.UseCases
-	ingest   ingesthttp.UseCases
-	contrib  contribhttp.UseCases
-	syncLink *ingestapp.SyncLink
-	syncAll  *ingestapp.SyncAll
+	prop      prophttp.UseCases
+	review    reviewhttp.UseCases
+	queue     queuehttp.UseCases
+	ingest    ingesthttp.UseCases
+	contrib   contribhttp.UseCases
+	syncLink  *ingestapp.SyncLink
+	syncAll   *ingestapp.SyncAll
+	scanRadar *ingestapp.ScanRadar
 }
 
 func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
@@ -223,6 +233,9 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 		ingest: ingesthttp.UseCases{
 			SearchSources: ingestapp.NewSearchSources(p.sources, ic),
 			Import:        ingestapp.NewImport(p.sources, ic, pw, p.tx, ia),
+			ListRadar:     ingestapp.NewListRadar(p.radar, ic, clk),
+			DismissRadar:  ingestapp.NewDismissRadarItem(p.radar, p.tx, ia, clk),
+			RequestRadar:  ingestapp.NewRequestRadarScan(p.scheduler),
 		},
 		contrib: contribhttp.UseCases{
 			Submit:               contribapp.NewSubmit(p.contributions, p.officialSources, contribProps{c: catalog}, clk, rand.Reader),
@@ -237,8 +250,9 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			LinkProposition:      contribapp.NewLinkProposition(moderation),
 			DeleteProgressEntry:  contribapp.NewDeleteProgressEntry(moderation),
 		},
-		syncLink: ingestapp.NewSyncLink(p.sources, ic, pw, p.tx),
-		syncAll:  ingestapp.NewSyncAll(ic, p.scheduler),
+		syncLink:  ingestapp.NewSyncLink(p.sources, ic, pw, p.tx),
+		syncAll:   ingestapp.NewSyncAll(ic, p.scheduler),
+		scanRadar: ingestapp.NewScanRadar(p.sources, p.radar, clk),
 	}
 }
 
@@ -260,8 +274,9 @@ func newContentModule(uc contentUseCases, contribOpts contribhttp.Options, logge
 }
 
 // newIngestWorkers monta os workers do River para o modo worker.
-func newIngestWorkers(uc contentUseCases, logger *slog.Logger) (*ingestjobs.SyncLinkWorker, *ingestjobs.SyncAllWorker) {
-	return ingestjobs.NewSyncLinkWorker(uc.syncLink, logger), ingestjobs.NewSyncAllWorker(uc.syncAll, logger)
+func newIngestWorkers(uc contentUseCases, logger *slog.Logger) (*ingestjobs.SyncLinkWorker, *ingestjobs.SyncAllWorker, *ingestjobs.RadarScanWorker) {
+	return ingestjobs.NewSyncLinkWorker(uc.syncLink, logger), ingestjobs.NewSyncAllWorker(uc.syncAll, logger),
+		ingestjobs.NewRadarScanWorker(uc.scanRadar, logger)
 }
 
 // --- Auditoria ---

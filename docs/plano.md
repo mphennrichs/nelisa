@@ -103,6 +103,8 @@ Itens decididos mas ainda não desenvolvidos (o nebula não tem):
       exposta) — mantida de propósito até a fase 0: o site é usado para
       apresentar o projeto (#9)
 
+- [x] Radar (#45): PL/PEC/PLP em pauta no Plenário ou recém-apresentadas,
+      para a equipe importar ou dispensar
 - [ ] Domínio oficial (o usuário decide depois); ao trocar, 301 permanente de
       `nelisa.foguinhodogoias.com` para o novo (#30)
 
@@ -147,3 +149,4 @@ Para discutir (registrados em 2026-11-10, sem decisão nem desenho):
 - 2026-11-09 — fase 3: desenho em [`desenho/fase-3-contribuicoes.md`](desenho/fase-3-contribuicoes.md). Só link (anexo depois da v1); código de acompanhamento guardado como hash; moderação auditada sem quatro olhos; Atualização aceita vira evento manual de Tramitação; anti-abuso no Postgres com IP só como HMAC diário; formulário vai ao ar desligado até o anti-abuso.
 - 2026-11-09 — fase 3, passo 1 (#24) no ar com o formulário desligado (`CONTRIBUTIONS_ENABLED`); próximos: moderação (#25), anti-abuso (#26, #27), e só então liga.
 - 2026-11-09 — fase 3, passo 2 (#25): moderação pela Fila e evento manual de Tramitação; vai ao ar ainda desligado. A 00001 mudou: banco de produção recriado de novo.
+- 2026-11-11 — Radar (#45): uma rodada diária lê a pauta do Plenário e as apresentadas nas duas Casas; a equipe importa ou dispensa. Comissões fora (volume e PDF). A 00001 ganhou o schema `ingest`.

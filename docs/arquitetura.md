@@ -135,6 +135,13 @@ importam o `team`.
 - Sincronização periódica: um job `ingest.sync_all` a cada `SYNC_INTERVAL`
   (padrão 6h, também ao subir o worker) enfileira um `ingest.sync_link` por
   Vínculo de fonte confirmado.
+- Radar (#45): um job `ingest.radar_scan` por dia às 6h de Brasília (não ao
+  subir; a equipe pode pedir uma rodada em `/equipe/radar`). Cada fonte que
+  implementa `ingest/app.RadarSource` lê a pauta do Plenário (hoje até 7
+  dias) e as apresentadas (últimos 3 dias); o resultado vai para
+  `ingest.radar_items`. Uma Casa fora do ar não impede a outra: o que veio é
+  gravado e o job tenta de novo. A lista filtra pelo `Catalog` o que já tem
+  Vínculo de fonte; importar usa a Importação de sempre.
 - Chamadas às APIs oficiais com limite de concorrência por domínio, timeout e
   `User-Agent` identificando o Nelisa.
 - Na v1 não há busca de URL arbitrária (Indicação só checa o domínio).
