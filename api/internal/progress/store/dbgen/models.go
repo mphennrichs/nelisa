@@ -45,6 +45,18 @@ type ContributionOfficialSource struct {
 	CreatedAt time.Time
 }
 
+type ContributionRateHit struct {
+	Subject     []byte
+	Bucket      string
+	WindowStart time.Time
+	Hits        int32
+}
+
+type ContributionRateKey struct {
+	Day time.Time
+	Key []byte
+}
+
 type IngestRadarItem struct {
 	Chamber           string
 	ExternalID        string

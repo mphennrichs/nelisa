@@ -60,7 +60,7 @@ func TestContributionsEndToEnd(t *testing.T) {
 }
 
 // TestContributionModerationEndToEnd: o "pronto quando" da fase 3 sem o
-// Turnstile (passo 3). O Leitor manda uma Atualização de tramitação da PEC
+// Turnstile (#26). O Leitor manda uma Atualização de tramitação da PEC
 // 221/2019; ela aparece na Fila; o Editor aceita com o evento revisado; o
 // Leitor vê "aceita" e o evento aparece na Tramitação pública com o link
 // da fonte. Depois o Editor apaga o evento manual, e rejeita uma Indicação.
@@ -78,6 +78,13 @@ func TestContributionModerationEndToEnd(t *testing.T) {
 		TrackingCode string `json:"tracking_code"`
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &sub)
+
+	// O envio passou pelo rate limit do Postgres: um contador e a chave do
+	// dia, sem o IP em claro em lugar nenhum.
+	var hits int
+	if err := a.pool.QueryRow(t.Context(), `SELECT count(*) FROM contribution.rate_hits WHERE bucket = 'submit'`).Scan(&hits); err != nil || hits != 1 {
+		t.Errorf("contadores de envio = %d, %v", hits, err)
+	}
 
 	// Na Fila, sem Posse e com o nome da Proposição.
 	var q struct {

@@ -1850,6 +1850,10 @@ paths:
     get:
       tags: [contribuições]
       summary: Diz se o formulário de Contribuição está aberto
+      description: |
+        Fecha com `disabled` quando `CONTRIBUTIONS_ENABLED` está desligado e
+        com `paused` quando a Fila chegou ao teto de Contribuições pendentes
+        (`CONTRIBUTION_PENDING_CAP`, padrão 200).
       security: []
       responses:
         "200":
@@ -1864,9 +1868,9 @@ paths:
                 properties:
                   open: { type: boolean }
                   reason:
-                    description: "`disabled` quando o envio está desligado; null se aberto"
+                    description: "`disabled` quando o envio está desligado, `paused` no teto de pendentes; null se aberto"
                     type: [string, "null"]
-                    enum: [disabled, null]
+                    enum: [disabled, paused, null]
   /api/public/contributions:
     post:
       tags: [contribuições]
@@ -1882,7 +1886,9 @@ paths:
 
         O Nelisa nunca abre os links. Nada além do formulário é guardado; o
         código de acompanhamento volta só nesta resposta (o banco guarda o
-        hash). Limite de 5 envios por hora por IP.
+        hash). Limite de envios por hora por IP (`CONTRIBUTION_RATE_PER_HOUR`,
+        padrão 5), contado no Postgres sem guardar o IP; toda tentativa
+        conta, válida ou não. Com a Fila no teto de pendentes, responde 503.
       security: []
       requestBody:
         required: true
@@ -1927,6 +1933,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+        "503":
+          description: "`contributions_paused` (a Fila chegou ao teto de pendentes)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/public/contributions/lookup:
     post:
       tags: [contribuições]

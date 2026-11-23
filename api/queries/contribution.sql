@@ -38,3 +38,22 @@ VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: DeleteOfficialSource :one
 DELETE FROM contribution.official_sources WHERE id = $1 RETURNING *;
+
+-- Rate limit (#27). Devolve a chave do dia, gravando a nova se o dia
+-- ainda não tem uma (o DO UPDATE sem efeito faz o RETURNING devolver a
+-- que já existia).
+-- name: EnsureRateKey :one
+INSERT INTO contribution.rate_keys (day, key) VALUES ($1, $2)
+ON CONFLICT (day) DO UPDATE SET day = EXCLUDED.day
+RETURNING key;
+
+-- name: HitRate :one
+INSERT INTO contribution.rate_hits (subject, bucket, window_start, hits) VALUES ($1, $2, $3, 1)
+ON CONFLICT (subject, bucket, window_start) DO UPDATE SET hits = contribution.rate_hits.hits + 1
+RETURNING hits;
+
+-- name: PurgeRateKeys :execrows
+DELETE FROM contribution.rate_keys WHERE day < $1;
+
+-- name: PurgeRateHits :execrows
+DELETE FROM contribution.rate_hits WHERE window_start < $1;

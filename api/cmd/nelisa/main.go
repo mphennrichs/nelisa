@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 
+	contribjobs "github.com/mphennrichs/nelisa/api/internal/contribution/jobs"
 	ingestapp "github.com/mphennrichs/nelisa/api/internal/ingest/app"
 	ingestjobs "github.com/mphennrichs/nelisa/api/internal/ingest/jobs"
 	"github.com/mphennrichs/nelisa/api/internal/platform/buildinfo"
@@ -102,7 +103,7 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(riverClient))
-	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk), contributionOptions(cfg), logger)
+	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, contributionLimits(cfg)), contributionOptions(cfg), logger)
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger),
@@ -174,7 +175,9 @@ func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, text propapp
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(inserter))
 	ports := postgresContentPorts(pool, clk, sched, sources)
-	uc := newContentUseCases(ports, clk)
+	// O worker não recebe Contribuições: os limites do envio não importam
+	// aqui, só a limpeza do rate limit.
+	uc := newContentUseCases(ports, clk, contribLimits{perHour: config.DefaultContributionRatePerHour, pendingCap: config.DefaultContributionPendingCap})
 	workers := river.NewWorkers()
 	syncLink, syncAll, radar := newIngestWorkers(uc, logger)
 	if err := ingestjobs.Register(workers, syncLink, syncAll, radar); err != nil {
@@ -184,8 +187,11 @@ func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, text propapp
 	if err := propjobs.Register(workers, propjobs.NewStructureVersionWorker(run, logger)); err != nil {
 		return nil, fmt.Errorf("registrando workers: %w", err)
 	}
+	if err := contribjobs.Register(workers, contribjobs.NewPurgeRateLimitsWorker(uc.purgeRateLimits)); err != nil {
+		return nil, fmt.Errorf("registrando workers: %w", err)
+	}
 	return jobs.NewWorkerClient(pool, jobs.WorkerOptions{
-		Workers: workers, PeriodicJobs: ingestjobs.PeriodicJobs(interval), Logger: logger,
+		Workers: workers, PeriodicJobs: append(ingestjobs.PeriodicJobs(interval), contribjobs.PeriodicJobs()...), Logger: logger,
 	})
 }
 

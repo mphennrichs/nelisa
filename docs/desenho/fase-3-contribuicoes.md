@@ -190,6 +190,13 @@ Nada do Leitor além do formulário.
    - O evento manual se apaga na página da Proposição, na equipe.
 3. **Anti-abuso:** Turnstile, IP confiável, rate limit, teto. Deploy e
    ligamos.
+   - Rate limit e teto (#27): feitos. Janela fixa de uma hora (não
+     deslizante); toda tentativa conta, inclusive as inválidas; o envio
+     pausado pelo teto não conta. A consulta (30/h) usa o mesmo contador
+     no Postgres, e o limite em memória (`httprate`) saiu do módulo. A
+     chave do dia vale por dia UTC: na virada, o contador recomeça. A
+     limpeza roda a cada 15 min no worker.
+   - Turnstile (#26): a seguir.
 4. **Beta (#28):** checklist da issue.
 
 ## Decisões (confirmadas em 2026-11-09)

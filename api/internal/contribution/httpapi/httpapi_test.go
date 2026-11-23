@@ -34,13 +34,20 @@ func fakeAuth(next http.Handler) http.Handler {
 }
 
 func newServer(enabled bool) (*fakes.World, http.Handler) {
+	return newServerWithCap(enabled, 200)
+}
+
+func newServerWithCap(enabled bool, pendingCap int) (*fakes.World, http.Handler) {
 	w := fakes.New()
 	w.Public["pec-221-2019"] = app.PublicProposition{ID: "p1", Slug: "pec-221-2019", Sphere: domain.SphereFederal}
 	clk := &clock.Fixed{T: t0}
 	cs, ss, ps := fakes.Contributions{W: w}, fakes.Sources{W: w}, fakes.Props{W: w}
+	limiter := app.NewRateLimiter(fakes.RateCounter{W: w}, clk, rand.Reader)
+	av := app.NewAvailability(cs, pendingCap)
 	h := httpapi.New(httpapi.UseCases{
-		Submit:               app.NewSubmit(cs, ss, ps, clk, rand.Reader),
-		Lookup:               app.NewLookup(cs, ps),
+		Submit:               app.NewSubmit(cs, ss, ps, av, limiter, app.SubmitLimits{PerHour: 5}, clk, rand.Reader),
+		Lookup:               app.NewLookup(cs, ps, limiter, 30),
+		Availability:         av,
 		ListOfficialSources:  app.NewListOfficialSources(ss),
 		CreateOfficialSource: app.NewCreateOfficialSource(ss, fakes.Tx{W: w}, fakes.Audit{W: w}, clk),
 		DeleteOfficialSource: app.NewDeleteOfficialSource(ss, fakes.Tx{W: w}, fakes.Audit{W: w}),
@@ -139,6 +146,41 @@ func TestSubmitRateLimit(t *testing.T) {
 	}
 	if rec := do(h, http.MethodPost, "/api/public/contributions", update, "", "3.3.3.3"); rec.Code != http.StatusCreated {
 		t.Errorf("outro IP = %d", rec.Code)
+	}
+}
+
+func TestPausedAtPendingCap(t *testing.T) {
+	w, h := newServerWithCap(true, 1)
+	if rec := do(h, http.MethodPost, "/api/public/contributions", update, "", "4.4.4.4"); rec.Code != http.StatusCreated {
+		t.Fatalf("primeiro envio = %d %s", rec.Code, rec.Body)
+	}
+	rec := do(h, http.MethodGet, "/api/public/contributions/availability", "", "", "4.4.4.4")
+	if !strings.Contains(rec.Body.String(), `"open":false`) || !strings.Contains(rec.Body.String(), `"reason":"paused"`) {
+		t.Errorf("availability no teto = %s", rec.Body)
+	}
+	rec = do(h, http.MethodPost, "/api/public/contributions", update, "", "5.5.5.5")
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "contributions_paused") || len(w.Contributions) != 1 {
+		t.Errorf("envio no teto = %d %s (%d contribuições)", rec.Code, rec.Body, len(w.Contributions))
+	}
+}
+
+func TestLookupRateLimit(t *testing.T) {
+	_, h := newServer(true)
+	for i := range 30 {
+		if rec := do(h, http.MethodPost, "/api/public/contributions/lookup", `{"code":"AAAA-AAAA-AAAA"}`, "", "6.6.6.6"); rec.Code != http.StatusNotFound {
+			t.Fatalf("consulta %d = %d", i, rec.Code)
+		}
+	}
+	rec := do(h, http.MethodPost, "/api/public/contributions/lookup", `{"code":"AAAA-AAAA-AAAA"}`, "", "6.6.6.6")
+	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "too_many_requests") {
+		t.Errorf("31ª consulta = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestNoClientKeyIsRefused(t *testing.T) {
+	w, h := newServer(true)
+	if rec := do(h, http.MethodPost, "/api/public/contributions", update, "", ""); rec.Code != http.StatusBadRequest || len(w.Contributions) != 0 {
+		t.Errorf("envio sem chave de IP = %d", rec.Code)
 	}
 }
 

@@ -28,7 +28,15 @@ func TestLoadValid(t *testing.T) {
 	if c.ListenAddr != ":8080" || !c.SecureCookies || len(c.TrustedProxies) == 0 || c.SyncInterval != DefaultSyncInterval {
 		t.Errorf("defaults not applied: %+v", c)
 	}
+	if c.ContributionRatePerHour != 5 || c.ContributionPendingCap != 200 {
+		t.Errorf("anti-abuso: %d/h, teto %d", c.ContributionRatePerHour, c.ContributionPendingCap)
+	}
 	m := base()
+	m["CONTRIBUTION_RATE_PER_HOUR"], m["CONTRIBUTION_PENDING_CAP"] = "10", "50"
+	if c, err := Load(env(m), true); err != nil || c.ContributionRatePerHour != 10 || c.ContributionPendingCap != 50 {
+		t.Errorf("anti-abuso configurado: %+v %v", c, err)
+	}
+	m = base()
 	m["SYNC_INTERVAL"] = "30m"
 	if c, err := Load(env(m), true); err != nil || c.SyncInterval.Minutes() != 30 {
 		t.Errorf("SYNC_INTERVAL=30m: %v %v", c.SyncInterval, err)
@@ -50,6 +58,8 @@ func TestLoadRejects(t *testing.T) {
 		"placeholder bootstrap":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "change-me-" + strings.Repeat("x", 20) },
 		"bad sync interval":      func(m map[string]string) { m["SYNC_INTERVAL"] = "toda hora" },
 		"sync interval too low":  func(m map[string]string) { m["SYNC_INTERVAL"] = "10s" },
+		"zero rate per hour":     func(m map[string]string) { m["CONTRIBUTION_RATE_PER_HOUR"] = "0" },
+		"bad pending cap":        func(m map[string]string) { m["CONTRIBUTION_PENDING_CAP"] = "muitas" },
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {

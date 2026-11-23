@@ -39,6 +39,27 @@ func (q *Queries) DeleteOfficialSource(ctx context.Context, id string) (Contribu
 	return i, err
 }
 
+const ensureRateKey = `-- name: EnsureRateKey :one
+INSERT INTO contribution.rate_keys (day, key) VALUES ($1, $2)
+ON CONFLICT (day) DO UPDATE SET day = EXCLUDED.day
+RETURNING key
+`
+
+type EnsureRateKeyParams struct {
+	Day time.Time
+	Key []byte
+}
+
+// Rate limit (#27). Devolve a chave do dia, gravando a nova se o dia
+// ainda não tem uma (o DO UPDATE sem efeito faz o RETURNING devolver a
+// que já existia).
+func (q *Queries) EnsureRateKey(ctx context.Context, arg EnsureRateKeyParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, ensureRateKey, arg.Day, arg.Key)
+	var key []byte
+	err := row.Scan(&key)
+	return key, err
+}
+
 const getContribution = `-- name: GetContribution :one
 SELECT id, kind, state, tracking_hash, proposition_id, sphere, payload, submitted_at, decided_by, decided_at, public_reason, internal_note, created_proposition_id FROM contribution.contributions WHERE id = $1
 `
@@ -112,6 +133,25 @@ func (q *Queries) GetContributionForUpdate(ctx context.Context, id string) (Cont
 		&i.CreatedPropositionID,
 	)
 	return i, err
+}
+
+const hitRate = `-- name: HitRate :one
+INSERT INTO contribution.rate_hits (subject, bucket, window_start, hits) VALUES ($1, $2, $3, 1)
+ON CONFLICT (subject, bucket, window_start) DO UPDATE SET hits = contribution.rate_hits.hits + 1
+RETURNING hits
+`
+
+type HitRateParams struct {
+	Subject     []byte
+	Bucket      string
+	WindowStart time.Time
+}
+
+func (q *Queries) HitRate(ctx context.Context, arg HitRateParams) (int32, error) {
+	row := q.db.QueryRow(ctx, hitRate, arg.Subject, arg.Bucket, arg.WindowStart)
+	var hits int32
+	err := row.Scan(&hits)
+	return hits, err
 }
 
 const insertContribution = `-- name: InsertContribution :exec
@@ -263,6 +303,30 @@ func (q *Queries) ListPendingContributions(ctx context.Context) ([]ContributionC
 		return nil, err
 	}
 	return items, nil
+}
+
+const purgeRateHits = `-- name: PurgeRateHits :execrows
+DELETE FROM contribution.rate_hits WHERE window_start < $1
+`
+
+func (q *Queries) PurgeRateHits(ctx context.Context, windowStart time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeRateHits, windowStart)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const purgeRateKeys = `-- name: PurgeRateKeys :execrows
+DELETE FROM contribution.rate_keys WHERE day < $1
+`
+
+func (q *Queries) PurgeRateKeys(ctx context.Context, day time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeRateKeys, day)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateContribution = `-- name: UpdateContribution :execrows

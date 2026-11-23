@@ -207,6 +207,17 @@ pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
 - Os links do Leitor são só validados como texto (https, host DNS, sem
   usuário nem porta); o Nelisa nunca os abre.
 - `CONTRIBUTIONS_ENABLED` liga a rota de envio; desligada, ela nem existe.
+- **Anti-abuso (#27):** o caso de uso, não o handler, aplica o teto de
+  pendentes (`Availability`, `CONTRIBUTION_PENDING_CAP`) e depois o limite
+  por IP (`RateLimiter`, `CONTRIBUTION_RATE_PER_HOUR` no envio, 30/h na
+  consulta). O contador fica no Postgres (`contribution.rate_hits`, janela
+  fixa de uma hora) para valer com várias instâncias. O IP nunca é gravado:
+  o contador guarda `HMAC-SHA256(IP, chave do dia)`; a chave é aleatória,
+  uma por dia UTC (`contribution.rate_keys`), e o job
+  `contribution.purge_rate_limits` (a cada 15 min, no worker) apaga a do
+  dia anterior e os contadores de horas passadas. Toda tentativa conta,
+  válida ou não; o envio pausado pelo teto não conta. Sem chave de IP a
+  requisição é recusada.
 - **Moderação (#25):** as pendentes entram na Fila pela porta
   `Contributions` do `queue` (item `reason: contribution`, sem Posse), na
   mesma ordem dos outros itens. Aceitar, rejeitar, corrigir a Esfera, apontar

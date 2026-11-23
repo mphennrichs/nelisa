@@ -3734,7 +3734,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Diz se o formulário de Contribuição está aberto */
+        /**
+         * Diz se o formulário de Contribuição está aberto
+         * @description Fecha com `disabled` quando `CONTRIBUTIONS_ENABLED` está desligado e
+         *     com `paused` quando a Fila chegou ao teto de Contribuições pendentes
+         *     (`CONTRIBUTION_PENDING_CAP`, padrão 200).
+         */
         get: {
             parameters: {
                 query?: never;
@@ -3754,10 +3759,10 @@ export interface paths {
                         "application/json": {
                             open: boolean;
                             /**
-                             * @description `disabled` quando o envio está desligado; null se aberto
+                             * @description `disabled` quando o envio está desligado, `paused` no teto de pendentes; null se aberto
                              * @enum {string|null}
                              */
-                            reason: "disabled" | null;
+                            reason: "disabled" | "paused" | null;
                         };
                     };
                 };
@@ -3792,7 +3797,9 @@ export interface paths {
          *
          *     O Nelisa nunca abre os links. Nada além do formulário é guardado; o
          *     código de acompanhamento volta só nesta resposta (o banco guarda o
-         *     hash). Limite de 5 envios por hora por IP.
+         *     hash). Limite de envios por hora por IP (`CONTRIBUTION_RATE_PER_HOUR`,
+         *     padrão 5), contado no Postgres sem guardar o IP; toda tentativa
+         *     conta, válida ou não. Com a Fila no teto de pendentes, responde 503.
          */
         post: {
             parameters: {
@@ -3855,6 +3862,15 @@ export interface paths {
                     };
                 };
                 429: components["responses"]["TooManyRequests"];
+                /** @description `contributions_paused` (a Fila chegou ao teto de pendentes) */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         delete?: never;
