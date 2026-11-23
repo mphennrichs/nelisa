@@ -44,6 +44,12 @@ o teto de Contribuições pendentes: a partir dele o formulário pausa até a
 equipe moderar. Os dois só valem na `api`; o contador fica no Postgres e o
 `worker` apaga a chave do dia e os contadores velhos a cada 15 min.
 
+`TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET` são do widget do Cloudflare
+Turnstile (painel da Cloudflare → Turnstile → widget no hostname de
+`PUBLIC_BASE_URL`, modo Managed). Obrigatórias na `api` com
+`CONTRIBUTIONS_ENABLED=true`: sem elas a `api` não sobe. As chaves de teste
+da Cloudflare são recusadas em https. Ficam no Infisical, pasta `/nelisa`.
+
 ## Primeiro deploy da api (fase 0)
 
 Feito **nesta ordem**. Enquanto o passo 3 não acontecer, nada muda no ar: o

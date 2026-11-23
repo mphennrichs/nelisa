@@ -32,10 +32,14 @@ const (
 )
 
 func newSubmit(w *fakes.World, clk fixedClock, rnd io.Reader, perHour, pendingCap int) *app.Submit {
+	return newSubmitWithHuman(w, clk, rnd, perHour, pendingCap, fakes.Human{})
+}
+
+func newSubmitWithHuman(w *fakes.World, clk fixedClock, rnd io.Reader, perHour, pendingCap int, human app.HumanCheck) *app.Submit {
 	limiter := app.NewRateLimiter(fakes.RateCounter{W: w}, clk, rand.Reader)
 	av := app.NewAvailability(fakes.Contributions{W: w}, pendingCap)
 	return app.NewSubmit(fakes.Contributions{W: w}, fakes.Sources{W: w}, fakes.Props{W: w}, av, limiter,
-		app.SubmitLimits{PerHour: perHour}, clk, rnd)
+		app.SubmitLimits{PerHour: perHour}, human, clk, rnd)
 }
 
 func newLookup(w *fakes.World, clk fixedClock, perHour int) *app.Lookup {
@@ -56,7 +60,7 @@ func TestSubmitAndLookup(t *testing.T) {
 	w, submit, lookup := setup()
 	ctx := context.Background()
 
-	code, err := submit.Execute(ctx, app.SubmitInput{
+	code, err := submit.Execute(ctx, app.SubmitInput{HumanToken: fakes.HumanToken,
 		PropositionSlug: "pec-221-2019",
 		Submission: domain.Submission{
 			Kind: domain.KindProgressUpdate, Link: "https://g1.globo.com/x", EventType: domain.EventVotePostponed,
@@ -99,13 +103,13 @@ func TestSubmitRejects(t *testing.T) {
 		in   app.SubmitInput
 		want error
 	}{
-		"proposição não pública": {app.SubmitInput{PropositionSlug: "rascunho", Submission: domain.Submission{
+		"proposição não pública": {app.SubmitInput{HumanToken: fakes.HumanToken, PropositionSlug: "rascunho", Submission: domain.Submission{
 			Kind: domain.KindProgressUpdate, Link: "https://g1.globo.com/x", EventType: domain.EventOther, EventDate: "2026-11-01",
 		}}, domain.ErrPropositionNotFound},
-		"indicação fora de fonte oficial": {app.SubmitInput{Submission: domain.Submission{
+		"indicação fora de fonte oficial": {app.SubmitInput{HumanToken: fakes.HumanToken, Submission: domain.Submission{
 			Kind: domain.KindIndication, Link: "https://exemplo.org/pl", Sphere: domain.SphereMunicipal,
 		}}, domain.ErrNotOfficialSource},
-		"link http": {app.SubmitInput{Submission: domain.Submission{
+		"link http": {app.SubmitInput{HumanToken: fakes.HumanToken, Submission: domain.Submission{
 			Kind: domain.KindIndication, Link: "http://camara.leg.br", Sphere: domain.SphereFederal,
 		}}, domain.ErrInvalidLink},
 	}
@@ -120,7 +124,7 @@ func TestSubmitRejects(t *testing.T) {
 
 	// Domínio cadastrado passa a valer para a Indicação.
 	w.Sources["s1"] = domain.OfficialSource{ID: "s1", Domain: "exemplo.org"}
-	if _, err := submit.Execute(ctx, app.SubmitInput{Submission: domain.Submission{
+	if _, err := submit.Execute(ctx, app.SubmitInput{HumanToken: fakes.HumanToken, Submission: domain.Submission{
 		Kind: domain.KindIndication, Link: "https://www.exemplo.org/pl", Sphere: domain.SphereMunicipal,
 	}}); err != nil {
 		t.Errorf("indicação de fonte cadastrada: %v", err)
@@ -135,7 +139,7 @@ func TestSubmitRetriesTakenCode(t *testing.T) {
 	ones := bytes.Repeat([]byte{1}, 12)
 	rnd := bytes.NewReader(append(append(append([]byte{}, zeros...), zeros...), ones...))
 	submit := newSubmit(w, fixedClock{now}, rnd, testPerHour, testPendingCap)
-	in := app.SubmitInput{Submission: domain.Submission{Kind: domain.KindIndication, Link: "https://camara.leg.br/x", Sphere: domain.SphereFederal}}
+	in := app.SubmitInput{HumanToken: fakes.HumanToken, Submission: domain.Submission{Kind: domain.KindIndication, Link: "https://camara.leg.br/x", Sphere: domain.SphereFederal}}
 	a, err := submit.Execute(context.Background(), in)
 	if err != nil {
 		t.Fatal(err)

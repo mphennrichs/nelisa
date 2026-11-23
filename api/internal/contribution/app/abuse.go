@@ -17,7 +17,20 @@ var (
 	// ErrSubmissionsPaused: a Fila chegou ao teto de pendentes e o
 	// formulário pausou.
 	ErrSubmissionsPaused = errors.New("contribution: envio pausado (teto de pendentes)")
+	// ErrHumanCheckFailed: o captcha não confirmou o envio (token falso,
+	// vencido ou já usado). O Leitor resolve de novo.
+	ErrHumanCheckFailed = errors.New("contribution: captcha não confirmado")
+	// ErrHumanCheckUnavailable: não deu para checar o captcha agora. O
+	// envio é recusado, nunca aceito sem checagem.
+	ErrHumanCheckUnavailable = errors.New("contribution: captcha indisponível")
 )
+
+// HumanCheck confere o captcha do formulário (Cloudflare Turnstile, ligado
+// no main). Devolve nil só com o captcha confirmado; ErrHumanCheckFailed ou
+// ErrHumanCheckUnavailable nos outros casos.
+type HumanCheck interface {
+	Verify(ctx context.Context, token string) error
+}
 
 // RateCounter guarda o rate limit no Postgres, para valer com mais de uma
 // instância da API. Nunca vê o IP: só o HMAC dele.

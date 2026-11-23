@@ -45,15 +45,16 @@ func newServerWithCap(enabled bool, pendingCap int) (*fakes.World, http.Handler)
 	limiter := app.NewRateLimiter(fakes.RateCounter{W: w}, clk, rand.Reader)
 	av := app.NewAvailability(cs, pendingCap)
 	h := httpapi.New(httpapi.UseCases{
-		Submit:               app.NewSubmit(cs, ss, ps, av, limiter, app.SubmitLimits{PerHour: 5}, clk, rand.Reader),
+		Submit:               app.NewSubmit(cs, ss, ps, av, limiter, app.SubmitLimits{PerHour: 5}, fakes.Human{}, clk, rand.Reader),
 		Lookup:               app.NewLookup(cs, ps, limiter, 30),
 		Availability:         av,
 		ListOfficialSources:  app.NewListOfficialSources(ss),
 		CreateOfficialSource: app.NewCreateOfficialSource(ss, fakes.Tx{W: w}, fakes.Audit{W: w}, clk),
 		DeleteOfficialSource: app.NewDeleteOfficialSource(ss, fakes.Tx{W: w}, fakes.Audit{W: w}),
 	}, httpapi.Options{
-		Enabled:  enabled,
-		LimitKey: func(r *http.Request) (string, error) { return r.Header.Get("X-Test-IP"), nil },
+		Enabled:          enabled,
+		LimitKey:         func(r *http.Request) (string, error) { return r.Header.Get("X-Test-IP"), nil },
+		TurnstileSiteKey: "1x00000000000000000000AA",
 	}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	r := chi.NewRouter()
 	r.Route("/api/public", h.RegisterPublic)
@@ -76,13 +77,13 @@ func do(h http.Handler, method, path, body, actor, ip string) *httptest.Response
 	return rec
 }
 
-const update = `{"kind":"progress_update","proposition_slug":"pec-221-2019","link":"https://g1.globo.com/x","event_type":"vote_postponed","event_date":"2026-11-20","note":"adiada"}`
+const update = `{"turnstile_token":"token-humano","kind":"progress_update","proposition_slug":"pec-221-2019","link":"https://g1.globo.com/x","event_type":"vote_postponed","event_date":"2026-11-20","note":"adiada"}`
 
 func TestSubmitAndLookup(t *testing.T) {
 	w, h := newServer(true)
 
 	rec := do(h, http.MethodGet, "/api/public/contributions/availability", "", "", "1.1.1.1")
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"open":true`) {
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"open":true`) || !strings.Contains(rec.Body.String(), `"turnstile_site_key":"1x00000000000000000000AA"`) {
 		t.Fatalf("availability = %d %s", rec.Code, rec.Body)
 	}
 
@@ -117,11 +118,11 @@ func TestSubmitAndLookup(t *testing.T) {
 func TestSubmitValidation(t *testing.T) {
 	_, h := newServer(true)
 	cases := map[string]string{
-		`{"kind":"indication","link":"https://exemplo.org/x","sphere":"municipal"}`:                                                               "not_official_source",
-		`{"kind":"indication","link":"http://camara.leg.br","sphere":"federal"}`:                                                                  "invalid_link",
-		`{"kind":"source_request","domain":"camara.leg.br","link":"https://camara.leg.br","source_name":"x","sphere":"federal"}`:                  "official_source_exists",
-		`{"kind":"progress_update","proposition_slug":"nao-existe","link":"https://g1.globo.com","event_type":"other","event_date":"2026-11-01"}`: "proposition_not_found",
-		`{"kind":"nada"}`: "invalid_kind",
+		`{"turnstile_token":"token-humano","kind":"indication","link":"https://exemplo.org/x","sphere":"municipal"}`:                                                               "not_official_source",
+		`{"turnstile_token":"token-humano","kind":"indication","link":"http://camara.leg.br","sphere":"federal"}`:                                                                  "invalid_link",
+		`{"turnstile_token":"token-humano","kind":"source_request","domain":"camara.leg.br","link":"https://camara.leg.br","source_name":"x","sphere":"federal"}`:                  "official_source_exists",
+		`{"turnstile_token":"token-humano","kind":"progress_update","proposition_slug":"nao-existe","link":"https://g1.globo.com","event_type":"other","event_date":"2026-11-01"}`: "proposition_not_found",
+		`{"turnstile_token":"token-humano","kind":"nada"}`: "invalid_kind",
 	}
 	i := 0
 	for body, code := range cases {
@@ -146,6 +147,15 @@ func TestSubmitRateLimit(t *testing.T) {
 	}
 	if rec := do(h, http.MethodPost, "/api/public/contributions", update, "", "3.3.3.3"); rec.Code != http.StatusCreated {
 		t.Errorf("outro IP = %d", rec.Code)
+	}
+}
+
+func TestSubmitWithoutCaptcha(t *testing.T) {
+	w, h := newServer(true)
+	body := strings.Replace(update, `"turnstile_token":"token-humano",`, `"turnstile_token":"falso",`, 1)
+	rec := do(h, http.MethodPost, "/api/public/contributions", body, "", "7.7.7.7")
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "captcha_failed") || len(w.Contributions) != 0 {
+		t.Errorf("sem captcha = %d %s", rec.Code, rec.Body)
 	}
 }
 
@@ -187,7 +197,7 @@ func TestNoClientKeyIsRefused(t *testing.T) {
 func TestDisabled(t *testing.T) {
 	w, h := newServer(false)
 	rec := do(h, http.MethodGet, "/api/public/contributions/availability", "", "", "1.1.1.1")
-	if !strings.Contains(rec.Body.String(), `"open":false`) || !strings.Contains(rec.Body.String(), `"reason":"disabled"`) {
+	if !strings.Contains(rec.Body.String(), `"open":false`) || !strings.Contains(rec.Body.String(), `"reason":"disabled"`) || !strings.Contains(rec.Body.String(), `"turnstile_site_key":null`) {
 		t.Errorf("availability = %s", rec.Body)
 	}
 	if rec := do(h, http.MethodPost, "/api/public/contributions", update, "", "1.1.1.1"); rec.Code == http.StatusCreated || len(w.Contributions) != 0 {

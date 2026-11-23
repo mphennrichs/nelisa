@@ -3758,6 +3758,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             open: boolean;
+                            /** @description Chave pública do widget do Cloudflare Turnstile; só com o formulário aberto */
+                            turnstile_site_key: string | null;
                             /**
                              * @description `disabled` quando o envio está desligado, `paused` no teto de pendentes; null se aberto
                              * @enum {string|null}
@@ -3800,6 +3802,12 @@ export interface paths {
          *     hash). Limite de envios por hora por IP (`CONTRIBUTION_RATE_PER_HOUR`,
          *     padrão 5), contado no Postgres sem guardar o IP; toda tentativa
          *     conta, válida ou não. Com a Fila no teto de pendentes, responde 503.
+         *
+         *     Depois do limite, o `turnstile_token` (do widget, ação `contribute`)
+         *     é validado no siteverify da Cloudflare antes de qualquer gravação.
+         *     Se o siteverify não responde, o envio é recusado (503), nunca
+         *     aceito sem checagem. O token vale uma vez: a página refaz o
+         *     desafio a cada tentativa.
          */
         post: {
             parameters: {
@@ -3811,6 +3819,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description Token do widget Cloudflare Turnstile */
+                        turnstile_token: string;
                         kind: components["schemas"]["ContributionKind"];
                         /** @description https, host DNS, sem usuário nem porta */
                         link?: string;
@@ -3841,7 +3851,8 @@ export interface paths {
                 /**
                  * @description `invalid_json`, `invalid_kind`, `invalid_link`, `invalid_domain`,
                  *     `not_official_source`, `invalid_source_name`, `invalid_sphere`,
-                 *     `invalid_event_type`, `invalid_event_date` ou `note_too_long`
+                 *     `invalid_event_type`, `invalid_event_date`, `note_too_long` ou
+                 *     `captcha_failed` (token do Turnstile ausente, falso, vencido ou já usado)
                  */
                 400: {
                     headers: {
@@ -3862,7 +3873,7 @@ export interface paths {
                     };
                 };
                 429: components["responses"]["TooManyRequests"];
-                /** @description `contributions_paused` (a Fila chegou ao teto de pendentes) */
+                /** @description `contributions_paused` (a Fila chegou ao teto de pendentes) ou `captcha_unavailable` (siteverify fora do ar) */
                 503: {
                     headers: {
                         [name: string]: unknown;

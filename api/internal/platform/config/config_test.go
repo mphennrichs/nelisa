@@ -45,21 +45,28 @@ func TestLoadValid(t *testing.T) {
 
 func TestLoadRejects(t *testing.T) {
 	cases := map[string]func(m map[string]string){
-		"missing database":       func(m map[string]string) { delete(m, "DATABASE_URL") },
-		"missing base url":       func(m map[string]string) { delete(m, "PUBLIC_BASE_URL") },
-		"base url with path":     func(m map[string]string) { m["PUBLIC_BASE_URL"] = "https://x.org/app" },
-		"base url bad scheme":    func(m map[string]string) { m["PUBLIC_BASE_URL"] = "ftp://x.org" },
-		"missing secret":         func(m map[string]string) { delete(m, "JWT_SECRET") },
-		"placeholder secret":     func(m map[string]string) { m["JWT_SECRET"] = "change-me-" + strings.Repeat("x", 40) },
-		"short secret on https":  func(m map[string]string) { m["JWT_SECRET"] = "short" },
-		"insecure cookie https":  func(m map[string]string) { m["COOKIE_INSECURE"] = "true" },
-		"bad trusted proxy cidr": func(m map[string]string) { m["TRUSTED_PROXY_CIDRS"] = "nope" },
-		"short bootstrap token":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "abc" },
-		"placeholder bootstrap":  func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "change-me-" + strings.Repeat("x", 20) },
-		"bad sync interval":      func(m map[string]string) { m["SYNC_INTERVAL"] = "toda hora" },
-		"sync interval too low":  func(m map[string]string) { m["SYNC_INTERVAL"] = "10s" },
-		"zero rate per hour":     func(m map[string]string) { m["CONTRIBUTION_RATE_PER_HOUR"] = "0" },
-		"bad pending cap":        func(m map[string]string) { m["CONTRIBUTION_PENDING_CAP"] = "muitas" },
+		"missing database":          func(m map[string]string) { delete(m, "DATABASE_URL") },
+		"missing base url":          func(m map[string]string) { delete(m, "PUBLIC_BASE_URL") },
+		"base url with path":        func(m map[string]string) { m["PUBLIC_BASE_URL"] = "https://x.org/app" },
+		"base url bad scheme":       func(m map[string]string) { m["PUBLIC_BASE_URL"] = "ftp://x.org" },
+		"missing secret":            func(m map[string]string) { delete(m, "JWT_SECRET") },
+		"placeholder secret":        func(m map[string]string) { m["JWT_SECRET"] = "change-me-" + strings.Repeat("x", 40) },
+		"short secret on https":     func(m map[string]string) { m["JWT_SECRET"] = "short" },
+		"insecure cookie https":     func(m map[string]string) { m["COOKIE_INSECURE"] = "true" },
+		"bad trusted proxy cidr":    func(m map[string]string) { m["TRUSTED_PROXY_CIDRS"] = "nope" },
+		"short bootstrap token":     func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "abc" },
+		"placeholder bootstrap":     func(m map[string]string) { m["BOOTSTRAP_TOKEN"] = "change-me-" + strings.Repeat("x", 20) },
+		"bad sync interval":         func(m map[string]string) { m["SYNC_INTERVAL"] = "toda hora" },
+		"sync interval too low":     func(m map[string]string) { m["SYNC_INTERVAL"] = "10s" },
+		"zero rate per hour":        func(m map[string]string) { m["CONTRIBUTION_RATE_PER_HOUR"] = "0" },
+		"bad pending cap":           func(m map[string]string) { m["CONTRIBUTION_PENDING_CAP"] = "muitas" },
+		"enabled without turnstile": func(m map[string]string) { m["CONTRIBUTIONS_ENABLED"] = "true" },
+		"enabled without secret": func(m map[string]string) {
+			m["CONTRIBUTIONS_ENABLED"], m["TURNSTILE_SITE_KEY"] = "true", "0x4AAA"
+		},
+		"turnstile test secret on https": func(m map[string]string) {
+			m["TURNSTILE_SITE_KEY"], m["TURNSTILE_SECRET"] = "1x00000000000000000000AA", "1x0000000000000000000000000000000AA"
+		},
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -79,6 +86,25 @@ func TestLoadDevAllowsWeakSecretOverHTTP(t *testing.T) {
 	m["COOKIE_INSECURE"] = "true"
 	if _, err := Load(env(m), true); err != nil {
 		t.Fatalf("dev config should load: %v", err)
+	}
+}
+
+func TestLoadTurnstile(t *testing.T) {
+	m := base()
+	m["CONTRIBUTIONS_ENABLED"], m["TURNSTILE_SITE_KEY"], m["TURNSTILE_SECRET"] = "true", "0x4AAA", "0x4BBB"
+	if c, err := Load(env(m), true); err != nil || c.TurnstileSiteKey != "0x4AAA" || c.TurnstileSecret != "0x4BBB" {
+		t.Fatalf("turnstile = %+v, %v", c, err)
+	}
+	// Em dev (http), as chaves de teste da Cloudflare valem.
+	m["PUBLIC_BASE_URL"], m["TURNSTILE_SECRET"] = "http://localhost:3000", "1x0000000000000000000000000000000AA"
+	if _, err := Load(env(m), true); err != nil {
+		t.Errorf("chave de teste em dev: %v", err)
+	}
+	// O worker não recebe Contribuições: não precisa das chaves.
+	m = base()
+	m["CONTRIBUTIONS_ENABLED"] = "true"
+	if _, err := Load(env(m), false); err != nil {
+		t.Errorf("worker sem turnstile: %v", err)
 	}
 }
 

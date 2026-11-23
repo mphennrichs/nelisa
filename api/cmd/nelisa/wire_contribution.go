@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	auditapp "github.com/mphennrichs/nelisa/api/internal/audit/app"
 	contribapp "github.com/mphennrichs/nelisa/api/internal/contribution/app"
@@ -10,6 +11,7 @@ import (
 	contribhttp "github.com/mphennrichs/nelisa/api/internal/contribution/httpapi"
 	"github.com/mphennrichs/nelisa/api/internal/platform/clientip"
 	"github.com/mphennrichs/nelisa/api/internal/platform/config"
+	"github.com/mphennrichs/nelisa/api/internal/platform/turnstile"
 	progressapp "github.com/mphennrichs/nelisa/api/internal/progress/app"
 	progressdomain "github.com/mphennrichs/nelisa/api/internal/progress/domain"
 	propapp "github.com/mphennrichs/nelisa/api/internal/proposition/app"
@@ -24,8 +26,9 @@ import (
 // contributionOptions são as opções HTTP do módulo, vindas da config.
 func contributionOptions(cfg config.Config) contribhttp.Options {
 	return contribhttp.Options{
-		Enabled:  cfg.ContributionsEnabled,
-		LimitKey: clientip.New(cfg.TrustedProxies).LimitKey,
+		Enabled:          cfg.ContributionsEnabled,
+		LimitKey:         clientip.New(cfg.TrustedProxies).LimitKey,
+		TurnstileSiteKey: cfg.TurnstileSiteKey,
 	}
 }
 
@@ -33,12 +36,51 @@ func contributionOptions(cfg config.Config) contribhttp.Options {
 // bastante para o Leitor e baixo para quem tenta varrer códigos.
 const lookupPerHour = 30
 
-// contribLimits são os limites do anti-abuso do envio, vindos da config.
-type contribLimits struct{ perHour, pendingCap int }
+// turnstileAction é a ação que o widget do formulário declara; o Go
+// confere que o token veio dele.
+const turnstileAction = "contribute"
 
-func contributionLimits(cfg config.Config) contribLimits {
-	return contribLimits{perHour: cfg.ContributionRatePerHour, pendingCap: cfg.ContributionPendingCap}
+// contribAntiAbuse é o anti-abuso do envio, vindo da config: limites e o
+// captcha.
+type contribAntiAbuse struct {
+	perHour, pendingCap int
+	human               contribapp.HumanCheck
 }
+
+// contributionAntiAbuse monta o anti-abuso. opts ajustam o Turnstile (nos
+// testes, um siteverify local).
+func contributionAntiAbuse(cfg config.Config, opts ...turnstile.Option) contribAntiAbuse {
+	host := ""
+	if cfg.PublicBaseURL != nil {
+		host = cfg.PublicBaseURL.Hostname()
+	}
+	return contribAntiAbuse{
+		perHour: cfg.ContributionRatePerHour, pendingCap: cfg.ContributionPendingCap,
+		human: contribHuman{v: turnstile.New(cfg.TurnstileSecret, host, turnstileAction, opts...)},
+	}
+}
+
+// contribHuman liga a porta HumanCheck ao Turnstile, traduzindo os erros.
+type contribHuman struct{ v *turnstile.Verifier }
+
+func (h contribHuman) Verify(ctx context.Context, token string) error {
+	err := h.v.Verify(ctx, token)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, turnstile.ErrRejected):
+		return fmt.Errorf("%w: %v", contribapp.ErrHumanCheckFailed, err)
+	default:
+		// Fora do ar ou mal configurado: recusa, nunca aprova.
+		return fmt.Errorf("%w: %v", contribapp.ErrHumanCheckUnavailable, err)
+	}
+}
+
+// noHuman recusa todo envio: é o captcha do worker, que não recebe
+// Contribuições.
+type noHuman struct{}
+
+func (noHuman) Verify(context.Context, string) error { return contribapp.ErrHumanCheckUnavailable }
 
 // contribProps liga a porta Propositions do contribution ao Catalog do
 // proposition (que aplica a regra de visibilidade).

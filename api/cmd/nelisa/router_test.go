@@ -17,6 +17,7 @@ import (
 	"github.com/mphennrichs/nelisa/api/internal/platform/clock"
 	"github.com/mphennrichs/nelisa/api/internal/platform/config"
 	"github.com/mphennrichs/nelisa/api/internal/platform/httpx"
+	"github.com/mphennrichs/nelisa/api/internal/platform/turnstile"
 	progressfakes "github.com/mphennrichs/nelisa/api/internal/progress/app/fakes"
 	propfakes "github.com/mphennrichs/nelisa/api/internal/proposition/app/fakes"
 	queuefakes "github.com/mphennrichs/nelisa/api/internal/queue/app/fakes"
@@ -33,7 +34,33 @@ func testConfig() config.Config {
 	return config.Config{
 		JWTSecret: strings.Repeat("s", 32), SecureCookies: true, ContributionsEnabled: true,
 		ContributionRatePerHour: config.DefaultContributionRatePerHour, ContributionPendingCap: config.DefaultContributionPendingCap,
+		TurnstileSiteKey: "1x00000000000000000000AA", TurnstileSecret: testTurnstileSecret,
 	}
+}
+
+// Chave de teste da Cloudflare e o token falso que o widget de teste
+// produz.
+const (
+	testTurnstileSecret = "1x0000000000000000000000000000000AA"
+	testTurnstileToken  = "XXXX.DUMMY.TOKEN.XXXX"
+)
+
+// testAntiAbuse é o anti-abuso de testConfig com o Turnstile de verdade
+// (platform/turnstile) falando com um siteverify local. Ele só aprova o
+// token de teste: mais rígido que a Cloudflare, cuja chave de teste 1x
+// aprova qualquer token, para o teste provar que o token é conferido.
+func testAntiAbuse(t *testing.T) contribAntiAbuse {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ok := r.FormValue("secret") == testTurnstileSecret && r.FormValue("response") == testTurnstileToken
+		if ok {
+			_, _ = w.Write([]byte(`{"success":true,"hostname":"example.com","error-codes":[]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"success":false,"error-codes":["invalid-input-response"]}`))
+	}))
+	t.Cleanup(srv.Close)
+	return contributionAntiAbuse(testConfig(), turnstile.WithEndpoint(srv.URL))
 }
 
 func fakeTeam(logger *slog.Logger) teamModule {
@@ -65,7 +92,9 @@ func fakeContent(logger *slog.Logger) contentModule {
 		contributions: contribfakes.Contributions{W: cw}, officialSources: contribfakes.Sources{W: cw},
 		rateCounter: contribfakes.RateCounter{W: cw},
 	}
-	return newContentModule(newContentUseCases(p, clock.System{}, contributionLimits(testConfig())), contributionOptions(testConfig()), logger)
+	// O roteador não manda Contribuições: o captcha recusa tudo.
+	aa := contribAntiAbuse{perHour: 5, pendingCap: 200, human: noHuman{}}
+	return newContentModule(newContentUseCases(p, clock.System{}, aa), contributionOptions(testConfig()), logger)
 }
 
 func serve(p Pinger, method, path string) *httptest.ResponseRecorder {

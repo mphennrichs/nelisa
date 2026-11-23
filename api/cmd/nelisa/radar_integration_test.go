@@ -16,7 +16,7 @@ func TestRadarEndToEnd(t *testing.T) {
 	pool, _ := testdb.New(t)
 	sources, camara, senado := fakeSources()
 	clk := clock.System{}
-	uc := newContentUseCases(postgresContentPorts(pool, clk, noScheduler{}, sources), clk, contributionLimits(testConfig()))
+	uc := newContentUseCases(postgresContentPorts(pool, clk, noScheduler{}, sources), clk, testAntiAbuse(t))
 	editor := auth.WithActor(t.Context(), auth.Actor{UserID: "00000000-0000-4000-8000-0000000000e1", Role: auth.RoleEditor})
 
 	if _, err := uc.ingest.Import.Execute(editor, ingestapp.ImportInput{Chamber: "camara", ExternalID: "2192459"}); err != nil {

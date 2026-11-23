@@ -21,10 +21,13 @@ func TestContributionsEndToEnd(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &imp); err != nil {
 		t.Fatal(err)
 	}
-	update := `{"kind":"progress_update","proposition_slug":"pec-221-2019","link":"https://g1.globo.com/x","event_type":"vote_postponed","event_date":"2026-11-20","note":"adiada"}`
+	update := `{"turnstile_token":"XXXX.DUMMY.TOKEN.XXXX","kind":"progress_update","proposition_slug":"pec-221-2019","link":"https://g1.globo.com/x","event_type":"vote_postponed","event_date":"2026-11-20","note":"adiada"}`
 	a.expectErr(a.do("POST", "/api/public/contributions", "", update), 404, "proposition_not_found", "rascunho")
 
 	a.must(a.do("POST", "/api/team/propositions/"+imp.PropositionID+"/submit-for-review", "edu", ""), 200, "submit")
+	// Sem o captcha confirmado pelo siteverify, nada é gravado.
+	noCaptcha := strings.Replace(update, testTurnstileToken, "token-forjado", 1)
+	a.expectErr(a.do("POST", "/api/public/contributions", "", noCaptcha), 400, "captcha_failed", "sem captcha")
 	w = a.must(a.do("POST", "/api/public/contributions", "", update), 201, "contribution")
 	var sub struct {
 		TrackingCode string `json:"tracking_code"`
@@ -46,11 +49,11 @@ func TestContributionsEndToEnd(t *testing.T) {
 	}
 
 	// Indicação: só domínio de Fonte oficial.
-	a.expectErr(a.do("POST", "/api/public/contributions", "", `{"kind":"indication","link":"https://cmsp.org/pl/1","sphere":"municipal"}`), 400, "not_official_source", "indicação")
+	a.expectErr(a.do("POST", "/api/public/contributions", "", `{"turnstile_token":"XXXX.DUMMY.TOKEN.XXXX","kind":"indication","link":"https://cmsp.org/pl/1","sphere":"municipal"}`), 400, "not_official_source", "indicação")
 	w = a.must(a.do("POST", "/api/team/official-sources", "edu", `{"domain":"cmsp.org","name":"Câmara Municipal de São Paulo","sphere":"municipal"}`), 201, "fonte oficial")
 	var src struct{ ID string }
 	_ = json.Unmarshal(w.Body.Bytes(), &src)
-	a.must(a.do("POST", "/api/public/contributions", "", `{"kind":"indication","link":"https://www.cmsp.org/pl/1","sphere":"municipal"}`), 201, "indicação")
+	a.must(a.do("POST", "/api/public/contributions", "", `{"turnstile_token":"XXXX.DUMMY.TOKEN.XXXX","kind":"indication","link":"https://www.cmsp.org/pl/1","sphere":"municipal"}`), 201, "indicação")
 	a.expectErr(a.do("POST", "/api/team/official-sources", "rita", `{"domain":"www.cmsp.org","name":"x","sphere":"municipal"}`), 409, "official_source_exists", "repetida")
 	a.expectErr(a.do("DELETE", "/api/team/official-sources/"+src.ID, "edu", ""), 403, "forbidden", "editor remove")
 	a.must(a.do("DELETE", "/api/team/official-sources/"+src.ID, "ana", ""), 204, "admin remove")
@@ -59,8 +62,8 @@ func TestContributionsEndToEnd(t *testing.T) {
 	}
 }
 
-// TestContributionModerationEndToEnd: o "pronto quando" da fase 3 sem o
-// Turnstile (#26). O Leitor manda uma Atualização de tramitação da PEC
+// TestContributionModerationEndToEnd: o "pronto quando" da fase 3, com o
+// Turnstile validado num siteverify local. O Leitor manda uma Atualização de tramitação da PEC
 // 221/2019; ela aparece na Fila; o Editor aceita com o evento revisado; o
 // Leitor vê "aceita" e o evento aparece na Tramitação pública com o link
 // da fonte. Depois o Editor apaga o evento manual, e rejeita uma Indicação.
@@ -73,7 +76,7 @@ func TestContributionModerationEndToEnd(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &imp)
 	a.must(a.do("POST", "/api/team/propositions/"+imp.PropositionID+"/submit-for-review", "edu", ""), 200, "submit")
 
-	w = a.must(a.do("POST", "/api/public/contributions", "", `{"kind":"progress_update","proposition_slug":"pec-221-2019","link":"https://g1.globo.com/x","event_type":"vote_postponed","event_date":"2026-11-20","note":"<b>adiada</b>"}`), 201, "contribution")
+	w = a.must(a.do("POST", "/api/public/contributions", "", `{"turnstile_token":"XXXX.DUMMY.TOKEN.XXXX","kind":"progress_update","proposition_slug":"pec-221-2019","link":"https://g1.globo.com/x","event_type":"vote_postponed","event_date":"2026-11-20","note":"<b>adiada</b>"}`), 201, "contribution")
 	var sub struct {
 		TrackingCode string `json:"tracking_code"`
 	}
@@ -165,7 +168,7 @@ func TestContributionModerationEndToEnd(t *testing.T) {
 	}
 
 	// Indicação rejeitada: o Leitor vê o motivo público.
-	w = a.must(a.do("POST", "/api/public/contributions", "", `{"kind":"indication","link":"https://www.camara.leg.br/pl/1","sphere":"federal"}`), 201, "indicação")
+	w = a.must(a.do("POST", "/api/public/contributions", "", `{"turnstile_token":"XXXX.DUMMY.TOKEN.XXXX","kind":"indication","link":"https://www.camara.leg.br/pl/1","sphere":"federal"}`), 201, "indicação")
 	_ = json.Unmarshal(w.Body.Bytes(), &sub)
 	var ind string
 	if err := a.pool.QueryRow(t.Context(), `SELECT id::text FROM contribution.contributions WHERE kind = 'indication'`).Scan(&ind); err != nil {

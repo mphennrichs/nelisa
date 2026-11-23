@@ -294,3 +294,27 @@ func (r RateCounter) Purge(_ context.Context, keysBefore, hitsBefore time.Time) 
 	maps.DeleteFunc(r.W.RateHits, func(k RateHitKey, _ int) bool { return k.Window.Before(hitsBefore) })
 	return nil
 }
+
+// --- HumanCheck ---
+
+// HumanToken é o único token que o captcha falso aceita.
+const HumanToken = "token-humano"
+
+// Human é o captcha falso: aceita HumanToken; com Down, está fora do ar.
+type Human struct {
+	Down  bool
+	Calls *int
+}
+
+func (h Human) Verify(_ context.Context, token string) error {
+	if h.Calls != nil {
+		*h.Calls++
+	}
+	switch {
+	case h.Down:
+		return app.ErrHumanCheckUnavailable
+	case token != HumanToken:
+		return app.ErrHumanCheckFailed
+	}
+	return nil
+}
