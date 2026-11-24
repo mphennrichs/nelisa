@@ -18,6 +18,7 @@ import (
 var indication = app.SubmitInput{
 	Submission: domain.Submission{Kind: domain.KindIndication, Link: "https://camara.leg.br/x", Sphere: domain.SphereFederal},
 	ClientKey:  "203.0.113.7",
+	HumanToken: fakes.HumanToken,
 }
 
 func TestSubmitRateLimitPerIP(t *testing.T) {
@@ -184,5 +185,56 @@ func TestLookupRateLimit(t *testing.T) {
 	}
 	if _, err := lookup.Execute(ctx, lookupIn("AAAA-AAAA-AAAA")); !errors.Is(err, app.ErrRateLimited) {
 		t.Errorf("quarta consulta = %v; want ErrRateLimited", err)
+	}
+}
+
+func TestSubmitRequiresHumanCheck(t *testing.T) {
+	w := fakes.New()
+	ctx := context.Background()
+	calls := 0
+	submit := newSubmitWithHuman(w, fixedClock{now}, rand.Reader, 5, testPendingCap, fakes.Human{Calls: &calls})
+	for _, tok := range []string{"", "token-falso"} {
+		in := indication
+		in.HumanToken = tok
+		if _, err := submit.Execute(ctx, in); !errors.Is(err, app.ErrHumanCheckFailed) {
+			t.Errorf("token %q = %v; want ErrHumanCheckFailed", tok, err)
+		}
+	}
+	if len(w.Contributions) != 0 {
+		t.Fatalf("gravou sem captcha: %d", len(w.Contributions))
+	}
+	// Sem captcha confirmado, a tentativa conta no limite do IP.
+	if len(w.RateHits) != 1 {
+		t.Errorf("contadores = %d", len(w.RateHits))
+	}
+	if calls != 2 {
+		t.Errorf("captcha chamado %d vezes", calls)
+	}
+}
+
+func TestSubmitRefusedWhenHumanCheckIsDown(t *testing.T) {
+	w := fakes.New()
+	submit := newSubmitWithHuman(w, fixedClock{now}, rand.Reader, 5, testPendingCap, fakes.Human{Down: true})
+	if _, err := submit.Execute(context.Background(), indication); !errors.Is(err, app.ErrHumanCheckUnavailable) {
+		t.Fatalf("captcha fora do ar = %v", err)
+	}
+	if len(w.Contributions) != 0 {
+		t.Errorf("aceitou sem checagem")
+	}
+}
+
+func TestRateLimitSparesTheHumanCheck(t *testing.T) {
+	w := fakes.New()
+	calls := 0
+	submit := newSubmitWithHuman(w, fixedClock{now}, rand.Reader, 1, testPendingCap, fakes.Human{Calls: &calls})
+	ctx := context.Background()
+	if _, err := submit.Execute(ctx, indication); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := submit.Execute(ctx, indication); !errors.Is(err, app.ErrRateLimited) {
+		t.Fatalf("segundo envio = %v", err)
+	}
+	if calls != 1 {
+		t.Errorf("o captcha foi chamado %d vezes; acima do limite não deve ser", calls)
 	}
 }

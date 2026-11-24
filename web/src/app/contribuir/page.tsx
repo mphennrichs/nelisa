@@ -29,8 +29,11 @@ export default async function ContributePage({ searchParams }: Props) {
             mudar qualquer coisa no site. Você não precisa se identificar.
           </p>
         </div>
-        {availability.open ? (
-          <ContributionForm proposition={p ? { slug: p.slug, name: p.name } : undefined} />
+        {availability.open && availability.turnstile_site_key ? (
+          <ContributionForm
+            proposition={p ? { slug: p.slug, name: p.name } : undefined}
+            siteKey={availability.turnstile_site_key}
+          />
         ) : (
           <div className="card space-y-2">
             <h2 className="text-lg font-semibold">

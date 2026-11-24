@@ -69,7 +69,7 @@ func TestContentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(inserter))
-	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, contributionLimits(testConfig())), contributionOptions(cfg), logger)
+	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, testAntiAbuse(t)), contributionOptions(cfg), logger)
 	h := newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger)
 
 	do := func(method, path, body, bearer string) *httptest.ResponseRecorder {
@@ -191,7 +191,7 @@ func TestContentEndToEnd(t *testing.T) {
 	}
 
 	// Sincronizar de novo não duplica a Tramitação.
-	uc := newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, contributionLimits(testConfig()))
+	uc := newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, testAntiAbuse(t))
 	for range 2 {
 		if _, err := uc.syncLink.Execute(ctx, senadoLink); err != nil {
 			t.Fatal(err)

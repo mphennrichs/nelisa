@@ -218,6 +218,13 @@ pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
   dia anterior e os contadores de horas passadas. Toda tentativa conta,
   válida ou não; o envio pausado pelo teto não conta. Sem chave de IP a
   requisição é recusada.
+- **Captcha (#26):** depois do limite, o `Submit` chama a porta
+  `HumanCheck`, ligada em `wire_contribution.go` ao `platform/turnstile`
+  (siteverify da Cloudflare, conferindo `hostname` de `PUBLIC_BASE_URL` e
+  ação `contribute`). Siteverify fora do ar ou segredo errado recusam com
+  503, nunca aprovam. A site key pública vai na resposta de
+  disponibilidade; o widget (`web/src/components/Turnstile.tsx`) só obtém o
+  token e pede um novo a cada tentativa.
 - **Moderação (#25):** as pendentes entram na Fila pela porta
   `Contributions` do `queue` (item `reason: contribution`, sem Posse), na
   mesma ordem dos outros itens. Aceitar, rejeitar, corrigir a Esfera, apontar

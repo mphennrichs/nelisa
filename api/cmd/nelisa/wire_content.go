@@ -157,7 +157,7 @@ type contentUseCases struct {
 	purgeRateLimits *contribapp.PurgeRateLimits
 }
 
-func newContentUseCases(p contentPorts, clk clock.Clock, limits contribLimits) contentUseCases {
+func newContentUseCases(p contentPorts, clk clock.Clock, limits contribAntiAbuse) contentUseCases {
 	timeline := progressapp.NewTimeline(p.entries)
 	repos := propapp.EditorialRepos{
 		Props: p.props, Versions: p.versions, Contents: p.contents, Topics: p.topics, Structurings: p.structurings,
@@ -247,7 +247,7 @@ func newContentUseCases(p contentPorts, clk clock.Clock, limits contribLimits) c
 		},
 		contrib: contribhttp.UseCases{
 			Submit: contribapp.NewSubmit(p.contributions, p.officialSources, contribProps{c: catalog}, availability, limiter,
-				contribapp.SubmitLimits{PerHour: limits.perHour}, clk, rand.Reader),
+				contribapp.SubmitLimits{PerHour: limits.perHour}, limits.human, clk, rand.Reader),
 			Lookup:               contribapp.NewLookup(p.contributions, contribProps{c: catalog}, limiter, lookupPerHour),
 			Availability:         availability,
 			ListOfficialSources:  contribapp.NewListOfficialSources(p.officialSources),

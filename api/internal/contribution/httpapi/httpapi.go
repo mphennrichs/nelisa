@@ -42,6 +42,9 @@ type Options struct {
 	// LimitKey é a chave do rate limit por IP (clientip.Resolver.LimitKey).
 	// Quem conta é o caso de uso, no Postgres.
 	LimitKey func(*http.Request) (string, error)
+	// TurnstileSiteKey é a chave pública do widget do captcha, que a página
+	// do formulário recebe pela disponibilidade.
+	TurnstileSiteKey string
 }
 
 // Handlers são os handlers HTTP do módulo.
@@ -93,6 +96,9 @@ type availabilityDTO struct {
 	// Reason: "disabled" quando o envio está desligado, "paused" quando a
 	// Fila chegou ao teto de pendentes; null se aberto.
 	Reason *string `json:"reason"`
+	// TurnstileSiteKey: a chave pública do captcha, só com o formulário
+	// aberto.
+	TurnstileSiteKey *string `json:"turnstile_site_key"`
 }
 
 func (h *Handlers) availability(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +111,9 @@ func (h *Handlers) availability(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		h.writeErr(w, r, err)
 		return
+	}
+	if out.Open {
+		out.TurnstileSiteKey = &h.opts.TurnstileSiteKey
 	}
 	noStore(w)
 	httpx.WriteJSON(w, http.StatusOK, out)
@@ -132,6 +141,7 @@ type submitRequest struct {
 	Domain          string `json:"domain"`
 	SourceName      string `json:"source_name"`
 	Note            string `json:"note"`
+	TurnstileToken  string `json:"turnstile_token"`
 }
 
 type submitResponse struct {
@@ -148,7 +158,7 @@ func (h *Handlers) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	code, err := h.uc.Submit.Execute(r.Context(), app.SubmitInput{
-		PropositionSlug: req.PropositionSlug, ClientKey: key,
+		PropositionSlug: req.PropositionSlug, ClientKey: key, HumanToken: req.TurnstileToken,
 		Submission: domain.Submission{
 			Kind: domain.Kind(req.Kind), Link: req.Link, Sphere: domain.Sphere(req.Sphere),
 			EventType: domain.EventType(req.EventType), EventDate: req.EventDate,
@@ -469,6 +479,8 @@ func errMappings() []errMapping {
 		{app.ErrUnauthenticated, http.StatusUnauthorized, "unauthenticated", "Faça login para continuar."},
 		{app.ErrForbidden, http.StatusForbidden, "forbidden", "Você não tem permissão para isso."},
 		{app.ErrRateLimited, http.StatusTooManyRequests, "too_many_requests", "Muitas tentativas deste endereço. Tente de novo mais tarde."},
+		{app.ErrHumanCheckFailed, http.StatusBadRequest, "captcha_failed", "Não conseguimos confirmar que você não é um robô. Refaça a verificação e envie de novo."},
+		{app.ErrHumanCheckUnavailable, http.StatusServiceUnavailable, "captcha_unavailable", "A verificação anti-robô está fora do ar. Tente de novo em alguns minutos."},
 		{app.ErrSubmissionsPaused, http.StatusServiceUnavailable, "contributions_paused", "Contribuições pausadas: a equipe está em dia com as pendentes e reabre logo."},
 		{domain.ErrContributionNotFound, http.StatusNotFound, "contribution_not_found", "Nenhuma Contribuição com este código. Confira o código e tente de novo."},
 		{domain.ErrOfficialSourceNotFound, http.StatusNotFound, "official_source_not_found", "Fonte oficial não encontrada."},
@@ -487,6 +499,11 @@ func errMappings() []errMapping {
 }
 
 func (h *Handlers) writeErr(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, app.ErrHumanCheckUnavailable) {
+		// Siteverify fora do ar ou TURNSTILE_SECRET errado: o Leitor vê
+		// "tente de novo", e a equipe precisa ver a causa no log.
+		h.logger.WarnContext(r.Context(), "contribution: captcha indisponível", "error", err.Error())
+	}
 	for _, m := range errMappings() {
 		if errors.Is(err, m.err) {
 			httpx.WriteError(w, m.status, m.code, m.message)

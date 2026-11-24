@@ -15,7 +15,8 @@ import (
 // decidir.
 //
 // Antes de olhar o formulário, o envio passa pelo anti-abuso, do mais
-// barato ao mais caro: o teto de pendentes da Fila e o limite por IP.
+// barato ao mais caro: o teto de pendentes da Fila, o limite por IP e o
+// captcha (uma chamada à Cloudflare, que o limite poupa).
 type Submit struct {
 	contributions ContributionRepo
 	sources       OfficialSourceRepo
@@ -23,6 +24,7 @@ type Submit struct {
 	availability  *Availability
 	limiter       *RateLimiter
 	perHour       int
+	human         HumanCheck
 	clock         clock.Clock
 	random        io.Reader
 }
@@ -33,20 +35,21 @@ type SubmitLimits struct {
 	PerHour int
 }
 
-func NewSubmit(c ContributionRepo, s OfficialSourceRepo, p Propositions, av *Availability, limiter *RateLimiter, limits SubmitLimits, clk clock.Clock, random io.Reader) *Submit {
+func NewSubmit(c ContributionRepo, s OfficialSourceRepo, p Propositions, av *Availability, limiter *RateLimiter, limits SubmitLimits, human HumanCheck, clk clock.Clock, random io.Reader) *Submit {
 	return &Submit{
 		contributions: c, sources: s, props: p, availability: av, limiter: limiter,
-		perHour: limits.PerHour, clock: clk, random: random,
+		perHour: limits.PerHour, human: human, clock: clk, random: random,
 	}
 }
 
 // SubmitInput é o formulário. PropositionSlug só na Atualização de
 // tramitação. ClientKey é o IP de quem manda (ou o /64 no IPv6): só serve
-// ao rate limit e nunca é gravado.
+// ao rate limit e nunca é gravado. HumanToken é o token do captcha.
 type SubmitInput struct {
 	domain.Submission
 	PropositionSlug string
 	ClientKey       string
+	HumanToken      string
 }
 
 func (uc *Submit) Execute(ctx context.Context, in SubmitInput) (domain.TrackingCode, error) {
@@ -54,6 +57,9 @@ func (uc *Submit) Execute(ctx context.Context, in SubmitInput) (domain.TrackingC
 		return "", err
 	}
 	if err := uc.limiter.Allow(ctx, domain.BucketSubmit, in.ClientKey, uc.perHour); err != nil {
+		return "", err
+	}
+	if err := uc.human.Verify(ctx, in.HumanToken); err != nil {
 		return "", err
 	}
 	c := domain.Context{Now: uc.clock.Now()}

@@ -32,7 +32,7 @@ export function getPublicProposition(slug: string) {
   return get<PublicPropositionDetail>(`/api/public/propositions/${encodeURIComponent(slug)}`);
 }
 
-export type ContributionAvailability = { open: boolean; reason: string | null };
+export type ContributionAvailability = { open: boolean; reason: string | null; turnstile_site_key?: string | null };
 
 /** Se o formulário de Contribuição está aberto. Sem cache: liga e desliga na hora. */
 export async function getContributionAvailability(): Promise<ContributionAvailability> {

@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mphennrichs/nelisa/api/internal/platform/turnstile"
 )
 
 // MinSecretBytes é o tamanho mínimo do segredo de assinatura dos tokens.
@@ -52,6 +54,12 @@ type Config struct {
 	// ContributionPendingCap é o teto de Contribuições pendentes: a partir
 	// dele o formulário pausa (CONTRIBUTION_PENDING_CAP; padrão 200).
 	ContributionPendingCap int
+	// TurnstileSiteKey (público) e TurnstileSecret são do widget do
+	// Cloudflare Turnstile no formulário de Contribuição. Obrigatórios no
+	// modo api com o envio ligado; em https, as chaves de teste da
+	// Cloudflare são recusadas.
+	TurnstileSiteKey string
+	TurnstileSecret  string
 }
 
 // Padrões do anti-abuso das Contribuições.
@@ -84,6 +92,8 @@ func Load(getenv Getenv, requireSecret bool) (Config, error) {
 		SecureCookies:  getenv("COOKIE_INSECURE") != "true",
 
 		ContributionsEnabled: getenv("CONTRIBUTIONS_ENABLED") == "true",
+		TurnstileSiteKey:     strings.TrimSpace(getenv("TURNSTILE_SITE_KEY")),
+		TurnstileSecret:      strings.TrimSpace(getenv("TURNSTILE_SECRET")),
 	}
 	if c.ListenAddr == "" {
 		c.ListenAddr = ":8080"
@@ -140,6 +150,16 @@ func Load(getenv Getenv, requireSecret bool) (Config, error) {
 	c.ContributionPendingCap, err = positiveInt(getenv, "CONTRIBUTION_PENDING_CAP", DefaultContributionPendingCap)
 	if err != nil {
 		errs = append(errs, err)
+	}
+
+	// O envio nunca liga sem captcha. O worker não recebe Contribuições.
+	if requireSecret && c.ContributionsEnabled {
+		if c.TurnstileSiteKey == "" || c.TurnstileSecret == "" {
+			errs = append(errs, errors.New("CONTRIBUTIONS_ENABLED=true exige TURNSTILE_SITE_KEY e TURNSTILE_SECRET"))
+		}
+	}
+	if base != nil && base.Scheme == "https" && turnstile.IsTestSecret(c.TurnstileSecret) {
+		errs = append(errs, errors.New("TURNSTILE_SECRET é uma chave de teste da Cloudflare; use a do widget"))
 	}
 
 	if base != nil && base.Scheme == "https" && !c.SecureCookies {

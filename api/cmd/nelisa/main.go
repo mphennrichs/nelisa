@@ -103,7 +103,7 @@ func runAPI(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(riverClient))
-	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, contributionLimits(cfg)), contributionOptions(cfg), logger)
+	content := newContentModule(newContentUseCases(postgresContentPorts(pool, clk, sched, sources), clk, contributionAntiAbuse(cfg)), contributionOptions(cfg), logger)
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           newRouter(cfg, pool, newTeamModule(cfg, postgresTeamPorts(pool, clk), clk, logger), content, logger),
@@ -175,9 +175,11 @@ func newWorkerClient(pool *pgxpool.Pool, sources ingestapp.Sources, text propapp
 	}
 	sched := newRiverSchedulers(jobs.NewInserter(inserter))
 	ports := postgresContentPorts(pool, clk, sched, sources)
-	// O worker não recebe Contribuições: os limites do envio não importam
-	// aqui, só a limpeza do rate limit.
-	uc := newContentUseCases(ports, clk, contribLimits{perHour: config.DefaultContributionRatePerHour, pendingCap: config.DefaultContributionPendingCap})
+	// O worker não recebe Contribuições: os limites e o captcha do envio
+	// não importam aqui, só a limpeza do rate limit.
+	uc := newContentUseCases(ports, clk, contribAntiAbuse{
+		perHour: config.DefaultContributionRatePerHour, pendingCap: config.DefaultContributionPendingCap, human: noHuman{},
+	})
 	workers := river.NewWorkers()
 	syncLink, syncAll, radar := newIngestWorkers(uc, logger)
 	if err := ingestjobs.Register(workers, syncLink, syncAll, radar); err != nil {

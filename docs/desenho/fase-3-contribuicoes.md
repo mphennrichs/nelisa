@@ -196,7 +196,15 @@ Nada do Leitor além do formulário.
      no Postgres, e o limite em memória (`httprate`) saiu do módulo. A
      chave do dia vale por dia UTC: na virada, o contador recomeça. A
      limpeza roda a cada 15 min no worker.
-   - Turnstile (#26): a seguir.
+   - Turnstile (#26): feito. Ordem no envio: teto → limite por IP →
+     Turnstile → validação, para o limite poupar chamadas à Cloudflare.
+     A site key chega à página pela disponibilidade
+     (`turnstile_site_key`), sem variável de build na web. O IP do Leitor
+     não vai no `remoteip`. Com a chave de teste a Cloudflare devolve
+     `example.com` e nenhuma `action`, e aprova **qualquer** token: o Go
+     pula a checagem de host e ação só com chave de teste, e a config
+     recusa chave de teste com `PUBLIC_BASE_URL` em https. Segredo errado
+     (`invalid-input-secret`) recusa o envio com 503 e vai para o log.
 4. **Beta (#28):** checklist da issue.
 
 ## Decisões (confirmadas em 2026-11-09)

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useId, useRef, useState } from "react";
+import Turnstile from "@/components/Turnstile";
 import type { components } from "@/lib/api/schema";
 import { CONTRIBUTION_KIND_LABEL, PROGRESS_EVENT_LABEL, SPHERE_LABEL, charCount } from "@/lib/labels";
 
@@ -24,11 +25,15 @@ const FIELD_OF: Record<string, string> = {
   invalid_event_type: "event_type",
   invalid_event_date: "event_date",
   note_too_long: "note",
+  captcha_failed: "captcha",
 };
+
+// Ação declarada pelo widget; a API confere que o token veio daqui.
+const TURNSTILE_ACTION = "contribute";
 
 type Proposition = { slug: string; name: string };
 
-export default function ContributionForm({ proposition }: { proposition?: Proposition }) {
+export default function ContributionForm({ proposition, siteKey }: { proposition?: Proposition; siteKey: string }) {
   const kinds: Kind[] = proposition ? ["progress_update", "indication", "source_request"] : ["indication", "source_request"];
   const [kind, setKind] = useState<Kind>(kinds[0]);
   const [link, setLink] = useState("");
@@ -43,6 +48,10 @@ export default function ContributionForm({ proposition }: { proposition?: Propos
   const [sending, setSending] = useState(false);
   const [code, setCode] = useState<string>();
   const [copied, setCopied] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [captchaBlocked, setCaptchaBlocked] = useState(false);
+  // O token vale uma vez: cada tentativa sem sucesso pede um novo.
+  const [captchaReset, setCaptchaReset] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
   const id = useId();
 
@@ -51,7 +60,7 @@ export default function ContributionForm({ proposition }: { proposition?: Propos
     setSending(true);
     setErrors({});
     setFormError(undefined);
-    const body: Record<string, string> = { kind, note };
+    const body: Record<string, string> = { kind, note, turnstile_token: token ?? "" };
     if (kind === "indication") Object.assign(body, { link, sphere });
     if (kind === "progress_update")
       Object.assign(body, { link, proposition_slug: proposition?.slug ?? "", event_type: eventType, event_date: eventDate });
@@ -69,12 +78,14 @@ export default function ContributionForm({ proposition }: { proposition?: Propos
         requestAnimationFrame(() => resultRef.current?.focus());
         return;
       }
+      setCaptchaReset((n) => n + 1);
       const err = data?.error as { code?: string; message?: string } | undefined;
       const field = err?.code ? FIELD_OF[err.code] : undefined;
       const message = err?.message ?? "Não foi possível enviar. Tente de novo.";
       if (field) setErrors({ [field]: message });
       else setFormError(message);
     } catch {
+      setCaptchaReset((n) => n + 1);
       setFormError("Sem conexão com o Nelisa. Confira a internet e tente de novo.");
     } finally {
       setSending(false);
@@ -308,9 +319,41 @@ export default function ContributionForm({ proposition }: { proposition?: Propos
         {fieldError("note")}
       </div>
 
-      <button type="submit" disabled={sending || noteCount > NOTE_MAX} className="btn-lg">
-        {sending ? "Enviando…" : "Enviar contribuição"}
-      </button>
+      <div>
+        <p id={`${id}-captcha-hint`} className="mb-2 font-medium">Verificação anti-robô</p>
+        {captchaBlocked ? (
+          <p role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-red-800">
+            A verificação anti-robô não carregou. Algum bloqueador de anúncios ou rede pode estar impedindo o endereço
+            challenges.cloudflare.com. Libere-o e recarregue a página.
+          </p>
+        ) : (
+          <Turnstile
+            siteKey={siteKey}
+            action={TURNSTILE_ACTION}
+            onToken={setToken}
+            onLoadError={() => setCaptchaBlocked(true)}
+            resetKey={captchaReset}
+            describedBy={described("captcha", true)}
+          />
+        )}
+        {fieldError("captcha")}
+      </div>
+
+      <div className="space-y-2">
+        <button
+          type="submit"
+          disabled={sending || !token || noteCount > NOTE_MAX}
+          aria-describedby={!token ? `${id}-submit-hint` : undefined}
+          className="btn-lg"
+        >
+          {sending ? "Enviando…" : "Enviar contribuição"}
+        </button>
+        {!token && !captchaBlocked && (
+          <p id={`${id}-submit-hint`} className="text-sm text-stone-700">
+            O botão libera quando a verificação anti-robô acima terminar.
+          </p>
+        )}
+      </div>
     </form>
   );
 }
