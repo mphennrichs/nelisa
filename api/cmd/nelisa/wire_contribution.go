@@ -29,6 +29,17 @@ func contributionOptions(cfg config.Config) contribhttp.Options {
 	}
 }
 
+// lookupPerHour é o limite por IP da consulta pelo código: fixo, alto o
+// bastante para o Leitor e baixo para quem tenta varrer códigos.
+const lookupPerHour = 30
+
+// contribLimits são os limites do anti-abuso do envio, vindos da config.
+type contribLimits struct{ perHour, pendingCap int }
+
+func contributionLimits(cfg config.Config) contribLimits {
+	return contribLimits{perHour: cfg.ContributionRatePerHour, pendingCap: cfg.ContributionPendingCap}
+}
+
 // contribProps liga a porta Propositions do contribution ao Catalog do
 // proposition (que aplica a regra de visibilidade).
 type contribProps struct{ c *propapp.Catalog }

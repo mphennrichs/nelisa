@@ -113,6 +113,7 @@ type contentPorts struct {
 	// contributions e officialSources: módulo contribution.
 	contributions   contribapp.ContributionRepo
 	officialSources contribapp.OfficialSourceRepo
+	rateCounter     contribapp.RateCounter
 }
 
 func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, sources ingestapp.Sources) contentPorts {
@@ -138,6 +139,7 @@ func postgresContentPorts(pool *pgxpool.Pool, clk clock.Clock, sched scheduler, 
 		radar:           ingeststore.NewRadar(pool),
 		contributions:   contribstore.NewContributions(pool),
 		officialSources: contribstore.NewOfficialSources(pool),
+		rateCounter:     contribstore.NewRateCounter(pool),
 	}
 }
 
@@ -151,9 +153,11 @@ type contentUseCases struct {
 	syncLink  *ingestapp.SyncLink
 	syncAll   *ingestapp.SyncAll
 	scanRadar *ingestapp.ScanRadar
+
+	purgeRateLimits *contribapp.PurgeRateLimits
 }
 
-func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
+func newContentUseCases(p contentPorts, clk clock.Clock, limits contribLimits) contentUseCases {
 	timeline := progressapp.NewTimeline(p.entries)
 	repos := propapp.EditorialRepos{
 		Props: p.props, Versions: p.versions, Contents: p.contents, Topics: p.topics, Structurings: p.structurings,
@@ -188,6 +192,10 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 		Progress: contribProgress{uc: progressapp.NewManualEntries(p.entries, clk)},
 		Tx:       p.tx, Audit: contribAudit{record: p.audit}, Clock: clk,
 	}
+	// Anti-abuso das Contribuições (#27): o limite por IP vale para o envio
+	// e a consulta, com contadores no Postgres.
+	limiter := contribapp.NewRateLimiter(p.rateCounter, clk, rand.Reader)
+	availability := contribapp.NewAvailability(p.contributions, limits.pendingCap)
 	return contentUseCases{
 		prop: prophttp.UseCases{
 			ListPropositions:     propapp.NewListPropositions(p.props, p.links),
@@ -238,8 +246,10 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 			RequestRadar:  ingestapp.NewRequestRadarScan(p.scheduler),
 		},
 		contrib: contribhttp.UseCases{
-			Submit:               contribapp.NewSubmit(p.contributions, p.officialSources, contribProps{c: catalog}, clk, rand.Reader),
-			Lookup:               contribapp.NewLookup(p.contributions, contribProps{c: catalog}),
+			Submit: contribapp.NewSubmit(p.contributions, p.officialSources, contribProps{c: catalog}, availability, limiter,
+				contribapp.SubmitLimits{PerHour: limits.perHour}, clk, rand.Reader),
+			Lookup:               contribapp.NewLookup(p.contributions, contribProps{c: catalog}, limiter, lookupPerHour),
+			Availability:         availability,
 			ListOfficialSources:  contribapp.NewListOfficialSources(p.officialSources),
 			CreateOfficialSource: contribapp.NewCreateOfficialSource(p.officialSources, p.tx, contribAudit{record: p.audit}, clk),
 			DeleteOfficialSource: contribapp.NewDeleteOfficialSource(p.officialSources, p.tx, contribAudit{record: p.audit}),
@@ -253,6 +263,8 @@ func newContentUseCases(p contentPorts, clk clock.Clock) contentUseCases {
 		syncLink:  ingestapp.NewSyncLink(p.sources, ic, pw, p.tx),
 		syncAll:   ingestapp.NewSyncAll(ic, p.scheduler),
 		scanRadar: ingestapp.NewScanRadar(p.sources, p.radar, clk),
+
+		purgeRateLimits: contribapp.NewPurgeRateLimits(p.rateCounter, clk),
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -24,12 +25,31 @@ func as(role auth.Role, id string) context.Context {
 	return auth.WithActor(context.Background(), auth.Actor{UserID: id, Role: role})
 }
 
+// Limites dos testes: altos, para só os testes de anti-abuso esbarrarem.
+const (
+	testPerHour    = 100
+	testPendingCap = 1000
+)
+
+func newSubmit(w *fakes.World, clk fixedClock, rnd io.Reader, perHour, pendingCap int) *app.Submit {
+	limiter := app.NewRateLimiter(fakes.RateCounter{W: w}, clk, rand.Reader)
+	av := app.NewAvailability(fakes.Contributions{W: w}, pendingCap)
+	return app.NewSubmit(fakes.Contributions{W: w}, fakes.Sources{W: w}, fakes.Props{W: w}, av, limiter,
+		app.SubmitLimits{PerHour: perHour}, clk, rnd)
+}
+
+func newLookup(w *fakes.World, clk fixedClock, perHour int) *app.Lookup {
+	return app.NewLookup(fakes.Contributions{W: w}, fakes.Props{W: w}, app.NewRateLimiter(fakes.RateCounter{W: w}, clk, rand.Reader), perHour)
+}
+
 func setup() (*fakes.World, *app.Submit, *app.Lookup) {
 	w := fakes.New()
 	w.Public["pec-221-2019"] = app.PublicProposition{ID: "p1", Slug: "pec-221-2019", Sphere: domain.SphereFederal}
-	submit := app.NewSubmit(fakes.Contributions{W: w}, fakes.Sources{W: w}, fakes.Props{W: w}, fixedClock{now}, rand.Reader)
-	lookup := app.NewLookup(fakes.Contributions{W: w}, fakes.Props{W: w})
-	return w, submit, lookup
+	return w, newSubmit(w, fixedClock{now}, rand.Reader, testPerHour, testPendingCap), newLookup(w, fixedClock{now}, testPerHour)
+}
+
+func lookupIn(code string) app.LookupInput {
+	return app.LookupInput{Code: code, ClientKey: "198.51.100.1"}
 }
 
 func TestSubmitAndLookup(t *testing.T) {
@@ -61,12 +81,12 @@ func TestSubmitAndLookup(t *testing.T) {
 		t.Errorf("envio do Leitor não audita: %v", w.Events)
 	}
 
-	res, err := lookup.Execute(ctx, " "+code.Display()+" ")
+	res, err := lookup.Execute(ctx, lookupIn(" "+code.Display()+" "))
 	if err != nil || res.State != domain.StatePending || res.Kind != domain.KindProgressUpdate || res.PropositionSlug != "pec-221-2019" {
 		t.Fatalf("lookup = %+v, %v", res, err)
 	}
 	for _, bad := range []string{"", "AAAA-AAAA-AAAA", "não é código"} {
-		if _, err := lookup.Execute(ctx, bad); !errors.Is(err, domain.ErrContributionNotFound) {
+		if _, err := lookup.Execute(ctx, lookupIn(bad)); !errors.Is(err, domain.ErrContributionNotFound) {
 			t.Errorf("lookup(%q) = %v", bad, err)
 		}
 	}
@@ -114,7 +134,7 @@ func TestSubmitRetriesTakenCode(t *testing.T) {
 	zeros := make([]byte, 12)
 	ones := bytes.Repeat([]byte{1}, 12)
 	rnd := bytes.NewReader(append(append(append([]byte{}, zeros...), zeros...), ones...))
-	submit := app.NewSubmit(fakes.Contributions{W: w}, fakes.Sources{W: w}, fakes.Props{W: w}, fixedClock{now}, rnd)
+	submit := newSubmit(w, fixedClock{now}, rnd, testPerHour, testPendingCap)
 	in := app.SubmitInput{Submission: domain.Submission{Kind: domain.KindIndication, Link: "https://camara.leg.br/x", Sphere: domain.SphereFederal}}
 	a, err := submit.Execute(context.Background(), in)
 	if err != nil {
@@ -135,7 +155,7 @@ func TestLookupHidesDetails(t *testing.T) {
 		Sphere: domain.SphereFederal, SubmittedAt: now, DecidedBy: "u1", DecidedAt: &decided,
 		PublicReason: "duplicate", InternalNote: "spam do mesmo IP", CreatedPropositionID: "p1",
 	}
-	res, err := lookup.Execute(context.Background(), "abcd-efgh-jkmn")
+	res, err := lookup.Execute(context.Background(), lookupIn("abcd-efgh-jkmn"))
 	if err != nil || res.PublicReason != "duplicate" || res.PropositionSlug != "" {
 		t.Fatalf("lookup = %+v, %v", res, err)
 	}

@@ -38,6 +38,12 @@ tempo o worker sincroniza todos os Vínculos de fonte confirmados.
 Contribuições pelo Leitor (`true`). Fica desligado até o Turnstile e o rate
 limit da fase 3 estarem no ar; a consulta pelo código funciona sempre.
 
+`CONTRIBUTION_RATE_PER_HOUR` (opcional, padrão `5`) é quantas Contribuições
+um IP manda por hora. `CONTRIBUTION_PENDING_CAP` (opcional, padrão `200`) é
+o teto de Contribuições pendentes: a partir dele o formulário pausa até a
+equipe moderar. Os dois só valem na `api`; o contador fica no Postgres e o
+`worker` apaga a chave do dia e os contadores velhos a cada 15 min.
+
 ## Primeiro deploy da api (fase 0)
 
 Feito **nesta ordem**. Enquanto o passo 3 não acontecer, nada muda no ar: o

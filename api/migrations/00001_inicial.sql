@@ -421,6 +421,25 @@ CREATE TABLE contribution.contributions (
 );
 CREATE INDEX contributions_pending_idx ON contribution.contributions (submitted_at) WHERE state = 'pending';
 
+-- Rate limit do envio e da consulta (#27), sem IP em claro (CONTEXT.md: o
+-- IP "some em 24h"). O contador é por HMAC-SHA256(IP, chave do dia); a
+-- chave do dia é aleatória e apagada no dia seguinte, e com ela qualquer
+-- ligação entre um contador e um IP. Um job do worker apaga as duas.
+CREATE TABLE contribution.rate_keys (
+    -- Início do dia (UTC) em que a chave vale.
+    day timestamptz PRIMARY KEY,
+    key bytea NOT NULL CHECK (length(key) = 32)
+);
+
+CREATE TABLE contribution.rate_hits (
+    subject      bytea NOT NULL CHECK (length(subject) = 32),
+    bucket       text NOT NULL CHECK (bucket IN ('submit', 'lookup')),
+    -- Início da hora (UTC) do contador.
+    window_start timestamptz NOT NULL,
+    hits         integer NOT NULL CHECK (hits > 0),
+    PRIMARY KEY (subject, bucket, window_start)
+);
+
 -- ingest: o Radar (#45). Proposições em pauta no Plenário ou recém-
 -- apresentadas nas Casas, ainda não importadas. Uma linha por registro na
 -- Casa; a equipe importa (fluxo de Importação) ou dispensa.

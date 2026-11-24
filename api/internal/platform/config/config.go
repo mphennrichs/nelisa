@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -45,7 +46,19 @@ type Config struct {
 	// (CONTRIBUTIONS_ENABLED=true). Desligado por padrão: só liga com o
 	// anti-abuso no ar (docs/desenho/fase-3-contribuicoes.md).
 	ContributionsEnabled bool
+	// ContributionRatePerHour é quantas Contribuições um IP manda por hora
+	// (CONTRIBUTION_RATE_PER_HOUR; padrão 5).
+	ContributionRatePerHour int
+	// ContributionPendingCap é o teto de Contribuições pendentes: a partir
+	// dele o formulário pausa (CONTRIBUTION_PENDING_CAP; padrão 200).
+	ContributionPendingCap int
 }
+
+// Padrões do anti-abuso das Contribuições.
+const (
+	DefaultContributionRatePerHour = 5
+	DefaultContributionPendingCap  = 200
+)
 
 // DefaultSyncInterval é o intervalo da Sincronização periódica.
 const DefaultSyncInterval = 6 * time.Hour
@@ -120,10 +133,32 @@ func Load(getenv Getenv, requireSecret bool) (Config, error) {
 		}
 	}
 
+	c.ContributionRatePerHour, err = positiveInt(getenv, "CONTRIBUTION_RATE_PER_HOUR", DefaultContributionRatePerHour)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	c.ContributionPendingCap, err = positiveInt(getenv, "CONTRIBUTION_PENDING_CAP", DefaultContributionPendingCap)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
 	if base != nil && base.Scheme == "https" && !c.SecureCookies {
 		errs = append(errs, errors.New("COOKIE_INSECURE=true não é permitido com PUBLIC_BASE_URL https"))
 	}
 	return c, errors.Join(errs...)
+}
+
+// positiveInt lê um inteiro positivo opcional; vazio vale def.
+func positiveInt(getenv Getenv, name string, def int) (int, error) {
+	raw := strings.TrimSpace(getenv(name))
+	if raw == "" {
+		return def, nil
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return def, fmt.Errorf("%s inválido (inteiro positivo): %q", name, raw)
+	}
+	return n, nil
 }
 
 func parseBaseURL(raw string) (*url.URL, error) {

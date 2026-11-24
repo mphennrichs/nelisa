@@ -8,6 +8,7 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/mphennrichs/nelisa/api/internal/contribution/app"
 	"github.com/mphennrichs/nelisa/api/internal/contribution/domain"
@@ -32,6 +33,16 @@ type World struct {
 	Team map[string]app.TeamProposition
 	// Manual são os eventos manuais da Tramitação, por id da Contribuição.
 	Manual map[string]app.ManualEvent
+	// RateKeys são as chaves do dia; RateHits, os contadores.
+	RateKeys map[time.Time][]byte
+	RateHits map[RateHitKey]int
+}
+
+// RateHitKey identifica um contador do rate limit.
+type RateHitKey struct {
+	Subject string // bytes do HMAC
+	Bucket  domain.RateBucket
+	Window  time.Time
 }
 
 func New() *World {
@@ -41,6 +52,8 @@ func New() *World {
 		Public:        map[string]app.PublicProposition{},
 		Team:          map[string]app.TeamProposition{},
 		Manual:        map[string]app.ManualEvent{},
+		RateKeys:      map[time.Time][]byte{},
+		RateHits:      map[RateHitKey]int{},
 	}
 }
 
@@ -249,5 +262,35 @@ func (a Audit) Record(_ context.Context, e app.AuditEvent) error {
 	a.W.mu.Lock()
 	defer a.W.mu.Unlock()
 	a.W.Events = append(a.W.Events, RecordedEvent{AuditEvent: e, InTx: a.W.inTx})
+	return nil
+}
+
+// --- RateCounter ---
+
+type RateCounter struct{ W *World }
+
+func (r RateCounter) DailyKey(_ context.Context, day time.Time, candidate []byte) ([]byte, error) {
+	r.W.mu.Lock()
+	defer r.W.mu.Unlock()
+	if k, ok := r.W.RateKeys[day]; ok {
+		return k, nil
+	}
+	r.W.RateKeys[day] = slices.Clone(candidate)
+	return candidate, nil
+}
+
+func (r RateCounter) Hit(_ context.Context, subject []byte, bucket domain.RateBucket, window time.Time) (int, error) {
+	r.W.mu.Lock()
+	defer r.W.mu.Unlock()
+	k := RateHitKey{Subject: string(subject), Bucket: bucket, Window: window}
+	r.W.RateHits[k]++
+	return r.W.RateHits[k], nil
+}
+
+func (r RateCounter) Purge(_ context.Context, keysBefore, hitsBefore time.Time) error {
+	r.W.mu.Lock()
+	defer r.W.mu.Unlock()
+	maps.DeleteFunc(r.W.RateKeys, func(day time.Time, _ []byte) bool { return day.Before(keysBefore) })
+	maps.DeleteFunc(r.W.RateHits, func(k RateHitKey, _ int) bool { return k.Window.Before(hitsBefore) })
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/httprate"
 
 	"github.com/mphennrichs/nelisa/api/internal/contribution/app"
 	"github.com/mphennrichs/nelisa/api/internal/contribution/domain"
@@ -18,17 +17,11 @@ import (
 	"github.com/mphennrichs/nelisa/api/internal/platform/httpx"
 )
 
-// Limites por IP. O de envio é provisório (em memória, por instância) até
-// o rate limit no Postgres do passo 3 (#27).
-const (
-	submitPerHour = 5
-	lookupPerHour = 30
-)
-
 // UseCases reúne os casos de uso que o HTTP dirige.
 type UseCases struct {
 	Submit               *app.Submit
 	Lookup               *app.Lookup
+	Availability         *app.Availability
 	ListOfficialSources  *app.ListOfficialSources
 	CreateOfficialSource *app.CreateOfficialSource
 	DeleteOfficialSource *app.DeleteOfficialSource
@@ -47,6 +40,7 @@ type Options struct {
 	// Contribuição nem existe; a consulta pelo código continua no ar.
 	Enabled bool
 	// LimitKey é a chave do rate limit por IP (clientip.Resolver.LimitKey).
+	// Quem conta é o caso de uso, no Postgres.
 	LimitKey func(*http.Request) (string, error)
 }
 
@@ -65,11 +59,9 @@ func New(uc UseCases, opts Options, logger *slog.Logger) *Handlers {
 // /api/public).
 func (h *Handlers) RegisterPublic(r chi.Router) {
 	r.Get("/contributions/availability", h.availability)
-	r.With(httprate.LimitBy(lookupPerHour, time.Hour, h.opts.LimitKey, httprate.WithLimitHandler(tooManyRequests))).
-		Post("/contributions/lookup", h.lookup)
+	r.Post("/contributions/lookup", h.lookup)
 	if h.opts.Enabled {
-		r.With(httprate.LimitBy(submitPerHour, time.Hour, h.opts.LimitKey, httprate.WithLimitHandler(tooManyRequests))).
-			Post("/contributions", h.submit)
+		r.Post("/contributions", h.submit)
 	}
 }
 
@@ -98,18 +90,36 @@ func noStore(w http.ResponseWriter) { w.Header().Set("Cache-Control", "no-store"
 
 type availabilityDTO struct {
 	Open bool `json:"open"`
-	// Reason: "disabled" quando o envio está desligado; null se aberto.
+	// Reason: "disabled" quando o envio está desligado, "paused" quando a
+	// Fila chegou ao teto de pendentes; null se aberto.
 	Reason *string `json:"reason"`
 }
 
-func (h *Handlers) availability(w http.ResponseWriter, _ *http.Request) {
-	out := availabilityDTO{Open: h.opts.Enabled}
+func (h *Handlers) availability(w http.ResponseWriter, r *http.Request) {
+	out := availabilityDTO{Open: true}
+	closed := func(reason string) { out.Open, out.Reason = false, &reason }
 	if !h.opts.Enabled {
-		r := "disabled"
-		out.Reason = &r
+		closed("disabled")
+	} else if err := h.uc.Availability.Execute(r.Context()); errors.Is(err, app.ErrSubmissionsPaused) {
+		closed("paused")
+	} else if err != nil {
+		h.writeErr(w, r, err)
+		return
 	}
 	noStore(w)
 	httpx.WriteJSON(w, http.StatusOK, out)
+}
+
+// clientKey é a chave do rate limit de quem chama. Sem ela não há como
+// contar: a requisição é recusada, nunca atendida sem limite.
+func (h *Handlers) clientKey(w http.ResponseWriter, r *http.Request) (string, bool) {
+	key, err := h.opts.LimitKey(r)
+	if err != nil || key == "" {
+		h.logger.WarnContext(r.Context(), "contribution: sem chave de rate limit")
+		httpx.WriteError(w, http.StatusBadRequest, "bad_request", "Requisição inválida.")
+		return "", false
+	}
+	return key, true
 }
 
 type submitRequest struct {
@@ -129,12 +139,16 @@ type submitResponse struct {
 }
 
 func (h *Handlers) submit(w http.ResponseWriter, r *http.Request) {
+	key, ok := h.clientKey(w, r)
+	if !ok {
+		return
+	}
 	var req submitRequest
 	if !httpx.DecodeJSON(w, r, &req) {
 		return
 	}
 	code, err := h.uc.Submit.Execute(r.Context(), app.SubmitInput{
-		PropositionSlug: req.PropositionSlug,
+		PropositionSlug: req.PropositionSlug, ClientKey: key,
 		Submission: domain.Submission{
 			Kind: domain.Kind(req.Kind), Link: req.Link, Sphere: domain.Sphere(req.Sphere),
 			EventType: domain.EventType(req.EventType), EventDate: req.EventDate,
@@ -170,11 +184,15 @@ func optional(s string) *string {
 }
 
 func (h *Handlers) lookup(w http.ResponseWriter, r *http.Request) {
+	key, ok := h.clientKey(w, r)
+	if !ok {
+		return
+	}
 	var req lookupRequest
 	if !httpx.DecodeJSON(w, r, &req) {
 		return
 	}
-	res, err := h.uc.Lookup.Execute(r.Context(), req.Code)
+	res, err := h.uc.Lookup.Execute(r.Context(), app.LookupInput{Code: req.Code, ClientKey: key})
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
@@ -450,6 +468,8 @@ func errMappings() []errMapping {
 	return []errMapping{
 		{app.ErrUnauthenticated, http.StatusUnauthorized, "unauthenticated", "Faça login para continuar."},
 		{app.ErrForbidden, http.StatusForbidden, "forbidden", "Você não tem permissão para isso."},
+		{app.ErrRateLimited, http.StatusTooManyRequests, "too_many_requests", "Muitas tentativas deste endereço. Tente de novo mais tarde."},
+		{app.ErrSubmissionsPaused, http.StatusServiceUnavailable, "contributions_paused", "Contribuições pausadas: a equipe está em dia com as pendentes e reabre logo."},
 		{domain.ErrContributionNotFound, http.StatusNotFound, "contribution_not_found", "Nenhuma Contribuição com este código. Confira o código e tente de novo."},
 		{domain.ErrOfficialSourceNotFound, http.StatusNotFound, "official_source_not_found", "Fonte oficial não encontrada."},
 		{domain.ErrInvalidKind, bad, "invalid_kind", "Escolha o tipo de Contribuição."},
@@ -475,8 +495,4 @@ func (h *Handlers) writeErr(w http.ResponseWriter, r *http.Request, err error) {
 	}
 	h.logger.ErrorContext(r.Context(), "contribution request failed", "error", err.Error())
 	httpx.WriteError(w, http.StatusInternalServerError, "internal", "Erro interno. Tente de novo.")
-}
-
-func tooManyRequests(w http.ResponseWriter, _ *http.Request) {
-	httpx.WriteError(w, http.StatusTooManyRequests, "too_many_requests", "Muitas tentativas deste endereço. Tente de novo mais tarde.")
 }

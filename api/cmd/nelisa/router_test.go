@@ -30,7 +30,10 @@ func (f fakePinger) Ping(context.Context) error { return f.err }
 
 // testConfig é uma config mínima válida para montar o roteador.
 func testConfig() config.Config {
-	return config.Config{JWTSecret: strings.Repeat("s", 32), SecureCookies: true, ContributionsEnabled: true}
+	return config.Config{
+		JWTSecret: strings.Repeat("s", 32), SecureCookies: true, ContributionsEnabled: true,
+		ContributionRatePerHour: config.DefaultContributionRatePerHour, ContributionPendingCap: config.DefaultContributionPendingCap,
+	}
 }
 
 func fakeTeam(logger *slog.Logger) teamModule {
@@ -60,8 +63,9 @@ func fakeContent(logger *slog.Logger) contentModule {
 		audit:     func(context.Context, auditapp.RecordEventInput) error { return nil },
 		scheduler: noScheduler{}, sources: ingestapp.NewSources(),
 		contributions: contribfakes.Contributions{W: cw}, officialSources: contribfakes.Sources{W: cw},
+		rateCounter: contribfakes.RateCounter{W: cw},
 	}
-	return newContentModule(newContentUseCases(p, clock.System{}), contributionOptions(testConfig()), logger)
+	return newContentModule(newContentUseCases(p, clock.System{}, contributionLimits(testConfig())), contributionOptions(testConfig()), logger)
 }
 
 func serve(p Pinger, method, path string) *httptest.ResponseRecorder {
