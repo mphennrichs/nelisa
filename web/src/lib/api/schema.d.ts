@@ -326,7 +326,10 @@ export interface paths {
         /**
          * Troca a própria senha
          * @description Exige a senha atual. Encerra todas as sessões da pessoa, inclusive a
-         *     atual, e devolve uma sessão nova (token de acesso e cookie).
+         *     atual, e devolve uma sessão nova (token de acesso e cookie). Tira a
+         *     marca de senha temporária. A nova precisa ser diferente da atual
+         *     (400 `password_unchanged`). Junto com `GET /api/team/me`, é a única
+         *     rota que a senha temporária alcança.
          */
         post: {
             parameters: {

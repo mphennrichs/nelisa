@@ -161,7 +161,10 @@ paths:
       summary: Troca a própria senha
       description: |
         Exige a senha atual. Encerra todas as sessões da pessoa, inclusive a
-        atual, e devolve uma sessão nova (token de acesso e cookie).
+        atual, e devolve uma sessão nova (token de acesso e cookie). Tira a
+        marca de senha temporária. A nova precisa ser diferente da atual
+        (400 `password_unchanged`). Junto com `GET /api/team/me`, é a única
+        rota que a senha temporária alcança.
       requestBody:
         required: true
         content:
@@ -1993,7 +1996,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token de acesso devolvido por login, bootstrap, refresh ou troca de senha.
+      description: |
+        Token de acesso devolvido por login, bootstrap, refresh ou troca de senha.
+        Com senha temporária (`must_change_password`), toda rota de `/api/team`
+        fora de `/auth`, `GET /me` e `POST /me/password` responde 403
+        `password_change_required` até a troca.
     refreshCookie:
       type: apiKey
       in: cookie

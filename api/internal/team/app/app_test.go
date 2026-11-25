@@ -317,6 +317,53 @@ func TestGetMe(t *testing.T) {
 
 // --- change password ---
 
+func TestTemporaryPasswordOnlyReachesPasswordChange(t *testing.T) {
+	e := newEnv()
+	ctx := context.Background()
+	admin := as("admin", domain.RoleAdmin)
+	e.user(t, "admin", "admin@nelisa.org", "senha-do-admin", domain.RoleAdmin)
+	created, err := e.createUser().Execute(admin, app.CreateUserInput{Name: "Bia", Email: "bia@nelisa.org", Password: "temporaria", Role: "editor"})
+	if err != nil || !created.MustChangePassword {
+		t.Fatalf("cadastro = %+v, %v", created, err)
+	}
+
+	s, err := e.login().Execute(ctx, app.LoginInput{Email: "bia@nelisa.org", Password: "temporaria"})
+	if err != nil {
+		t.Fatalf("login com senha temporária: %v", err)
+	}
+	if _, err := e.authenticate().Execute(ctx, app.AuthenticateInput{AccessToken: s.AccessToken}); !errors.Is(err, app.ErrPasswordChangeRequired) {
+		t.Fatalf("rota comum com senha temporária = %v; want ErrPasswordChangeRequired", err)
+	}
+	actor, err := e.authenticate().Execute(ctx, app.AuthenticateInput{AccessToken: s.AccessToken, ForPasswordChange: true})
+	if err != nil || actor.UserID != created.ID {
+		t.Fatalf("rota de troca = %+v, %v", actor, err)
+	}
+
+	self := auth.WithActor(ctx, actor)
+	if _, err := e.changePassword().Execute(self, app.ChangePasswordInput{CurrentPassword: "temporaria", NewPassword: "temporaria"}); !errors.Is(err, app.ErrPasswordUnchanged) {
+		t.Fatalf("manter a temporária = %v; want ErrPasswordUnchanged", err)
+	}
+	e.clk.Advance(time.Second)
+	s, err = e.changePassword().Execute(self, app.ChangePasswordInput{CurrentPassword: "temporaria", NewPassword: "senha-da-bia"})
+	if err != nil || s.User.MustChangePassword {
+		t.Fatalf("troca = %+v, %v", s.User, err)
+	}
+	if _, err := e.authenticate().Execute(ctx, app.AuthenticateInput{AccessToken: s.AccessToken}); err != nil {
+		t.Errorf("depois da troca: %v", err)
+	}
+
+	// O reset do Admin volta a exigir a troca.
+	e.clk.Advance(time.Second)
+	if err := e.resetPassword().Execute(admin, app.ResetPasswordInput{UserID: created.ID, NewPassword: "outra-temporaria"}); err != nil {
+		t.Fatal(err)
+	}
+	e.clk.Advance(time.Second)
+	s, _ = e.login().Execute(ctx, app.LoginInput{Email: "bia@nelisa.org", Password: "outra-temporaria"})
+	if _, err := e.authenticate().Execute(ctx, app.AuthenticateInput{AccessToken: s.AccessToken}); !errors.Is(err, app.ErrPasswordChangeRequired) {
+		t.Errorf("depois do reset = %v; want ErrPasswordChangeRequired", err)
+	}
+}
+
 func TestChangePassword(t *testing.T) {
 	e := newEnv()
 	e.user(t, "u1", "ana@nelisa.org", "senha-antiga", domain.RoleEditor)

@@ -255,10 +255,17 @@ que pode aprovar o próprio trabalho (furar os quatro olhos).
 
 **Cadastro de equipe**:
 A única forma de entrar na equipe: o Admin cadastra a pessoa (nome, e-mail,
-senha inicial, role). Não existe auto-cadastro nem convite por e-mail na v1;
+Senha temporária, role). Não existe auto-cadastro nem convite por e-mail na v1;
 reset de senha também é feito pelo Admin. Contas são desativadas, nunca
 apagadas — a Autoria editorial das Proposições que a pessoa trabalhou continua íntegra.
 _Evitar_: Convite (não existe na v1), registro
+
+**Senha temporária**:
+A senha que o Admin define no Cadastro de equipe ou num reset. Só serve para a
+pessoa entrar e escolher uma senha própria, diferente dela; até lá, não faz
+mais nada na equipe. Assim o Admin nunca conhece a senha com que alguém
+trabalha, e a Auditoria e os quatro olhos provam autoria.
+_Evitar_: Senha inicial, senha provisória
 
 **Selo de revisão**:
 O que o Leitor vê sobre a revisão de uma Proposição, sem nomes: "revisado por 2 pessoas"

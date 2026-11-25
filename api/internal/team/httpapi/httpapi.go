@@ -86,11 +86,17 @@ func (h *Handlers) RegisterAuth(r chi.Router) {
 	})
 }
 
+// RegisterSelf monta as rotas que a senha temporária alcança: o próprio
+// cadastro e a troca de senha (#11). r já deve estar atrás de
+// SelfAuthenticator.
+func (h *Handlers) RegisterSelf(r chi.Router) {
+	r.Get("/me", h.getMe)
+	r.Post("/me/password", h.changePassword)
+}
+
 // RegisterAuthenticated monta as rotas que exigem login. r já deve estar
 // atrás de Authenticator.
 func (h *Handlers) RegisterAuthenticated(r chi.Router) {
-	r.Get("/me", h.getMe)
-	r.Post("/me/password", h.changePassword)
 	r.Route("/users", func(r chi.Router) {
 		// Recusa cedo; os casos de uso conferem de novo.
 		r.Use(auth.RequireRole(auth.RoleAdmin))
@@ -104,8 +110,19 @@ func (h *Handlers) RegisterAuthenticated(r chi.Router) {
 }
 
 // Authenticator valida `Authorization: Bearer <token de acesso>` e põe o
-// Ator no contexto. Toda rota de /api/team fora de /auth passa por ele.
+// Ator no contexto. Toda rota de /api/team fora de /auth e de RegisterSelf
+// passa por ele; quem tem senha temporária é recusado (#11).
 func Authenticator(uc *app.Authenticate, logger *slog.Logger) func(http.Handler) http.Handler {
+	return authenticator(uc, logger, false)
+}
+
+// SelfAuthenticator é o Authenticator das rotas de RegisterSelf, que a
+// senha temporária alcança.
+func SelfAuthenticator(uc *app.Authenticate, logger *slog.Logger) func(http.Handler) http.Handler {
+	return authenticator(uc, logger, true)
+}
+
+func authenticator(uc *app.Authenticate, logger *slog.Logger, forPasswordChange bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -113,7 +130,7 @@ func Authenticator(uc *app.Authenticate, logger *slog.Logger) func(http.Handler)
 				httpx.WriteError(w, http.StatusUnauthorized, "unauthenticated", "Faça login para continuar.")
 				return
 			}
-			actor, err := uc.Execute(r.Context(), app.AuthenticateInput{AccessToken: token})
+			actor, err := uc.Execute(r.Context(), app.AuthenticateInput{AccessToken: token, ForPasswordChange: forPasswordChange})
 			if err != nil {
 				writeErr(w, r, logger, err)
 				return
@@ -375,6 +392,8 @@ func errMappings() []errMapping {
 		{app.ErrUnauthenticated, http.StatusUnauthorized, "unauthenticated", "Faça login para continuar."},
 		{app.ErrSessionExpired, http.StatusUnauthorized, "session_expired", "Sua sessão foi encerrada. Faça login de novo."},
 		{app.ErrForbidden, http.StatusForbidden, "forbidden", "Você não tem permissão para isso."},
+		{app.ErrPasswordChangeRequired, http.StatusForbidden, "password_change_required", "Sua senha é temporária. Troque-a para continuar."},
+		{app.ErrPasswordUnchanged, http.StatusBadRequest, "password_unchanged", "A nova senha precisa ser diferente da atual."},
 		{app.ErrInvalidCredentials, http.StatusUnauthorized, "invalid_credentials", "E-mail ou senha incorretos."},
 		{app.ErrAccountDeactivated, http.StatusForbidden, "account_deactivated", "Sua conta está desativada. Fale com um Admin."},
 		{app.ErrBootstrapDisabled, http.StatusForbidden, "bootstrap_disabled", "O cadastro inicial está desligado."},

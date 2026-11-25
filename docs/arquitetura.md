@@ -254,6 +254,13 @@ pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
   SameSite=Strict; Path=/api/team/auth`, girado a cada uso (reuso depois de
   30 s encerra todas as sessões). A role vem do cadastro a cada requisição,
   não do token. Como o Next faz proxy na mesma origem, não há CORS.
+- Senha temporária (#11): a senha definida pelo Admin, no cadastro ou no
+  reset, marca `must_change_password`. Até a troca, o `Authenticate` recusa
+  com 403 `password_change_required` toda rota fora de `/me` e
+  `/me/password` (montadas atrás de `SelfAuthenticator`); a senha nova
+  precisa ser diferente da atual. O `web/` só lê a marca para levar a
+  pessoa à tela de troca. O primeiro Admin (bootstrap) escolhe a própria
+  senha e não passa por isso.
 - O primeiro Admin nasce por `POST /api/team/auth/bootstrap`, que só funciona
   com `BOOTSTRAP_TOKEN` configurado e sem nenhum usuário cadastrado.
 
