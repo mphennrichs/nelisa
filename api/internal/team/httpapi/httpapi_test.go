@@ -66,6 +66,10 @@ func newServer(t *testing.T, secure bool, secret string) *server {
 	r.Route("/api/team", func(r chi.Router) {
 		handlers.RegisterAuth(r)
 		r.Group(func(r chi.Router) {
+			r.Use(httpapi.SelfAuthenticator(uc.Authenticate, logger))
+			handlers.RegisterSelf(r)
+		})
+		r.Group(func(r chi.Router) {
 			r.Use(httpapi.Authenticator(uc.Authenticate, logger))
 			handlers.RegisterAuthenticated(r)
 		})
@@ -413,5 +417,38 @@ func TestChangePasswordEndpoint(t *testing.T) {
 	refreshCookie(t, w)
 	if s.do(req{method: "GET", path: "/api/team/me", bearer: b.AccessToken}).Code != http.StatusOK {
 		t.Error("the new access token must work")
+	}
+}
+
+func TestTemporaryPasswordIsConfinedToSelf(t *testing.T) {
+	s := newServer(t, true, "")
+	u, err := domain.NewUser("a1", "Admin", "admin@nelisa.org", "hashed:temporaria", domain.RoleAdmin, true, t0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.w.Put(u)
+	tok := s.tokenFor("a1", auth.RoleAdmin)
+
+	if w := s.do(req{method: "GET", path: "/api/team/me", bearer: tok}); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"must_change_password":true`) {
+		t.Errorf("/me = %d %s", w.Code, w.Body)
+	}
+	w := s.do(req{method: "GET", path: "/api/team/users", bearer: tok})
+	if w.Code != http.StatusForbidden || !strings.Contains(w.Body.String(), "password_change_required") {
+		t.Errorf("/users com senha temporária = %d %s", w.Code, w.Body)
+	}
+	w = s.do(req{method: "POST", path: "/api/team/me/password", bearer: tok, body: `{"current_password":"temporaria","new_password":"temporaria"}`})
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "password_unchanged") {
+		t.Errorf("manter a temporária = %d %s", w.Code, w.Body)
+	}
+	w = s.do(req{method: "POST", path: "/api/team/me/password", bearer: tok, body: `{"current_password":"temporaria","new_password":"senha-do-admin"}`})
+	if w.Code != http.StatusOK {
+		t.Fatalf("troca = %d %s", w.Code, w.Body)
+	}
+	var sess struct {
+		AccessToken string `json:"access_token"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &sess)
+	if w := s.do(req{method: "GET", path: "/api/team/users", bearer: sess.AccessToken}); w.Code != http.StatusOK {
+		t.Errorf("/users depois da troca = %d %s", w.Code, w.Body)
 	}
 }

@@ -83,6 +83,14 @@ func newEditorialAppWith(t *testing.T, wrapAudit func(recordAudit) recordAudit, 
 		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &s) != nil {
 			t.Fatalf("login %s: %d %s", u.name, w.Code, w.Body)
 		}
+		// A senha do Admin é temporária (#11): até trocá-la, a pessoa não
+		// trabalha.
+		a.tokens[u.name] = s.AccessToken
+		a.expectErr(a.do("GET", "/api/team/queue", u.name, ""), 403, "password_change_required", "senha temporária "+u.name)
+		w = a.do("POST", "/api/team/me/password", u.name, `{"current_password":"senha-forte","new_password":"senha-propria-`+u.name+`"}`)
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &s) != nil {
+			t.Fatalf("troca de senha %s: %d %s", u.name, w.Code, w.Body)
+		}
 		a.tokens[u.name], a.ids[u.name] = s.AccessToken, created.ID
 	}
 	return a

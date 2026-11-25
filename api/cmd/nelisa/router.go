@@ -54,6 +54,11 @@ func newRouter(_ config.Config, db Pinger, team teamModule, content contentModul
 		// /auth é a única parte de /api/team sem login (bootstrap, login,
 		// refresh, logout); todo o resto passa pela autenticação.
 		team.handlers.RegisterAuth(r)
+		// Senha temporária só alcança o próprio cadastro e a troca (#11).
+		r.Group(func(r chi.Router) {
+			r.Use(team.authenticateSelf)
+			team.handlers.RegisterSelf(r)
+		})
 		r.Group(func(r chi.Router) {
 			r.Use(team.authenticate)
 			team.handlers.RegisterAuthenticated(r)

@@ -54,8 +54,11 @@ func (a auditRecorder) Record(ctx context.Context, e teamapp.AuditEvent) error {
 type teamModule struct {
 	handlers *teamhttp.Handlers
 	// authenticate valida o token de acesso e põe o Ator no contexto; vale
-	// para toda rota de /api/team fora de /auth.
+	// para toda rota de /api/team fora de /auth e recusa senha temporária.
 	authenticate func(http.Handler) http.Handler
+	// authenticateSelf é o mesmo, mas aceita senha temporária: só para
+	// /me e a troca de senha (#11).
+	authenticateSelf func(http.Handler) http.Handler
 }
 
 func newTeamModule(cfg config.Config, p teamPorts, clk clock.Clock, logger *slog.Logger) teamModule {
@@ -83,6 +86,7 @@ func newTeamModule(cfg config.Config, p teamPorts, clk clock.Clock, logger *slog
 			SecureCookies: cfg.SecureCookies,
 			LimitKey:      resolver.LimitKey,
 		}, logger),
-		authenticate: teamhttp.Authenticator(authenticate, logger),
+		authenticate:     teamhttp.Authenticator(authenticate, logger),
+		authenticateSelf: teamhttp.SelfAuthenticator(authenticate, logger),
 	}
 }

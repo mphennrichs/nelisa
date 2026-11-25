@@ -11,6 +11,10 @@ import (
 
 type AuthenticateInput struct {
 	AccessToken string
+	// ForPasswordChange: a rota é das que a senha temporária alcança (ver o
+	// próprio cadastro e trocar a senha). Nas outras, quem tem senha
+	// temporária recebe ErrPasswordChangeRequired.
+	ForPasswordChange bool
 }
 
 // Authenticate valida o token de acesso e devolve o Ator. O token só prova
@@ -41,6 +45,8 @@ func (uc *Authenticate) Execute(ctx context.Context, in AuthenticateInput) (auth
 	if !user.SessionValid(claims.IssuedAt) {
 		return auth.Actor{}, ErrSessionExpired
 	}
-	// TODO(#11): recusar quem tem MustChangePassword fora da troca de senha.
+	if user.MustChangePassword && !in.ForPasswordChange {
+		return auth.Actor{}, ErrPasswordChangeRequired
+	}
 	return auth.Actor{UserID: user.ID, Role: auth.Role(user.Role)}, nil
 }

@@ -48,6 +48,9 @@ func (uc *ChangePassword) Execute(ctx context.Context, in ChangePasswordInput) (
 	if err := domain.ValidatePassword(in.NewPassword); err != nil {
 		return Session{}, err
 	}
+	if uc.hasher.Verify(in.NewPassword, user.PasswordHash) {
+		return Session{}, ErrPasswordUnchanged
+	}
 	hash, err := uc.hasher.Hash(in.NewPassword)
 	if err != nil {
 		return Session{}, fmt.Errorf("gerando hash da senha: %w", err)

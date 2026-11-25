@@ -38,10 +38,16 @@ export default function ChangePassword() {
   }
 
   return (
-    <RequireTeam>
-      {() => (
+    <RequireTeam passwordChange>
+      {(user) => (
         <div className="mx-auto max-w-sm space-y-5">
           <h1 className="text-2xl font-bold">Trocar senha</h1>
+          {user.must_change_password && (
+            <p role="status" className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-950">
+              Sua senha atual foi definida pelo Admin e é temporária. Escolha uma senha só sua para continuar: é ela que
+              prova, na Auditoria, que foi você quem fez cada ação.
+            </p>
+          )}
           <form onSubmit={onSubmit} className="card space-y-4">
             <FormError message={error} />
             {done && (

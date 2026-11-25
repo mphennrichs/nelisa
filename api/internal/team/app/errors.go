@@ -13,6 +13,13 @@ var (
 	ErrUnauthenticated = errors.New("team: não autenticado")
 	// ErrSessionExpired: o token é de antes de uma troca ou reset de senha.
 	ErrSessionExpired = errors.New("team: sessão encerrada")
+	// ErrPasswordChangeRequired: a senha é temporária (definida pelo
+	// Admin). Até trocá-la, a pessoa só vê o próprio cadastro e troca a
+	// senha (#11), para a Auditoria e os quatro olhos provarem autoria.
+	ErrPasswordChangeRequired = errors.New("team: troca de senha obrigatória")
+	// ErrPasswordUnchanged: a senha nova é igual à atual. Com senha
+	// temporária, o Admin a conheceria.
+	ErrPasswordUnchanged = errors.New("team: a senha nova é igual à atual")
 	// ErrForbidden: o Ator não tem a role que a ação exige.
 	ErrForbidden = errors.New("team: sem permissão")
 	// ErrInvalidCredentials não diz se o e-mail existe.

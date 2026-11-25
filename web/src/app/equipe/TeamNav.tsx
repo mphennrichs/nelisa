@@ -9,7 +9,9 @@ export default function TeamNav() {
   const pathname = usePathname();
   const router = useRouter();
   const admin = state.status === "authenticated" && state.user.role === "admin";
-  const links = [
+  // Com senha temporária só a troca de senha funciona (#11).
+  const mustChange = state.status === "authenticated" && state.user.must_change_password;
+  const links = mustChange ? [{ href: "/equipe/senha", label: "Trocar senha" }] : [
     { href: "/equipe/fila", label: "Fila de revisão" },
     { href: "/equipe/proposicoes", label: "Proposições" },
     { href: "/equipe/radar", label: "Radar" },
