@@ -4,3 +4,4 @@ node_modules/
 
 # worktrees e estado local de agentes
 .claude/
+.claude/handoff-*.md

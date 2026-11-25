@@ -254,6 +254,12 @@ pegadinhas de cada uma estão em [`fontes-oficiais.md`](fontes-oficiais.md).
   SameSite=Strict; Path=/api/team/auth`, girado a cada uso (reuso depois de
   30 s encerra todas as sessões). A role vem do cadastro a cada requisição,
   não do token. Como o Next faz proxy na mesma origem, não há CORS.
+- Login na Auditoria (#13): o login com sucesso grava `user.login` na mesma
+  transação da sessão; a falha grava `user.login_failed` sem ator, com o
+  motivo (`invalid_password`, `deactivated`). E-mail sem conta vira alvo
+  `login/unknown_email`: o que foi digitado nunca é gravado, e a gravação
+  existe nos dois caminhos para o tempo de resposta não revelar quem tem
+  conta. Sem o evento gravado, o login não sai.
 - O primeiro Admin nasce por `POST /api/team/auth/bootstrap`, que só funciona
   com `BOOTSTRAP_TOKEN` configurado e sem nenhum usuário cadastrado.
 

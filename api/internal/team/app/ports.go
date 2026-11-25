@@ -90,5 +90,12 @@ const (
 	ActionUserDeactivate    = "user.deactivate"
 	ActionUserReactivate    = "user.reactivate"
 
+	// Login (#13). A falha não tem ator: quem tentou não provou quem é.
+	ActionUserLogin       = "user.login"
+	ActionUserLoginFailed = "user.login_failed"
+
 	targetUser = "user"
+	// targetLogin é o alvo da falha de login com e-mail sem conta: o e-mail
+	// digitado não é gravado (pode ser a senha no campo errado).
+	targetLogin = "login"
 )

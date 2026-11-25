@@ -270,8 +270,10 @@ segue pronta; quando outro Revisor confirma, o Selo passa a "2 pessoas".
 
 **Auditoria**:
 Registro interno, obrigatório e inapagável (nem pelo Admin) de toda aprovação
-(quem, quando, qual Versão, se houve furo) e de toda ação sensível do Admin
-(convidar, promover, rebaixar, desativar, remover Fonte oficial).
+(quem, quando, qual Versão, se houve furo), de toda ação sensível do Admin
+(convidar, promover, rebaixar, desativar, remover Fonte oficial, resetar
+senha) e de todo login da equipe, inclusive os que falham — sem guardar o
+que foi digitado.
 _Evitar_: Log (é técnico; Auditoria é do domínio)
 
 ### Contribuições

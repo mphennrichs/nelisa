@@ -59,6 +59,22 @@ func TestTeamEndToEndWithAudit(t *testing.T) {
 		t.Fatalf("create: %d %s", w.Code, w.Body)
 	}
 
+	// Falhas de login (#13): sem ator, com o motivo; o e-mail sem conta
+	// não é gravado.
+	if w := do("POST", "/api/team/auth/login", `{"email":"bia@nelisa.org","password":"errada-123"}`, "", nil); w.Code != http.StatusUnauthorized {
+		t.Fatalf("senha errada: %d %s", w.Code, w.Body)
+	}
+	if w := do("POST", "/api/team/auth/login", `{"email":"ninguem@nelisa.org","password":"errada-123"}`, "", nil); w.Code != http.StatusUnauthorized {
+		t.Fatalf("e-mail sem conta: %d %s", w.Code, w.Body)
+	}
+	var failed int
+	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM audit.events
+		WHERE action = 'user.login_failed' AND actor_id IS NULL
+		AND ((target_type = 'user' AND target_id = $1 AND metadata->>'reason' = 'invalid_password')
+		  OR (target_type = 'login' AND target_id = 'unknown_email' AND metadata::text NOT LIKE '%ninguem%'))`, created.ID).Scan(&failed); err != nil || failed != 2 {
+		t.Fatalf("falhas de login auditadas = %d, %v", failed, err)
+	}
+
 	w = do("POST", "/api/team/auth/login", `{"email":"BIA@nelisa.org","password":"temporaria"}`, "", nil)
 	if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &session) != nil {
 		t.Fatalf("login: %d %s", w.Code, w.Body)
@@ -99,11 +115,26 @@ func TestTeamEndToEndWithAudit(t *testing.T) {
 		t.Fatal(err)
 	}
 	var actions []string
+	logins := 0
 	for _, e := range events {
+		if e.Action == teamapp.ActionUserLoginFailed {
+			continue // conferido acima
+		}
+		if e.Action == teamapp.ActionUserLogin {
+			// O login (#13) é da própria pessoa, gravado no Postgres.
+			if e.ActorID != created.ID {
+				t.Errorf("login by %q, want %q", e.ActorID, created.ID)
+			}
+			logins++
+			continue
+		}
 		if e.ActorID != adminID {
 			t.Errorf("event %s by %q, want admin", e.Action, e.ActorID)
 		}
 		actions = append(actions, e.Action)
+	}
+	if logins == 0 {
+		t.Error("o login não foi auditado")
 	}
 	want := []string{teamapp.ActionUserCreate, teamapp.ActionUserRoleChange, teamapp.ActionUserPasswordReset, teamapp.ActionUserDeactivate}
 	if strings.Join(actions, ",") != strings.Join(want, ",") {
