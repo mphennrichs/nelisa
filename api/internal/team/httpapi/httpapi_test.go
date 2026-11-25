@@ -42,7 +42,7 @@ func newServer(t *testing.T, secure bool, secret string) *server {
 	h := fakes.Hasher{}
 	uc := httpapi.UseCases{
 		Bootstrap:      app.NewBootstrap(w.Users(), h, sessions, w.Tx(), w.Audit(), clk, secret),
-		Login:          app.NewLogin(w.Users(), h, sessions),
+		Login:          app.NewLogin(w.Users(), h, sessions, w.Tx(), w.Audit()),
 		Refresh:        app.NewRefresh(w.Tokens(), w.Users(), sessions, clk),
 		Logout:         app.NewLogout(w.Tokens()),
 		Authenticate:   app.NewAuthenticate(access, w.Users()),
@@ -384,7 +384,9 @@ func TestAdminManagesUsers(t *testing.T) {
 
 	var actions []string
 	for _, e := range s.w.Events() {
-		actions = append(actions, e.Action)
+		if e.Action != app.ActionUserLogin && e.Action != app.ActionUserLoginFailed {
+			actions = append(actions, e.Action)
+		}
 	}
 	want := []string{app.ActionUserCreate, app.ActionUserRoleChange, app.ActionUserPasswordReset, app.ActionUserDeactivate, app.ActionUserReactivate}
 	if strings.Join(actions, ",") != strings.Join(want, ",") {

@@ -64,7 +64,7 @@ func newTeamModule(cfg config.Config, p teamPorts, clk clock.Clock, logger *slog
 	authenticate := teamapp.NewAuthenticate(access, p.users)
 	uc := teamhttp.UseCases{
 		Bootstrap:      teamapp.NewBootstrap(p.users, p.hasher, sessions, p.tx, p.audit, clk, cfg.BootstrapToken),
-		Login:          teamapp.NewLogin(p.users, p.hasher, sessions),
+		Login:          teamapp.NewLogin(p.users, p.hasher, sessions, p.tx, p.audit),
 		Refresh:        teamapp.NewRefresh(p.tokens, p.users, sessions, clk),
 		Logout:         teamapp.NewLogout(p.tokens),
 		Authenticate:   authenticate,

@@ -3,6 +3,7 @@ package app_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -50,7 +51,9 @@ func as(id string, role domain.Role) context.Context {
 func (e *env) bootstrap(secret string) *app.Bootstrap {
 	return app.NewBootstrap(e.w.Users(), fakes.Hasher{}, e.sessions, e.w.Tx(), e.w.Audit(), e.clk, secret)
 }
-func (e *env) login() *app.Login { return app.NewLogin(e.w.Users(), fakes.Hasher{}, e.sessions) }
+func (e *env) login() *app.Login {
+	return app.NewLogin(e.w.Users(), fakes.Hasher{}, e.sessions, e.w.Tx(), e.w.Audit())
+}
 func (e *env) refresh() *app.Refresh {
 	return app.NewRefresh(e.w.Tokens(), e.w.Users(), e.sessions, e.clk)
 }
@@ -174,6 +177,72 @@ func TestLogin(t *testing.T) {
 		if _, err := e.login().Execute(context.Background(), in); !errors.Is(err, app.ErrInvalidCredentials) {
 			t.Errorf("%s: err = %v", name, err)
 		}
+	}
+}
+
+// adminEvents tira os eventos de login (#13), para os testes do cadastro
+// olharem só o que o Admin fez.
+func adminEvents(ev []fakes.RecordedEvent) []fakes.RecordedEvent {
+	out := ev[:0:0]
+	for _, e := range ev {
+		if e.Action != app.ActionUserLogin && e.Action != app.ActionUserLoginFailed {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+func TestLoginIsAudited(t *testing.T) {
+	e := newEnv()
+	u := e.user(t, "u1", "ana@nelisa.org", "senha-certa", domain.RoleEditor)
+	ctx := context.Background()
+
+	if _, err := e.login().Execute(ctx, app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"}); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = e.login().Execute(ctx, app.LoginInput{Email: "ana@nelisa.org", Password: "senha-errada"})
+	_, _ = e.login().Execute(ctx, app.LoginInput{Email: "senha-no-campo-errado", Password: "x"})
+	u.Deactivate(e.clk.Now())
+	e.w.Put(u)
+	if _, err := e.login().Execute(ctx, app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"}); !errors.Is(err, app.ErrAccountDeactivated) {
+		t.Fatalf("desativada: %v", err)
+	}
+
+	ev := e.w.Events()
+	want := []struct {
+		actor, action, targetType, targetID, reason string
+		inTx                                        bool
+	}{
+		{"u1", app.ActionUserLogin, "user", "u1", "", true},
+		{"", app.ActionUserLoginFailed, "user", "u1", app.LoginFailedPassword, false},
+		{"", app.ActionUserLoginFailed, "login", app.LoginFailedUnknownEmail, app.LoginFailedUnknownEmail, false},
+		{"", app.ActionUserLoginFailed, "user", "u1", app.LoginFailedDeactivated, false},
+	}
+	if len(ev) != len(want) {
+		t.Fatalf("eventos = %+v", ev)
+	}
+	for i, w := range want {
+		got := ev[i]
+		reason, _ := got.Metadata["reason"].(string)
+		if got.ActorID != w.actor || got.Action != w.action || got.TargetType != w.targetType || got.TargetID != w.targetID || reason != w.reason || got.InTx != w.inTx {
+			t.Errorf("evento %d = %+v; want %+v", i, got, w)
+		}
+		// Nunca a senha nem o e-mail digitado.
+		if dump := fmt.Sprintf("%v", got); strings.Contains(dump, "senha") || strings.Contains(dump, "@") {
+			t.Errorf("evento %d vazou o que foi digitado: %s", i, dump)
+		}
+	}
+}
+
+func TestLoginFailsWithoutAudit(t *testing.T) {
+	e := newEnv()
+	e.user(t, "u1", "ana@nelisa.org", "senha-certa", domain.RoleEditor)
+	e.w.AuditErr = errors.New("auditoria fora do ar")
+	if _, err := e.login().Execute(context.Background(), app.LoginInput{Email: "ana@nelisa.org", Password: "senha-certa"}); err == nil {
+		t.Fatal("login sem Auditoria passou")
+	}
+	if n := len(e.w.TokensOf("u1")); n != 0 {
+		t.Errorf("a sessão ficou sem o evento: %d sessões", n)
 	}
 }
 
@@ -462,7 +531,7 @@ func TestResetPassword(t *testing.T) {
 	if n := len(e.w.TokensOf("u1")); n != 0 {
 		t.Errorf("reset must end sessions, %d left", n)
 	}
-	ev := e.w.Events()
+	ev := adminEvents(e.w.Events())
 	if len(ev) != 1 || ev[0].Action != app.ActionUserPasswordReset || !ev[0].InTx || len(ev[0].Metadata) != 0 {
 		t.Fatalf("events = %+v", ev)
 	}
@@ -567,7 +636,7 @@ func TestDeactivateUserKeepsAccountAndEndsAccess(t *testing.T) {
 	if _, err := e.deactivateUser().Execute(ctx, app.SetUserActiveInput{UserID: "u1"}); err != nil {
 		t.Fatal(err)
 	}
-	ev := e.w.Events()
+	ev := adminEvents(e.w.Events())
 	if len(ev) != 1 || ev[0].Action != app.ActionUserDeactivate || ev[0].TargetID != "u1" || !ev[0].InTx {
 		t.Fatalf("events = %+v", ev)
 	}
@@ -581,7 +650,7 @@ func TestDeactivateUserKeepsAccountAndEndsAccess(t *testing.T) {
 	}
 	_, err = e.authenticate().Execute(context.Background(), app.AuthenticateInput{AccessToken: sess.AccessToken})
 	check(t, "token from before the deactivation stays dead", err, app.ErrSessionExpired)
-	if ev := e.w.Events(); len(ev) != 2 || ev[1].Action != app.ActionUserReactivate {
+	if ev := adminEvents(e.w.Events()); len(ev) != 2 || ev[1].Action != app.ActionUserReactivate {
 		t.Fatalf("events = %+v", ev)
 	}
 }
